@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Called It · The Wade of Kings</title>
+<link rel="stylesheet" href="assets/palanaeum.css">
+</head>
+<body data-page="ledger">
+<main class="wrap">
+  <header class="page-head">
+    <h1>Called It</h1>
+    <p class="lede">Wade's predictions and open questions, in his exact words, frozen the moment he said them. They're settled only when the book settles them.</p>
+  </header>
+  <div class="ledger-cols">
+    <section aria-labelledby="pred-h">
+      <h2 id="pred-h">Predictions</h2>
+      <div id="predictions"></div>
+    </section>
+    <section aria-labelledby="q-h">
+      <h2 id="q-h">Questions</h2>
+      <div id="questions"></div>
+    </section>
+  </div>
+  <section aria-labelledby="u-h" style="margin-top:3.5rem">
+    <h2 id="u-h">The Unhinged Ledger</h2>
+    <p class="muted">The boldest calls. Append-only: nothing here can ever be edited.</p>
+    <div id="unhinged"></div>
+  </section>
+</main>
+<script src="data/palanaeum.js"></script>
+<script src="assets/palanaeum.js"></script>
+<script>
+(function () {
+  const D = P.data;
+  const at = (id) => P.unitLabel(P.unitById[id.split("@")[0]], { short: true });
+  const preds = D.predictions.filter((p) => P.visible(p.h));
+  document.getElementById("predictions").innerHTML = preds.length ? preds.map((p) => {
+    const conf = p.confidence.filter((c) => P.visible(c.h));
+    const last = conf[conf.length - 1] || p.confidence[0];
+    const resolved = p.status !== "open" && p.rh !== null && P.visible(p.rh);
+    const history = conf.length > 1 ? `<span>${conf.map((c) => `${c.p}%`).join(" then ")}</span>` : "";
+    return `<article class="call"${P.isNew(p.h) ? ' data-new="1"' : ""}>
+      <p class="claim">“${p.claim}”</p>
+      <div class="meta"><span>${P.esc(p.id)}, made at ${P.esc(at(p.made_at))}</span>
+        <span class="confidence" title="Confidence"><span class="bar"><i style="width:${last.p}%"></i></span>${last.p}%</span>${history}
+        ${resolved ? `<span class="stamp ${p.status}">${p.status === "called" ? "Called it" : p.status}</span>` : ""}</div>
+      <div class="prose small" style="margin-top:.6rem">${P.renderSections(p.sections)}</div></article>`;
+  }).join("") : `<div class="empty"><strong>No predictions on the record yet.</strong>
+      Wade just has to say “I bet…” to his ardent and it lands here with a confidence number, frozen in his own words.</div>`;
+
+  const qs = D.questions.filter((q) => P.visible(q.h));
+  document.getElementById("questions").innerHTML = qs.length ? qs.map((q) => {
+    const answered = q.status !== "open" && q.ah !== null && P.visible(q.ah);
+    return `<article class="call"${P.isNew(q.h) ? ' data-new="1"' : ""}>
+      <p class="claim" style="font-size:1.1rem">“${q.question}”</p>
+      <div class="meta"><span>${P.esc(q.id)}, asked at ${P.esc(at(q.asked_at))}</span>
+        <span>${answered ? `answered in ${P.esc(at(q.answered_at))}` : "still open"}</span></div>
+      <div class="prose small" style="margin-top:.6rem">${P.renderSections(q.sections)}</div></article>`;
+  }).join("") : `<div class="empty"><strong>No questions yet.</strong>Anything Wade wonders about (“why did…”, “who was…”) gets filed here until the book answers it.</div>`;
+
+  const un = D.unhinged.filter((u) => P.visible(u.h));
+  document.getElementById("unhinged").innerHTML = un.length ? un.map((u) =>
+    `<article class="call"><p class="claim">“${u.claim}”</p><div class="meta"><span>${P.esc(u.id)}, ${P.esc(at(u.made_at))}, ${P.esc(u.made_on)}</span></div></article>`).join("")
+    : `<div class="empty"><strong>Empty, for now.</strong>Say “hear me out” and the wildest theories go here, forever.</div>`;
+})();
+</script>
+</body>
+</html>

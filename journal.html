@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Journal · The Wade of Kings</title>
+<link rel="stylesheet" href="assets/palanaeum.css">
+</head>
+<body data-page="journal">
+<main class="wrap narrow">
+  <header class="page-head">
+    <h1>Journal</h1>
+    <p class="lede">Every chapter in reading order: whose eyes it's told through, what happened, and what Wade said about it, in his own words.</p>
+  </header>
+  <ol class="chapters" id="chapters"></ol>
+</main>
+<script src="data/palanaeum.js"></script>
+<script src="assets/palanaeum.js"></script>
+<script>
+(function () {
+  let lastPart = null;
+  const html = [];
+  for (const u of P.data.units.filter((x) => P.visible(x.h))) {
+    if (u.part && u.part !== lastPart) html.push(`<li class="part-marker">${P.esc(u.part)}</li>`);
+    lastPart = u.part || lastPart;
+    const pov = u.pov.map((id) => P.entLink(id)).join(" and ");
+    const flash = /ago|before|flashback/i.test(u.when || "");
+    html.push(`<li class="chapter ${u.kind}${flash ? " flashback" : ""}" id="${P.unitAnchor(u.id)}"${P.isNew(u.h) ? ' data-new="1"' : ""}>
+      <p class="label">${P.esc(u.label)}</p>
+      <h2>${P.esc(u.title && u.title.toLowerCase() !== u.label.toLowerCase() ? u.title : u.label)}</h2>
+      <p class="who">${pov ? `Through ${pov}'s eyes` : ""}${u.when ? `${pov ? ". " : ""}<span class="when">${P.esc(u.when)}</span>` : ""}</p>
+      <div class="prose">${P.renderSections(u.sections, { skipTitles: true }) || '<p class="muted">No notes yet.</p>'}</div></li>`);
+  }
+  document.getElementById("chapters").innerHTML = html.join("");
+  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+})();
+</script>
+</body>
+</html>

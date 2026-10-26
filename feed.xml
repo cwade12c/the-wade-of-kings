@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>The Wade of Kings</title>
+  <link href="https://cwade12c.github.io/the-wade-of-kings/"/>
+  <link rel="self" href="https://cwade12c.github.io/the-wade-of-kings/feed.xml"/>
+  <id>https://cwade12c.github.io/the-wade-of-kings/</id>
+  <updated>2026-10-26T20:21:52+00:00</updated>
+  <author><name>Wade's ardent</name></author>
+  <entry>
+    <title>Dispatch #000: Who is connected to whom?</title>
+    <link href="https://cwade12c.github.io/the-wade-of-kings/dispatches/000-who-is-connected-to-whom/chart.png"/>
+    <id>https://cwade12c.github.io/the-wade-of-kings/dispatches/000-who-is-connected-to-whom/chart.png#2026-10-26</id>
+    <updated>2026-10-26T12:00:00Z</updated>
+    <summary>Safe through wok:12. Wade&#x27;s own map of the cast, made at the end of Chapter 12 because the names were piling up. This is the founding artifact of the Palanaeum.</summary>
+  </entry>
+  <entry>
+    <title>Wade finished Chapter 12 · Unity</title>
+    <link href="https://cwade12c.github.io/the-wade-of-kings/journal.html#wok-12"/>
+    <id>https://cwade12c.github.io/the-wade-of-kings/journal.html#wok-12#2026-10-26</id>
+    <updated>2026-10-26T12:00:00Z</updated>
+    <summary>The Palanaeum opens: Part One, Interludes I-1 to I-3 and Chapter 12 finished.</summary>
+  </entry>
+</feed>

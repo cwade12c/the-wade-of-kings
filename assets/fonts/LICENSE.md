@@ -1,0 +1,1 @@
+IM Fell English (Igino Marini) and Atkinson Hyperlegible (Braille Institute) are licensed under the SIL Open Font License 1.1: https://openfontlicense.org. Files were downloaded unmodified from Google Fonts.

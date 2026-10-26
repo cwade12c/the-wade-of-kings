@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Unfolding · The Wade of Kings</title>
+<link rel="stylesheet" href="assets/palanaeum.css">
+</head>
+<body data-page="unfolding">
+<main>
+  <div class="web-shell">
+    <aside class="web-rail">
+      <h1>The Unfolding</h1>
+      <p>Everyone Wade has met and every tie the book has drawn between them, rebuilt from cited notes. Press play to watch it grow from the Prelude.</p>
+      <ul class="legend" id="legend" aria-label="Show or hide each kind of tie"></ul>
+      <ul class="legend styles" aria-label="Line styles">
+        <li><span class="line"></span>Shown on the page</li>
+        <li><span class="line said"></span>A character says so</li>
+        <li><span class="line inferred"></span>Wade's reading, not yet confirmed</li>
+      </ul>
+      <p>Lit spheres are viewpoint characters; squares are groups. Arrows mark command, dots support, bars hostility.</p>
+      <div class="node-card" id="card" hidden></div>
+    </aside>
+    <div class="web-canvas">
+      <svg id="web" role="img" aria-label="Relationship web"></svg>
+      <div class="stormwall" id="wall"></div>
+      <div class="web-tip" id="tip" role="status"></div>
+    </div>
+  </div>
+  <div class="scrubber">
+    <div class="wrap">
+      <button class="play" id="play" type="button">Play from the Prelude</button>
+      <div class="string" id="string" role="group" aria-label="Choose a chapter to see the web as it stood then"></div>
+    </div>
+    <div class="wrap"><p class="string-caption" id="caption" aria-live="polite"></p></div>
+  </div>
+</main>
+<script src="data/palanaeum.js"></script>
+<script src="assets/palanaeum.js"></script>
+<script src="assets/vendor/d3.v7.min.js"></script>
+<script src="assets/web.js"></script>
+<script>
+(function () {
+  const card = document.getElementById("card");
+  const wall = document.getElementById("wall");
+  let current = P.limit();
+
+  function renderCard(n) {
+    if (!n) { card.hidden = true; return; }
+    const e = n.e;
+    const ties = P.data.relations.filter((r) => r.h <= current && (r.from === e.id || r.to === e.id));
+    const first = P.unitById[e.first_seen.split("@")[0]];
+    card.hidden = false;
+    card.innerHTML = `<h2><a class="ent" href="codex.html#${e.id}">${P.esc(e.name)}</a></h2>
+      <p class="muted small">First met in ${P.esc(P.unitLabel(first))}</p>
+      <p class="small">${P.summaryOf(e, current)}</p>
+      <ul>${ties.map((r) => {
+        const other = r.from === e.id ? r.to : r.from;
+        return `<li><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].color};display:inline-block;vertical-align:middle;margin:0 .4rem 0 0"></span><b>${P.esc(P.entName(other))}</b>: ${P.esc(r.label)}</li>`;
+      }).join("")}</ul>`;
+  }
+
+  const web = P.web(document.getElementById("web"), {
+    labels: "all", interactive: true, tip: document.getElementById("tip"),
+    onSelect: (n) => { renderCard(n); history.replaceState(null, "", n ? `#${n.id}` : location.pathname); },
+  });
+
+  const legend = document.getElementById("legend");
+  function drawLegend() {
+    legend.innerHTML = Object.entries(P.TYPES).map(([k, t]) => `<li><label>
+      <input type="checkbox" value="${k}" checked><span class="line" style="--c:${t.color}"></span>
+      <span>${t.label}</span><span class="count">${web.count(k)}</span></label></li>`).join("");
+    legend.querySelectorAll("input").forEach((i) => i.addEventListener("change", () =>
+      web.setTypes([...legend.querySelectorAll("input:checked")].map((x) => x.value))));
+  }
+  drawLegend();
+
+  const string = P.sphereString(document.getElementById("string"), document.getElementById("caption"), {
+    onSelect: (u) => goTo(u.h, true),
+  });
+  function sweep() {
+    if (P.reducedMotion) return;
+    wall.classList.remove("sweep"); void wall.offsetWidth; wall.classList.add("sweep");
+  }
+  function goTo(h, withSweep) {
+    current = h;
+    if (withSweep) sweep();
+    web.setHorizon(h);
+    string.setActive(h);
+    legend.querySelectorAll(".count").forEach((c, i) => { c.textContent = web.count(Object.keys(P.TYPES)[i]); });
+  }
+
+  let timer = null;
+  const play = document.getElementById("play");
+  play.addEventListener("click", () => {
+    if (timer) { clearInterval(timer); timer = null; play.textContent = "Play from the Prelude"; return; }
+    if (P.reducedMotion) { goTo(P.limit(), false); return; }
+    let h = 0;
+    goTo(-1, false);
+    play.textContent = "Pause";
+    const step = () => {
+      goTo(h, true);
+      h += 1;
+      if (h > P.limit()) { clearInterval(timer); timer = null; play.textContent = "Play from the Prelude"; }
+    };
+    step();
+    timer = setInterval(step, 1300);
+  });
+
+  goTo(P.limit(), false);
+  const id = location.hash.slice(1);
+  if (id) web.select(id);
+})();
+</script>
+</body>
+</html>

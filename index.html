@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Wade of Kings</title>
+<meta name="description" content="Wade's first read of the Stormlight Archive, mapped chapter by chapter by an ardent who never reads ahead.">
+<link rel="alternate" type="application/atom+xml" title="The Wade of Kings" href="feed.xml">
+<link rel="stylesheet" href="assets/palanaeum.css">
+</head>
+<body data-page="home">
+<main class="wrap">
+  <section class="horizon" aria-labelledby="hz">
+    <p class="book" id="hz-book"></p>
+    <h1 id="hz"><span class="unit" id="hz-unit"></span><span id="hz-title"></span></h1>
+    <p class="reading" id="hz-reading" hidden></p>
+    <div class="string" id="string" role="group" aria-label="Chapters read, in order"></div>
+    <p class="string-caption" id="caption" aria-live="polite"></p>
+    <p class="tally" id="tally"></p>
+  </section>
+
+  <div class="home-grid">
+    <section class="panel" aria-labelledby="web-h">
+      <h2 id="web-h">The Unfolding</h2>
+      <svg class="teaser-web" id="teaser" role="img" aria-label="A web of everyone met so far and the ties between them"></svg>
+      <p class="muted small">Everyone met so far and every tie the book has drawn. Lit spheres are the people whose eyes we've read through.</p>
+      <a class="go" href="unfolding.html">Open the web and play it from the Prelude</a>
+    </section>
+    <section class="panel dispatch-teaser" id="latest" aria-labelledby="latest-h"></section>
+  </div>
+
+  <section class="recent" aria-labelledby="recent-h">
+    <h2 id="recent-h">Latest pages</h2>
+    <ol id="recent"></ol>
+  </section>
+</main>
+<script src="data/palanaeum.js"></script>
+<script src="assets/palanaeum.js"></script>
+<script src="assets/vendor/d3.v7.min.js"></script>
+<script src="assets/web.js"></script>
+<script>
+(function () {
+  const D = P.data, hz = D.meta.horizon, u = P.unitById[hz.id];
+  const f = P.friendH();
+  if (f === null) {
+    document.getElementById("hz-book").textContent = `${hz.book}${hz.part ? `, ${hz.part}` : ""}`;
+    document.getElementById("hz-unit").textContent = `Wade has read through ${u.label}`;
+    document.getElementById("hz-title").textContent = u.title || u.label;
+  } else {  // a friend behind Wade sees his position, never the title or part name past their own
+    const mine = P.units[f];
+    document.getElementById("hz-book").textContent = `${hz.book}. Wade is at ${u.label}.`;
+    document.getElementById("hz-unit").textContent = `You're reading along at ${mine.label}`;
+    document.getElementById("hz-title").textContent = mine.title || mine.label;
+  }
+  if (hz.reading) {
+    const r = document.getElementById("hz-reading");
+    r.hidden = false;
+    r.textContent = `and is ${hz.reading.pct}% into ${hz.reading.full.replace(" · ", ": ")}.`;
+  }
+
+  const stringEl = document.getElementById("string");
+  P.sphereString(stringEl, document.getElementById("caption"), {
+    idle: "Each sphere is a chapter Wade has read. Hover for its title; click to open its journal page.",
+  });
+  stringEl.querySelectorAll(".sphere-btn").forEach((b, i) => b.style.setProperty("--i", i));
+  if (!P.reducedMotion) stringEl.classList.add("lighting");
+
+  const vis = (xs) => xs.filter((x) => P.visible(x.h));
+  const people = vis(D.entities).filter((e) => e.folder === "people").length;
+  const ties = vis(D.relations).length;
+  const preds = vis(D.predictions).length;
+  const qs = vis(D.questions).filter((q) => q.status === "open").length;
+  const n = vis(D.units).length;
+  document.getElementById("tally").innerHTML =
+    `<b>${n}</b> chapters and interludes in. <b>${people}</b> people met, <b>${ties}</b> ties drawn, ` +
+    `<b>${qs}</b> open question${qs === 1 ? "" : "s"} and <b>${preds}</b> prediction${preds === 1 ? "" : "s"} on the record.`;
+
+  P.web(document.getElementById("teaser"), { labels: "none" });
+
+  const latest = vis(D.dispatches)[0];
+  const box = document.getElementById("latest");
+  if (latest) {
+    const media = latest.kind === "image"
+      ? `<img src="${P.esc(latest.url)}" alt="${P.esc(latest.title)}" loading="lazy">`
+      : `<a href="${P.esc(latest.url)}">Open the dispatch</a>`;
+    box.innerHTML = `<h2 id="latest-h">Latest dispatch: ${P.esc(latest.title)}</h2>${media}
+      <p class="muted small" style="margin-top:.75rem">${latest.caption}</p><a class="go" href="dispatches.html">All dispatches</a>`;
+    const img = box.querySelector("img");
+    if (img) img.addEventListener("click", () => P.lightbox(latest.url, latest.title));
+  } else {
+    box.innerHTML = `<h2 id="latest-h">Dispatches</h2><p class="muted">None yet.</p>`;
+  }
+
+  const recent = vis(D.units).filter((x) => x.sections.length).slice(-3).reverse();
+  document.getElementById("recent").innerHTML = recent.map((x) => `
+    <li class="panel"><p class="muted small" style="margin:0">${P.esc(x.label)}${x.pov.length ? `, through ${x.pov.map(P.entName).map(P.esc).join(" and ")}'s eyes` : ""}</p>
+      <h3><a class="ent" href="journal.html#${P.unitAnchor(x.id)}">${P.esc(x.title || x.label)}</a></h3>
+      <div class="prose">${P.renderSections(x.sections, { skipTitles: true })}</div></li>`).join("");
+})();
+</script>
+</body>
+</html>

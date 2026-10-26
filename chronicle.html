@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chronicle · The Wade of Kings</title>
+<link rel="stylesheet" href="assets/palanaeum.css">
+</head>
+<body data-page="chronicle">
+<main class="wrap narrow">
+  <header class="page-head">
+    <h1>Chronicle</h1>
+    <p class="lede">The read itself, day by day: when Wade moved his bookmark, and what the ardent filed.</p>
+  </header>
+  <ol class="chronicle" id="chronicle"></ol>
+</main>
+<script src="data/palanaeum.js"></script>
+<script src="assets/palanaeum.js"></script>
+<script>
+(function () {
+  const D = P.data;
+  const days = {};
+  for (const c of D.checkpoints) {
+    if (!P.visible(c.h)) continue;
+    (days[c.date] ||= { date: c.date, h: c.h, moves: [], entries: [] }).moves.push(c);
+  }
+  for (const d of D.chronicle) {
+    if (!P.visible(d.h)) continue;
+    const day = (days[d.date] ||= { date: d.date, h: d.h, moves: [], entries: [] });
+    day.entries.push(...d.entries);
+    day.h = Math.max(day.h, d.h);
+  }
+  const list = Object.values(days).sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById("chronicle").innerHTML = list.length ? list.map((d) => {
+    const reach = P.units[d.h];
+    const moves = d.moves.map((m) => m.note).filter(Boolean);
+    return `<li><time datetime="${d.date}">${new Date(d.date + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</time>
+      <div><h2>Through ${P.esc(P.unitLabel(reach))}</h2>${moves.map((m) => `<p class="muted">${P.esc(m)}</p>`).join("")}
+      ${d.entries.length ? `<ul>${d.entries.map((e) => `<li>${P.esc(e)}</li>`).join("")}</ul>` : ""}</div></li>`;
+  }).join("") : `<li><div class="empty">Nothing yet.</div></li>`;
+})();
+</script>
+</body>
+</html>

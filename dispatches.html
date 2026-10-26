@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatches · The Wade of Kings</title>
+<link rel="stylesheet" href="assets/palanaeum.css">
+</head>
+<body data-page="dispatches">
+<main class="wrap">
+  <header class="page-head">
+    <h1>Dispatches</h1>
+    <p class="lede">One-off maps and posters, each made at a moment in the read and frozen exactly as it was. The living pages keep changing; these never do.</p>
+  </header>
+  <div class="dispatch-wall" id="wall"></div>
+</main>
+<script src="data/palanaeum.js"></script>
+<script src="assets/palanaeum.js"></script>
+<script>
+(function () {
+  const items = P.data.dispatches.filter((d) => P.visible(d.h));
+  const wall = document.getElementById("wall");
+  wall.innerHTML = items.length ? items.map((d) => {
+    const u = P.unitById[d.horizon.split("@")[0]];
+    const media = d.kind === "image"
+      ? `<img src="${P.esc(d.url)}" alt="${P.esc(d.title)}" loading="lazy" data-full="${P.esc(d.url)}">`
+      : `<a href="${P.esc(d.url)}">Open dispatch #${P.esc(d.id)}</a>`;
+    return `<article class="dispatch-card"${P.isNew(d.h) ? ' data-new="1"' : ""}><figure>${media}
+      <figcaption><p class="num">Dispatch #${P.esc(d.id)}, made at ${P.esc(P.unitLabel(u))}, ${P.esc(d.date)}</p>
+      <h2>${P.esc(d.title)}</h2><p>${d.caption}</p><p class="muted small">${d.note}</p></figcaption></figure></article>`;
+  }).join("") : `<div class="empty"><strong>No dispatches yet.</strong>They appear at milestones, or whenever a tangle of names needs a map.</div>`;
+  wall.querySelectorAll("img[data-full]").forEach((img) => img.addEventListener("click", () => P.lightbox(img.dataset.full, img.alt)));
+})();
+</script>
+</body>
+</html>

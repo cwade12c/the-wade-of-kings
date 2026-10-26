@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Codex · The Wade of Kings</title>
+<link rel="stylesheet" href="assets/palanaeum.css">
+</head>
+<body data-page="codex">
+<main class="wrap">
+  <header class="page-head">
+    <h1>Codex</h1>
+    <p class="lede">Everyone and everything met so far, each line cited to the chapter that shows it.</p>
+  </header>
+  <div class="catalog">
+    <nav class="catalog-list" aria-label="Codex entries">
+      <label class="visually-hidden" for="find">Find a name</label>
+      <input id="find" type="search" placeholder="Find a name" autocomplete="off">
+      <div id="shelves"></div>
+    </nav>
+    <article class="entry" id="entry" aria-live="polite"></article>
+  </div>
+</main>
+<script src="data/palanaeum.js"></script>
+<script src="assets/palanaeum.js"></script>
+<script>
+(function () {
+  const D = P.data;
+  const all = D.entities.filter((e) => P.visible(e.h)).sort((a, b) => a.name.replace(/^The /, "").localeCompare(b.name.replace(/^The /, "")));
+  const shelves = document.getElementById("shelves");
+  const entry = document.getElementById("entry");
+
+  function drawList(q) {
+    const needle = (q || "").trim().toLowerCase();
+    const match = (e) => !needle || [e.name, ...e.aka].some((n) => n.toLowerCase().includes(needle));
+    const here = location.hash.slice(1);
+    shelves.innerHTML = Object.entries(P.FOLDERS).map(([key, title]) => {
+      const items = all.filter((e) => e.folder === key && match(e));
+      if (!items.length) return "";
+      return `<section class="shelf"><h2>${title}</h2><ul>${items.map((e) =>
+        `<li><a href="#${e.id}"${e.id === here ? ' aria-current="true"' : ""}${P.isNew(e.h) ? ' data-new="1"' : ""}>${P.esc(e.name)}${P.isPov(e.id) ? '<span class="pov" title="Viewpoint character">●</span>' : ""}</a></li>`).join("")}</ul></section>`;
+    }).join("") || `<p class="muted">Nothing by that name yet.</p>`;
+    P.markNew();
+  }
+
+  function drawEntry(id) {
+    const e = P.entityById[id];
+    if (!e || !P.visible(e.h)) {
+      const counts = Object.entries(P.FOLDERS).map(([k, t]) => [t, all.filter((x) => x.folder === k).length]).filter(([, n]) => n);
+      entry.innerHTML = `<div class="empty"><strong>Pick a name from the list.</strong>
+        The codex holds ${all.length} entries so far: ${counts.map(([t, n]) => `${n} in ${t.toLowerCase()}`).join(", ")}.
+        Names start as a one-line glossary entry and earn a full page once they show up in three chapters.</div>`;
+      return;
+    }
+    const first = P.unitById[e.first_seen.split("@")[0]];
+    const ties = D.relations.filter((r) => P.visible(r.h) && (r.from === e.id || r.to === e.id));
+    const onstage = e.units.map((u) => P.unitById[u]).filter((u) => u && P.visible(u.h));
+    const body = P.renderSections(e.sections);
+    entry.innerHTML = `
+      <h1>${P.esc(e.name)}</h1>
+      ${e.aka.length && P.friendH() === null ? `<p class="aka">also ${e.aka.map(P.esc).join(", ")}</p>` : ""}
+      <div class="facts"><span>First met in <a class="ent" href="journal.html#${P.unitAnchor(first.id)}">${P.esc(P.unitLabel(first))}</a></span>
+        ${P.isPov(e.id) ? "<span>A viewpoint character</span>" : ""}<span>${e.dossier ? "Full entry" : "Glossary entry"}</span></div>
+      ${P.summaryOf(e) ? `<p class="summary">${P.summaryOf(e)}</p>` : ""}
+      ${body ? `<section class="prose">${body}</section>` : ""}
+      ${ties.length ? `<section><h2>Ties</h2><ul class="ties">${ties.map((r) => {
+        const other = r.from === e.id ? r.to : r.from;
+        const who = r.basis === "said" && r.said_by ? `, says ${P.esc(r.said_by)}` : r.basis === "inferred" ? ", Wade's reading" : "";
+        const u = P.unitById[r.cite];
+        return `<li><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].color}" title="${P.TYPES[r.type].label}"></span>
+          <span>${P.entLink(other)}: ${P.esc(r.label)}<span class="muted small">${who}</span>
+          <a class="cite" href="journal.html#${P.unitAnchor(r.cite)}">${P.esc(P.unitLabel(u, { short: true }))}</a></span></li>`;
+      }).join("")}</ul><p class="small"><a href="unfolding.html#${e.id}">See ${P.esc(e.name)} in the web</a></p></section>` : ""}
+      ${onstage.length ? `<section><h2>On the page in</h2><div class="onstage">${onstage.map((u) =>
+        `<a href="journal.html#${P.unitAnchor(u.id)}" title="${P.esc(P.unitLabel(u))}">${P.esc(u.short)}</a>`).join("")}</div>
+        <p class="muted small" style="margin-top:.5rem">${D.meta.presence === "text" ? "Chapters whose text names this entry." : "Chapters whose summary names this entry (the full text will sharpen this)."}</p></section>` : ""}`;
+    P.markNew();
+    document.title = `${e.name} · Codex · The Wade of Kings`;
+  }
+
+  document.getElementById("find").addEventListener("input", (ev) => drawList(ev.target.value));
+  window.addEventListener("hashchange", () => { drawList(document.getElementById("find").value); drawEntry(location.hash.slice(1)); window.scrollTo({ top: 0 }); });
+  drawList("");
+  drawEntry(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>
