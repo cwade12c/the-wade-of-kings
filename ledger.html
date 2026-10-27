@@ -2,69 +2,162 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Called It · The Wade of Kings</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c1118">
+<title>Theories · The Wade of Kings</title>
 <link rel="stylesheet" href="assets/palanaeum.css">
 </head>
 <body data-page="ledger">
 <main class="wrap">
   <header class="page-head">
-    <h1>Called It</h1>
+    <h1>Theories</h1>
     <p class="lede">Wade's predictions and open questions, in his exact words, frozen the moment he said them. They're settled only when the book settles them.</p>
+    <div id="epigraph"></div>
   </header>
-  <div class="ledger-cols">
-    <section aria-labelledby="pred-h">
-      <h2 id="pred-h">Predictions</h2>
-      <div id="predictions"></div>
-    </section>
-    <section aria-labelledby="q-h">
-      <h2 id="q-h">Questions</h2>
-      <div id="questions"></div>
-    </section>
-  </div>
-  <section aria-labelledby="u-h" style="margin-top:3.5rem">
-    <h2 id="u-h">The Unhinged Ledger</h2>
-    <p class="muted">The boldest calls. Append-only: nothing here can ever be edited.</p>
-    <div id="unhinged"></div>
-  </section>
+  <div class="th-tabs" role="tablist" aria-label="Kinds of call" id="tabs"></div>
+  <section class="th-panel" id="p-predictions" role="tabpanel" aria-labelledby="t-predictions"></section>
+  <section class="th-panel" id="p-questions" role="tabpanel" aria-labelledby="t-questions" hidden></section>
+  <section class="th-panel" id="p-unhinged" role="tabpanel" aria-labelledby="t-unhinged" hidden></section>
 </main>
 <script src="data/palanaeum.js"></script>
 <script src="assets/palanaeum.js"></script>
 <script>
 (function () {
+  "use strict";
   const D = P.data;
-  const at = (id) => P.unitLabel(P.unitById[id.split("@")[0]], { short: true });
-  const amended = (x) => x.amended ? `<span><em>amended before reading on</em></span>` : "";
-  const recalled = (x) => x.recalled_from ? `<span><em>recalled from ${P.esc(at(x.recalled_from))} (intake)</em></span>` : "";
-  const preds = D.predictions.filter((p) => P.visible(p.h));
-  document.getElementById("predictions").innerHTML = preds.length ? preds.map((p) => {
+  const unitOf = (id) => P.unitById[id.split("@")[0]];
+  const at = (id) => P.unitLabel(unitOf(id), { short: true });
+  const flags = (x) => [
+    x.recalled_from ? `<span class="th-flag">recalled from ${P.esc(at(x.recalled_from))}</span>` : "",
+    x.amended ? `<span class="th-flag">amended before reading on</span>` : "",
+  ].join("");
+  const about = (x) => (x.about || []).filter((id) => P.entityById[id] && P.visible(P.entityById[id].h));
+  const aboutChips = (x) => {
+    const ids = about(x);
+    return ids.length ? `<div class="th-about">${ids.map((id) => `<a class="chip ent-chip" href="codex.html#${id}" style="--c:${P.entColor(P.entityById[id])}"><span class="dot"></span>${P.esc(P.entName(id))}</a>`).join("")}</div>` : "";
+  };
+  const section = (x, title) => (x.sections || []).find((s) => s.title === title);
+
+  // ------------------------------------------------------------ epigraph (only once its chapter is read)
+  const ch7 = P.unitById["wok:7"];
+  if (ch7 && P.visible(ch7.h)) {
+    document.getElementById("epigraph").innerHTML = `<figure class="th-epigraph"><p>“A scientist must be willing to change her theories if experiment disproves them.”</p>
+      <figcaption>Shallan, in her letter to Jasnah <a class="cite" href="journal.html#wok-7">ch 7</a></figcaption></figure>`;
+  }
+
+  // ------------------------------------------------------------ predictions
+  const preds = D.predictions.filter((p) => P.visible(p.h)).slice().reverse();
+  document.getElementById("p-predictions").innerHTML = preds.length ? `<div class="th-preds">${preds.map((p) => {
     const conf = p.confidence.filter((c) => P.visible(c.h));
     const last = conf[conf.length - 1] || p.confidence[0];
     const resolved = p.status !== "open" && p.rh !== null && P.visible(p.rh);
-    const history = conf.length > 1 ? `<span>${conf.map((c) => `${c.p}%`).join(" then ")}</span>` : "";
-    return `<article class="call"${P.isNew(p.h) ? ' data-new="1"' : ""}>
-      <p class="claim">“${p.claim}”</p>
-      <div class="meta"><span>${P.esc(p.id)}, made at ${P.esc(at(p.made_at))}</span>${recalled(p)}${amended(p)}
-        <span class="confidence" title="Confidence"><span class="bar"><i style="width:${last.p}%"></i></span>${last.p}%</span>${history}
-        ${resolved ? `<span class="stamp ${p.status}">${p.status === "called" ? "Called it" : p.status}</span>` : ""}</div>
-      <div class="prose small" style="margin-top:.6rem">${P.renderSections(p.sections)}</div></article>`;
-  }).join("") : `<div class="empty"><strong>No predictions on the record yet.</strong>
+    const fr = section(p, "For"), ag = section(p, "Against");
+    const nf = P.sectionCount(fr), na = P.sectionCount(ag);
+    const others = (p.sections || []).filter((s) => s !== fr && s !== ag && P.sectionCount(s));
+    return `<article class="th-pred"${P.isNew(p.h) ? ' data-new="1"' : ""}>
+      <div class="th-gauge">${P.gauge(last.p, 136)}<small>${conf.length > 1 ? `confidence ${conf.map((c) => `${c.p}%`).join(" → ")}` : "confidence when made"}
+        ${resolved ? `<br><span class="stamp ${p.status}">${p.status === "called" ? "Called it" : P.esc(p.status)}</span>` : ""}</small></div>
+      <div>
+        <p class="th-meta"><span class="th-id">${P.esc(p.id)}</span><span>made at ${P.esc(at(p.made_at))}</span>${flags(p)}</p>
+        <blockquote class="wade">${p.claim}</blockquote>
+        ${aboutChips(p)}
+        ${nf + na + others.length ? `<details class="th-ev"><summary>Weigh the evidence <span class="tally">· ${nf} for · ${na} against</span></summary>
+          <div class="th-cols">
+            <div class="th-col for"><h4>For</h4><div class="prose">${P.renderSections([fr], { skipTitles: true }) || '<p class="muted small">Nothing yet.</p>'}</div></div>
+            <div class="th-col against"><h4>Against</h4><div class="prose">${P.renderSections([ag], { skipTitles: true }) || '<p class="muted small">Nothing yet.</p>'}</div></div>
+            ${others.map((s) => `<div class="th-col other"><h4>${P.esc(s.title)}</h4><div class="prose">${P.renderSections([s], { skipTitles: true })}</div></div>`).join("")}
+          </div></details>` : ""}
+      </div></article>`;
+  }).join("")}</div>` : `<div class="empty"><strong>No predictions on the record yet.</strong>
       Wade just has to say “I bet…” to his ardent and it lands here with a confidence number, frozen in his own words.</div>`;
 
+  // ------------------------------------------------------------ questions, grouped by the chapter that raised them
   const qs = D.questions.filter((q) => P.visible(q.h));
-  document.getElementById("questions").innerHTML = qs.length ? qs.map((q) => {
-    const answered = q.status !== "open" && q.ah !== null && P.visible(q.ah);
-    return `<article class="call"${P.isNew(q.h) ? ' data-new="1"' : ""}>
-      <p class="claim" style="font-size:1.1rem">“${q.question}”</p>
-      <div class="meta"><span>${P.esc(q.id)}, asked at ${P.esc(at(q.asked_at))}</span>${recalled(q)}${amended(q)}
-        <span>${answered ? `answered in ${P.esc(at(q.answered_at))}` : "still open"}</span></div>
-      <div class="prose small" style="margin-top:.6rem">${P.renderSections(q.sections)}</div></article>`;
-  }).join("") : `<div class="empty"><strong>No questions yet.</strong>Anything Wade wonders about (“why did…”, “who was…”) gets filed here until the book answers it.</div>`;
+  const isAnswered = (q) => q.status !== "open" && q.ah !== null && P.visible(q.ah);
+  const topicCount = {};
+  qs.forEach((q) => about(q).forEach((id) => { topicCount[id] = (topicCount[id] || 0) + 1; }));
+  const topics = Object.entries(topicCount).filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1] || P.entName(a[0]).localeCompare(P.entName(b[0])));
+  const nOpen = qs.filter((q) => !isAnswered(q)).length;
+  const qp = document.getElementById("p-questions");
+  qp.innerHTML = qs.length ? `<div class="th-filter">
+      <div class="chips" role="group" aria-label="Status" id="q-status">
+        <button type="button" class="chip" data-s="open" aria-pressed="true">Open<span class="n">${nOpen}</span></button>
+        <button type="button" class="chip" data-s="answered" aria-pressed="false" style="--c:#199e70">Answered<span class="n">${qs.length - nOpen}</span></button>
+        <button type="button" class="chip" data-s="" aria-pressed="false">All<span class="n">${qs.length}</span></button></div>
+      <div class="chips scroll" role="group" aria-label="About" id="q-topic">
+        <button type="button" class="chip" data-t="" aria-pressed="true">Any topic</button>
+        ${topics.map(([id, n]) => `<button type="button" class="chip" data-t="${id}" aria-pressed="false" style="--c:${P.entColor(P.entityById[id])}"><span class="dot"></span>${P.esc(P.entName(id))}<span class="n">${n}</span></button>`).join("")}</div>
+    </div><div id="q-groups"></div>` : `<div class="empty"><strong>No questions yet.</strong>Anything Wade wonders about (“why did…”, “who was…”) gets filed here until the book answers it.</div>`;
 
-  const un = D.unhinged.filter((u) => P.visible(u.h));
-  document.getElementById("unhinged").innerHTML = un.length ? un.map((u) =>
-    `<article class="call"><p class="claim">“${u.claim}”</p><div class="meta"><span>${P.esc(u.id)}, ${P.esc(at(u.made_at))}, ${P.esc(u.made_on)}</span></div></article>`).join("")
-    : `<div class="empty"><strong>Empty, for now.</strong>Say “hear me out” and the wildest theories go here, forever.</div>`;
+  let status = "open", topic = "";
+  function drawQuestions() {
+    const keep = qs.filter((q) => (!status || (status === "open") !== isAnswered(q)) && (!topic || about(q).includes(topic)));
+    const groups = {};
+    keep.forEach((q) => { const u = unitOf(q.recalled_from || q.asked_at); (groups[u.h] ||= { u, qs: [] }).qs.push(q); });
+    const out = Object.values(groups).sort((a, b) => a.u.h - b.u.h).map(({ u, qs: list }) => `<section class="th-group">
+      <header><span class="orb${u.kind === "interlude" ? " il" : ""}" style="--c:${P.unitColor(u)}"></span><h3>${P.esc(P.unitLabel(u))}</h3><small>${list.length} question${list.length === 1 ? "" : "s"}</small></header>
+      <div class="th-qs">${list.map((q) => {
+        const answered = isAnswered(q);
+        const ev = (q.sections || []).filter((s) => P.sectionCount(s));
+        const n = ev.reduce((k, s) => k + P.sectionCount(s), 0);
+        return `<article class="th-q${answered ? " answered" : ""}"${P.isNew(q.h) ? ' data-new="1"' : ""}>
+          <blockquote class="wade">${q.question}</blockquote>
+          <p class="th-meta"><span class="th-id">${P.esc(q.id)}</span><span>${answered ? `answered in ${P.esc(at(q.answered_at))}` : "still open"}</span>${q.amended ? '<span class="th-flag">amended</span>' : ""}</p>
+          ${aboutChips(q)}
+          ${n ? `<details><summary>${answered ? "The answer" : "Evidence so far"} <span class="muted" style="font-weight:400">· ${n}</span></summary><div class="prose">${P.renderSections(ev, { skipTitles: ev.length < 2 })}</div></details>` : ""}
+        </article>`;
+      }).join("")}</div></section>`).join("");
+    document.getElementById("q-groups").innerHTML = out || `<div class="empty"><strong>Nothing here.</strong>No questions match these filters yet.</div>`;
+    P.markNew();
+  }
+  if (qs.length) {
+    qp.querySelectorAll("#q-status .chip").forEach((c) => c.addEventListener("click", () => {
+      status = c.dataset.s; qp.querySelectorAll("#q-status .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === c))); drawQuestions();
+    }));
+    qp.querySelectorAll("#q-topic .chip").forEach((c) => c.addEventListener("click", () => {
+      topic = c.dataset.t; qp.querySelectorAll("#q-topic .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === c))); drawQuestions();
+    }));
+    drawQuestions();
+  }
+
+  // ------------------------------------------------------------ the Unhinged Ledger
+  const un = D.unhinged.filter((u) => P.visible(u.h)).slice().reverse();
+  document.getElementById("p-unhinged").innerHTML = `<p class="muted" style="max-width:60ch;margin-bottom:1.25rem">The boldest calls, made after “hear me out”. Append-only: nothing here can ever be edited.</p>` +
+    (un.length ? `<div class="th-unh">${un.map((u) => `<article class="th-u"><p class="k"><span class="lock" aria-hidden="true">🔒</span>${P.esc(u.id)} · sealed</p>
+      <blockquote class="wade">${u.claim}</blockquote><p class="m">Made at ${P.esc(at(u.made_at))} · ${P.esc(u.made_on)}</p></article>`).join("")}</div>`
+      : `<div class="empty"><strong>Empty, for now.</strong>Say “hear me out” and the wildest theories go here, forever.</div>`);
+
+  // ------------------------------------------------------------ tabs
+  const avg = preds.length ? Math.round(preds.reduce((k, p) => { const c = p.confidence.filter((x) => P.visible(x.h)); return k + (c[c.length - 1] || p.confidence[0]).p; }, 0) / preds.length) : 0;
+  const TABS = [
+    ["predictions", "Predictions", preds.length, preds.length ? `average confidence ${avg}%` : "none yet", "#5fb0ff"],
+    ["questions", "Questions", nOpen, `open · ${qs.length - nOpen} answered`, "#b993ff"],
+    ["unhinged", "Unhinged", un.length, "sealed forever", "#ea5f6f"],
+  ];
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = TABS.map(([k, label, n, sub, c]) => `<button type="button" class="th-tab" role="tab" id="t-${k}" aria-controls="p-${k}" aria-selected="false" style="--c:${c}">
+    <b>${n}</b><span>${label}</span><small>${sub}</small></button>`).join("");
+  function show(k, scroll) {
+    if (!TABS.some((t) => t[0] === k)) k = "predictions";
+    TABS.forEach(([t]) => {
+      document.getElementById(`t-${t}`).setAttribute("aria-selected", String(t === k));
+      document.getElementById(`t-${t}`).tabIndex = t === k ? 0 : -1;
+      document.getElementById(`p-${t}`).hidden = t !== k;
+    });
+    if (scroll) {
+      const top = tabs.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--head-h")) * 16 - 12;
+      if (scrollY > top) scrollTo({ top });
+    }
+  }
+  tabs.querySelectorAll(".th-tab").forEach((b, i) => {
+    b.addEventListener("click", () => { const k = b.id.slice(2); history.replaceState(null, "", `#${k}`); show(k, true); });
+    b.addEventListener("keydown", (ev) => {
+      if (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") return;
+      const nb = tabs.children[(i + (ev.key === "ArrowRight" ? 1 : 2)) % 3];
+      nb.focus(); nb.click();
+    });
+  });
+  show(location.hash.slice(1));
 })();
 </script>
 </body>

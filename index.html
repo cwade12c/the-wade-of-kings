@@ -2,36 +2,66 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c1118">
 <title>The Wade of Kings</title>
 <meta name="description" content="Wade's first read of the Stormlight Archive, mapped chapter by chapter by an ardent who never reads ahead.">
 <link rel="alternate" type="application/atom+xml" title="The Wade of Kings" href="feed.xml">
 <link rel="stylesheet" href="assets/palanaeum.css">
 </head>
 <body data-page="home">
-<main class="wrap">
-  <section class="horizon" aria-labelledby="hz">
-    <p class="book" id="hz-book"></p>
-    <h1 id="hz"><span class="unit" id="hz-unit"></span><span id="hz-title"></span></h1>
-    <p class="reading" id="hz-reading" hidden></p>
-    <div class="string" id="string" role="group" aria-label="Chapters read, in order"></div>
-    <p class="string-caption" id="caption" aria-live="polite"></p>
-    <p class="tally" id="tally"></p>
+<main>
+  <section class="hm-hero" aria-labelledby="hm-title">
+    <div class="hm-sky" id="sky" aria-hidden="true"><div class="hm-rain"></div></div>
+    <div class="wrap">
+      <p class="hm-kick" id="hm-kick"></p>
+      <h1 class="hm-title" id="hm-title"></h1>
+      <p class="hm-tag" id="hm-tag"></p>
+      <a class="hm-plaque" id="plaque" href="journal.html"></a>
+      <div class="hm-strand" id="strand" role="group" aria-label="Every chapter read so far, in order"></div>
+      <p class="hm-hint" id="hint"></p>
+      <div class="hm-ctas">
+        <a class="cta" href="unfolding.html?play=1"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>Watch it unfold from the Prelude</a>
+        <a class="cta ghost" href="journal.html">Read the journal</a>
+      </div>
+    </div>
   </section>
 
-  <div class="home-grid">
-    <section class="panel" aria-labelledby="web-h">
-      <h2 id="web-h">The Unfolding</h2>
-      <svg class="teaser-web" id="teaser" role="img" aria-label="A web of everyone met so far and the ties between them"></svg>
-      <p class="muted small">Everyone met so far and every tie the book has drawn. Lit spheres are the people whose eyes we've read through.</p>
-      <a class="go" href="unfolding.html">Open the web and play it from the Prelude</a>
-    </section>
-    <section class="panel dispatch-teaser" id="latest" aria-labelledby="latest-h"></section>
-  </div>
+  <section class="wrap" aria-label="The read so far, in numbers"><div class="hm-tiles" id="tiles"></div></section>
 
-  <section class="recent" aria-labelledby="recent-h">
-    <h2 id="recent-h">Latest pages</h2>
-    <ol id="recent"></ol>
+  <section class="wrap hm-sec" aria-labelledby="web-h">
+    <div class="hm-web-wrap">
+      <div class="hm-web-copy">
+        <p class="sec-kick">The Unfolding</p>
+        <h2 id="web-h" style="font-size:clamp(1.9rem,3.4vw,2.6rem)">Everyone met, every tie drawn</h2>
+        <p style="margin-top:.8rem">A living web rebuilt from cited notes. Press play and watch a highstorm sweep each chapter in, from the Prelude to tonight's bookmark. Lit spheres are the people whose eyes we've read through.</p>
+        <div class="chips" id="web-chips"></div>
+        <a class="cta" href="unfolding.html">Open the web</a>
+      </div>
+      <a class="hm-web" href="unfolding.html" aria-label="Open The Unfolding">
+        <svg id="teaser" role="img" aria-label="A web of everyone met so far and the ties between them"></svg>
+        <span class="hm-web-over"><span><b>The Unfolding</b><br><span id="web-count"></span></span><span class="cta">Explore</span></span>
+      </a>
+    </div>
+  </section>
+
+  <section class="wrap hm-sec" aria-labelledby="dp-h">
+    <div class="sec-head"><div><p class="sec-kick">Dispatches</p><h2 id="dp-h">Maps, posters and field guides</h2></div>
+      <a class="arrow-link" href="dispatches.html">All dispatches</a></div>
+    <div class="hm-acc" id="acc"></div>
+  </section>
+
+  <section class="wrap hm-sec" aria-labelledby="jr-h">
+    <div class="sec-head"><div><p class="sec-kick">From the journal</p><h2 id="jr-h">The latest chapters, in Wade's words</h2></div>
+      <div style="display:flex;gap:1rem;align-items:center"><a class="arrow-link" href="journal.html">The whole journal</a>
+        <div class="rail-btns"><button type="button" data-d="-1" aria-label="Scroll back">←</button><button type="button" data-d="1" aria-label="Scroll on">→</button></div></div></div>
+    <div class="hm-rail-wrap"><div class="hm-rail" id="rail"></div></div>
+  </section>
+
+  <section class="wrap hm-sec" aria-labelledby="th-h">
+    <div class="sec-head"><div><p class="sec-kick">Theories</p><h2 id="th-h">On the record</h2></div>
+      <a class="arrow-link" href="ledger.html">Every prediction and question</a></div>
+    <div class="hm-calls" id="calls"></div>
   </section>
 </main>
 <script src="data/palanaeum.js"></script>
@@ -40,62 +70,213 @@
 <script src="assets/web.js"></script>
 <script>
 (function () {
-  const D = P.data, hz = D.meta.horizon, u = P.unitById[hz.id];
-  const f = P.friendH();
-  if (f === null) {
-    document.getElementById("hz-book").textContent = `${hz.book}${hz.part ? `, ${hz.part}` : ""}`;
-    document.getElementById("hz-unit").textContent = `Wade has read through ${u.label}`;
-    document.getElementById("hz-title").textContent = u.title || u.label;
-  } else {  // a friend behind Wade sees his position, never the title or part name past their own
-    const mine = P.units[f];
-    document.getElementById("hz-book").textContent = `${hz.book}. Wade is at ${u.label}.`;
-    document.getElementById("hz-unit").textContent = `You're reading along at ${mine.label}`;
-    document.getElementById("hz-title").textContent = mine.title || mine.label;
-  }
-  if (hz.reading) {
-    const r = document.getElementById("hz-reading");
-    r.hidden = false;
-    r.textContent = `and is ${hz.reading.pct}% into ${hz.reading.full.replace(" · ", ": ")}.`;
-  }
-
-  const stringEl = document.getElementById("string");
-  P.sphereString(stringEl, document.getElementById("caption"), {
-    idle: "Each sphere is a chapter Wade has read. Hover for its title; click to open its journal page.",
-  });
-  stringEl.querySelectorAll(".sphere-btn").forEach((b, i) => b.style.setProperty("--i", i));
-  if (!P.reducedMotion) stringEl.classList.add("lighting");
-
+  "use strict";
+  const D = P.data, hz = D.meta.horizon, f = P.friendH();
+  const at = f === null ? P.unitById[hz.id] : P.units[f];
   const vis = (xs) => xs.filter((x) => P.visible(x.h));
+  const shown = vis(D.units);
+  const firstQuote = (u) => {
+    for (const s of u.sections) for (const it of s.items)
+      if (P.visible(it.h) && it.kind === "quote") return it.html.replace(/<[^>]+>/g, "").trim();
+    return "";
+  };
+  const clip = (s, n) => (s.length <= n ? s : s.slice(0, s.lastIndexOf(" ", n)) + "…");
+
+  // ------------------------------------------------------------ sky: a highstorm wall above the title
+  (function sky() {
+    let seed = 11; const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    let s = `<svg viewBox="0 0 1400 760" preserveAspectRatio="xMidYMid slice"><defs>
+      <linearGradient id="hs-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a5578" stop-opacity=".6"/><stop offset=".5" stop-color="#1b2a3e" stop-opacity=".3"/><stop offset="1" stop-color="#17202c" stop-opacity="0"/></linearGradient>
+      <radialGradient id="hs-glow" cx="50%" cy="38%" r="45%"><stop offset="0" stop-color="#9fc8ff" stop-opacity=".22"/><stop offset="1" stop-color="#9fc8ff" stop-opacity="0"/></radialGradient>
+      <filter id="hs-soft" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+      <linearGradient id="thread-grad" x1="0" x2="1"><stop offset="0" stop-color="#a9b3c1" stop-opacity=".15"/><stop offset=".5" stop-color="#d8ecff" stop-opacity=".55"/><stop offset="1" stop-color="#a9b3c1" stop-opacity=".15"/></linearGradient></defs>
+      <rect width="1400" height="760" fill="url(#hs-wall)"/><rect width="1400" height="760" fill="url(#hs-glow)"/><g filter="url(#hs-soft)">`;
+    for (let i = 0; i < 46; i++) {
+      const x = r() * 1500 - 50, y = 30 + r() * 300 + (Math.abs(x - 700) / 700) * 80;
+      s += `<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="${(70 + r() * 150).toFixed(0)}" ry="${(26 + r() * 50).toFixed(0)}" fill="${r() > 0.5 ? "#4a6890" : "#2c4060"}" opacity="${(0.12 + r() * 0.28).toFixed(2)}"/>`;
+    }
+    s += `</g><path class="hm-bolt" d="M1040 40 L1010 130 L1036 132 L996 236 L1028 238 L978 360" fill="none" stroke="#eaf5ff" stroke-width="2.4" stroke-linejoin="bevel" style="filter:drop-shadow(0 0 10px #9fc8ff)"/>`;
+    for (let i = 0; i < 70; i++) s += `<circle cx="${(r() * 1400).toFixed(0)}" cy="${(r() * 520).toFixed(0)}" r="${(0.4 + r() * 1.1).toFixed(1)}" fill="#d8ecff" opacity="${(0.15 + r() * 0.5).toFixed(2)}"/>`;
+    document.getElementById("sky").insertAdjacentHTML("afterbegin", s + "</svg>");
+  })();
+
+  // ------------------------------------------------------------ masthead and bookmark
+  document.getElementById("hm-kick").textContent = `The Stormlight Archive · a first read`;
+  document.getElementById("hm-title").textContent = D.meta.title;
+  document.getElementById("hm-tag").textContent = D.meta.tagline;
+  const plaque = document.getElementById("plaque");
+  plaque.href = `journal.html#${P.unitAnchor(at.id)}`;
+  plaque.style.setProperty("--c", P.unitColor(at));
+  const pov = at.pov.map(P.entName);
+  plaque.innerHTML = `<span class="orb now" style="--c:${P.unitColor(at)}"><span class="num">${P.esc(at.kind === "chapter" ? at.n : at.kind === "interlude" ? at.short.replace("I-", "") : at.label[0])}</span></span>
+    <span class="hm-pl-txt"><small>${f === null ? "Wade has read through" : `You're reading along at`}</small>
+      <strong>${P.esc(P.unitLabel(at))}</strong>
+      <span>${P.esc(hz.book)}${at.part ? ` · ${P.esc(at.part)}` : ""}${pov.length ? ` · through <i>${P.esc(pov.join(" and "))}</i>'s eyes` : ""}${f !== null ? ` · Wade is at ${P.esc(P.unitById[hz.id].label)}` : ""}</span>
+      ${hz.reading && f === null ? `<span>…and is ${hz.reading.pct}% into ${P.esc(hz.reading.full.replace(" · ", ": "))}</span>` : ""}</span>`;
+
+  // ------------------------------------------------------------ the string of spheres, one per chapter, hung by part
+  const strand = document.getElementById("strand");
+  const groups = [];
+  shown.forEach((u) => {
+    const key = u.part || "";
+    if (!groups.length || groups[groups.length - 1].key !== key) groups.push({ key, units: [] });
+    groups[groups.length - 1].units.push(u);
+  });
+  let idx = 0;
+  strand.innerHTML = groups.map((g, gi) => {
+    const [a, b] = g.key ? g.key.split(/:\s*/) : [g.units.map((u) => u.label).join(" · "), ""];
+    const n = g.units.length, sag = Math.min(34, 8 + n * 2.2);
+    const last = gi === groups.length - 1;
+    const beads = g.units.map((u, i) => {
+      const t = (i + 0.5) / n, y = 22 + 4 * t * (1 - t) * sag;
+      const now = u.h === at.h;
+      return `<span class="slot" style="position:relative;height:100%"><button type="button" class="orb${u.kind === "interlude" ? " il" : ""}${now ? " now" : ""}"
+        style="--c:${P.unitColor(u)};--i:${idx++};position:absolute;left:50%;top:${y.toFixed(1)}%;margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2)"
+        data-h="${u.h}" aria-label="${P.esc(P.unitLabel(u))}"></button></span>`;
+    }).join("");
+    return `<div class="hm-group"><span class="hm-group-label">${P.esc(a)}${b ? `<i>${P.esc(b)}</i>` : ""}</span>
+      <div style="display:flex;align-items:center"><div class="hm-beads" style="grid-template-columns:repeat(${n},var(--slot))">
+        <svg class="thread" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0,22 Q50,${(22 + 2 * sag).toFixed(1)} 100,22"/></svg>${beads}</div>
+        ${last ? `<span class="hm-storm" title="Not read yet"><span>unread</span></span>` : ""}</div></div>`;
+  }).join("") + `<div class="hm-cap" id="cap" role="status"></div>`;
+  strand.classList.add(P.reducedMotion ? "static" : "lit");
+
+  const cap = document.getElementById("cap");
+  const touch = matchMedia("(hover: none)").matches;
+  let capFor = null;
+  function showCap(btn) {
+    const u = P.units[Number(btn.dataset.h)];
+    const q = firstQuote(u);
+    const who = u.pov.map(P.entName).join(" and ");
+    cap.style.setProperty("--c", P.unitColor(u));
+    cap.innerHTML = `<div class="k">${P.esc(u.label)}${u.part ? "" : ""}</div><h3>${P.esc(P.unitTitle(u))}</h3>
+      <p class="w">${who ? `Through ${P.esc(who)}'s eyes` : ""}${u.when ? `${who ? " · " : ""}<i>${P.esc(u.when)}</i>` : ""}</p>
+      ${q ? `<q>${P.esc(clip(q, 160))}</q>` : ""}<a class="arrow-link go" href="journal.html#${P.unitAnchor(u.id)}">Read the entry</a>`;
+    const sr = strand.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    cap.classList.add("on");
+    const w = cap.offsetWidth, hgt = cap.offsetHeight;
+    const x = Math.max(-sr.left + 12, Math.min(br.left - sr.left + br.width / 2 - w / 2, sr.width - w + (window.innerWidth - sr.right) - 12));
+    const above = br.top - hgt - 14 > 70;
+    cap.style.left = `${x}px`;
+    cap.style.top = `${above ? br.top - sr.top - hgt - 14 : br.bottom - sr.top + 14}px`;
+    capFor = btn;
+  }
+  const hideCap = () => { cap.classList.remove("on"); capFor = null; };
+  strand.querySelectorAll(".orb").forEach((b) => {
+    const u = P.units[Number(b.dataset.h)];
+    if (!touch) { b.addEventListener("mouseenter", () => showCap(b)); b.addEventListener("mouseleave", hideCap); }
+    b.addEventListener("focus", () => showCap(b));
+    b.addEventListener("blur", () => { if (!touch) hideCap(); });
+    b.addEventListener("click", () => {
+      if (touch && capFor !== b) { showCap(b); return; }
+      location.href = `journal.html#${P.unitAnchor(u.id)}`;
+    });
+  });
+  document.addEventListener("click", (ev) => { if (capFor && !strand.contains(ev.target)) hideCap(); });
+  document.getElementById("hint").textContent = touch
+    ? "Each sphere is a chapter read, coloured by whose eyes it's told through. Tap one for a glimpse."
+    : "Each sphere is a chapter read, coloured by whose eyes it's told through. Hover for a glimpse; click to open its journal entry.";
+
+  // ------------------------------------------------------------ tiles
   const people = vis(D.entities).filter((e) => e.folder === "people").length;
+  const entries = vis(D.entities).length;
   const ties = vis(D.relations).length;
-  const preds = vis(D.predictions).length;
   const qs = vis(D.questions).filter((q) => q.status === "open").length;
-  const n = vis(D.units).length;
-  document.getElementById("tally").innerHTML =
-    `<b>${n}</b> chapters and interludes in. <b>${people}</b> people met, <b>${ties}</b> ties drawn, ` +
-    `<b>${qs}</b> open question${qs === 1 ? "" : "s"} and <b>${preds}</b> prediction${preds === 1 ? "" : "s"} on the record.`;
-
-  P.web(document.getElementById("teaser"), { labels: "none" });
-
-  const latest = vis(D.dispatches)[0];
-  const box = document.getElementById("latest");
-  if (latest) {
-    const media = latest.kind === "image"
-      ? `<img src="${P.esc(latest.url)}" alt="${P.esc(latest.title)}" loading="lazy">`
-      : `<a href="${P.esc(latest.url)}">Open the dispatch</a>`;
-    box.innerHTML = `<h2 id="latest-h">Latest dispatch: ${P.esc(latest.title)}</h2>${media}
-      <p class="muted small" style="margin-top:.75rem">${latest.caption}</p><a class="go" href="dispatches.html">All dispatches</a>`;
-    const img = box.querySelector("img");
-    if (img) img.addEventListener("click", () => P.lightbox(latest.url, latest.title));
-  } else {
-    box.innerHTML = `<h2 id="latest-h">Dispatches</h2><p class="muted">None yet.</p>`;
+  const preds = vis(D.predictions).length;
+  const tiles = [
+    [shown.length, "chapters and interludes read", "journal.html", P.unitColor(at)],
+    [people, `people met, ${entries} codex entries in all`, "codex.html", "#c9d6e8"],
+    [ties, "ties drawn between them", "unfolding.html", "#3987e5"],
+    [qs, `open question${qs === 1 ? "" : "s"}`, "ledger.html#questions", "#b993ff"],
+    [preds, `prediction${preds === 1 ? "" : "s"} on the record`, "ledger.html#predictions", "#f0c36a"],
+  ];
+  const tilesEl = document.getElementById("tiles");
+  tilesEl.innerHTML = tiles.map(([n, l, href, c]) => `<a class="hm-tile" href="${href}" style="--c:${c}"><b data-n="${n}">${P.reducedMotion ? n : 0}</b><span>${P.esc(l)}</span></a>`).join("");
+  if (!P.reducedMotion) {
+    const io = new IntersectionObserver((es) => es.forEach((e) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      const t0 = performance.now();
+      const step = (t) => {
+        const k = Math.min(1, (t - t0) / 1100), ease = 1 - Math.pow(1 - k, 3);
+        tilesEl.querySelectorAll("b").forEach((b) => { b.textContent = Math.round(Number(b.dataset.n) * ease); });
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }), { threshold: 0.05 });
+    io.observe(tilesEl);
   }
 
-  const recent = vis(D.units).filter((x) => x.sections.length).slice(-3).reverse();
-  document.getElementById("recent").innerHTML = recent.map((x) => `
-    <li class="panel"><p class="muted small" style="margin:0">${P.esc(x.label)}${x.pov.length ? `, through ${x.pov.map(P.entName).map(P.esc).join(" and ")}'s eyes` : ""}</p>
-      <h3><a class="ent" href="journal.html#${P.unitAnchor(x.id)}">${P.esc(x.title || x.label)}</a></h3>
-      <div class="prose">${P.renderSections(x.sections, { skipTitles: true })}</div></li>`).join("");
+  // ------------------------------------------------------------ the web teaser
+  const web = P.web(document.getElementById("teaser"), { labels: innerWidth < 720 ? "pov" : "major", interactive: false });
+  document.getElementById("web-chips").innerHTML = Object.entries(P.TYPES).map(([k, t]) =>
+    `<span class="chip" style="--c:${t.hex}"><span class="dot"></span>${t.label}<span class="n">${web.count(k)}</span></span>`).join("");
+  document.getElementById("web-count").textContent = `${web.nodes.length} names · ${web.links.length} ties · through ${at.short}`;
+
+  // ------------------------------------------------------------ dispatch accordion
+  const acc = document.getElementById("acc");
+  const ds = vis(D.dispatches);
+  acc.innerHTML = ds.length ? ds.map((d, i) => {
+    const thumb = d.preview || (d.kind === "image" ? d.url : "");
+    return `<div class="hm-panel" role="button" tabindex="0" aria-expanded="${i === 0}" data-i="${i}">
+      ${thumb ? `<img src="${P.esc(thumb)}" alt="" loading="lazy">` : ""}
+      <span class="p-num">${d.living ? "<i></i>" : ""}#${P.esc(d.id)}${d.living ? " · living" : ""}</span>
+      <span class="p-vert">${P.esc(d.title.split(":")[0])}</span>
+      <div class="p-body"><h3>${P.esc(d.title)}</h3><p>${d.caption}</p>
+        <a class="cta" href="${P.esc(d.url)}" data-img="${d.kind === "image" ? 1 : ""}">${d.kind === "image" ? "View the chart" : "Open the dispatch"}</a></div></div>`;
+  }).join("") : `<div class="empty"><strong>No dispatches yet.</strong>They appear at milestones, or whenever a tangle of names needs a map.</div>`;
+  const panels = [...acc.querySelectorAll(".hm-panel")];
+  const expand = (p) => panels.forEach((x) => x.setAttribute("aria-expanded", String(x === p)));
+  const openD = (d) => (d.kind === "image" ? P.lightbox(d.url, d.title) : (location.href = d.url));
+  panels.forEach((p) => {
+    const d = ds[Number(p.dataset.i)];
+    if (matchMedia("(hover: hover)").matches) p.addEventListener("mouseenter", () => expand(p));
+    p.addEventListener("click", (ev) => {
+      const a = ev.target.closest("a");
+      if (a) { if (a.dataset.img) { ev.preventDefault(); P.lightbox(d.url, d.title); } return; }
+      if (p.getAttribute("aria-expanded") === "true") openD(d); else expand(p);
+    });
+    p.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      ev.preventDefault();
+      if (p.getAttribute("aria-expanded") === "true") openD(d); else expand(p);
+    });
+    p.addEventListener("focus", () => expand(p));
+  });
+
+  // ------------------------------------------------------------ journal rail
+  const rail = document.getElementById("rail");
+  const recent = shown.filter((u) => u.sections.some((s) => P.sectionCount(s))).slice(-8).reverse();
+  rail.innerHTML = recent.map((u) => {
+    const q = firstQuote(u);
+    const notes = u.sections.filter((s) => s.title !== "Wade").reduce((n, s) => n + P.sectionCount(s), 0);
+    const who = u.pov.map(P.entName).join(" and ");
+    return `<a class="hm-card" href="journal.html#${P.unitAnchor(u.id)}" style="--c:${P.unitColor(u)}">
+      <div class="c-top"><span class="c-num">${P.esc(P.unitNumeral(u))}</span><span class="c-lab">${P.esc(u.label)}${u.part ? `<br>${P.esc(u.part.split(":")[0])}` : ""}</span></div>
+      <h3>${P.esc(P.unitTitle(u))}</h3>${who ? `<p class="c-who">Through ${P.esc(who)}'s eyes</p>` : ""}
+      ${q ? `<q>${P.esc(q)}</q>` : `<p class="c-none">No note from Wade on this one.</p>`}
+      <div class="c-foot"><span>${notes} note${notes === 1 ? "" : "s"}</span><span class="arrow-link">Read</span></div></a>`;
+  }).join("");
+  document.querySelectorAll(".rail-btns button").forEach((b) => b.addEventListener("click", () =>
+    rail.scrollBy({ left: Number(b.dataset.d) * rail.clientWidth * 0.8, behavior: P.reducedMotion ? "auto" : "smooth" })));
+
+  // ------------------------------------------------------------ theories teaser
+  const calls = document.getElementById("calls");
+  const atU = (id) => P.unitLabel(P.unitById[id.split("@")[0]], { short: true });
+  const pr = vis(D.predictions).slice(-1)[0];
+  const un = vis(D.unhinged).slice(-1)[0];
+  let html = "";
+  if (pr) {
+    const conf = pr.confidence.filter((c) => P.visible(c.h));
+    const last = conf[conf.length - 1] || pr.confidence[0];
+    html += `<a class="hm-call" href="ledger.html#predictions">${P.gauge(last.p, 104)}<div><p class="k">Latest prediction · ${P.esc(pr.id)}</p><q>${pr.claim}</q>
+      <p class="m">Made at ${P.esc(atU(pr.made_at))} · ${qs} open question${qs === 1 ? "" : "s"} beside it</p></div></a>`;
+  } else {
+    html += `<a class="hm-call" href="ledger.html"><div><p class="k">Predictions</p><q>None on the record yet.</q></div></a>`;
+  }
+  if (un) html += `<a class="hm-call unhinged" href="ledger.html#unhinged"><div><p class="k">The Unhinged Ledger · ${P.esc(un.id)}</p><q>${un.claim}</q>
+      <p class="m">${P.esc(atU(un.made_at))} · ${P.esc(un.made_on)} · frozen forever</p></div></a>`;
+  calls.innerHTML = html;
 })();
 </script>
 </body>

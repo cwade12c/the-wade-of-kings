@@ -2,86 +2,112 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c1118">
 <title>Codex · The Wade of Kings</title>
 <link rel="stylesheet" href="assets/palanaeum.css">
 </head>
 <body data-page="codex">
 <main class="wrap">
-  <header class="page-head">
+  <header class="page-head cx-head">
     <h1>Codex</h1>
     <p class="lede">Everyone and everything met so far, each line cited to the chapter that shows it.</p>
+    <div class="cx-find">
+      <div class="cx-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+        <label class="visually-hidden" for="find">Find a name</label>
+        <input id="find" type="search" placeholder="Find a name" autocomplete="off" enterkeyhint="search">
+      </div>
+      <div class="chips scroll" id="folders" role="group" aria-label="Show one kind of entry"></div>
+    </div>
   </header>
-  <div class="catalog">
-    <nav class="catalog-list" aria-label="Codex entries">
-      <label class="visually-hidden" for="find">Find a name</label>
-      <input id="find" type="search" placeholder="Find a name" autocomplete="off">
-      <div id="shelves"></div>
-    </nav>
-    <article class="entry" id="entry" aria-live="polite"></article>
+  <div class="cx-grid">
+    <nav class="cx-list" id="shelves" aria-label="Codex entries"></nav>
+    <article class="cx-entry" id="entry" aria-live="polite"></article>
   </div>
 </main>
 <script src="data/palanaeum.js"></script>
 <script src="assets/palanaeum.js"></script>
 <script>
 (function () {
+  "use strict";
   const D = P.data;
   const all = D.entities.filter((e) => P.visible(e.h)).sort((a, b) => a.name.replace(/^The /, "").localeCompare(b.name.replace(/^The /, "")));
   const shelves = document.getElementById("shelves");
   const entry = document.getElementById("entry");
+  const find = document.getElementById("find");
+  const folders = document.getElementById("folders");
+  let folder = "";
+  const counts = Object.entries(P.FOLDERS).map(([k, t]) => [k, t, all.filter((x) => x.folder === k).length]).filter(([, , n]) => n);
 
-  function drawList(q) {
-    const needle = (q || "").trim().toLowerCase();
-    const match = (e) => !needle || [e.name, ...e.aka].some((n) => n.toLowerCase().includes(needle));
+  folders.innerHTML = `<button type="button" class="chip" data-f="" aria-pressed="true">Everything<span class="n">${all.length}</span></button>` +
+    counts.map(([k, t, n]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="false" style="--c:${P.FOLDER_COLOR[k]}"><span class="dot"></span>${t}<span class="n">${n}</span></button>`).join("");
+  folders.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => setFolder(c.dataset.f)));
+  function setFolder(f) {
+    folder = f;
+    folders.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.f === f)));
+    drawList();
+  }
+
+  function drawList() {
+    const needle = find.value.trim().toLowerCase();
+    const match = (e) => (!folder || e.folder === folder) && (!needle || [e.name, ...(P.friendH() === null ? e.aka : [])].some((n) => n.toLowerCase().includes(needle)));
     const here = location.hash.slice(1);
     shelves.innerHTML = Object.entries(P.FOLDERS).map(([key, title]) => {
       const items = all.filter((e) => e.folder === key && match(e));
       if (!items.length) return "";
-      return `<section class="shelf"><h2>${title}</h2><ul>${items.map((e) =>
-        `<li><a href="#${e.id}"${e.id === here ? ' aria-current="true"' : ""}${P.isNew(e.h) ? ' data-new="1"' : ""}>${P.esc(e.name)}${P.isPov(e.id) ? '<span class="pov" title="Viewpoint character">●</span>' : ""}</a></li>`).join("")}</ul></section>`;
+      return `<section class="cx-shelf"><h2><span>${title}</span><span>${items.length}</span></h2><ul>${items.map((e) =>
+        `<li><a href="#${e.id}" style="--c:${P.entColor(e)}"${e.id === here ? ' aria-current="true"' : ""}${P.isNew(e.h) ? ' data-new="1"' : ""}>${P.sigil(e, { size: 28 })}<span>${P.esc(e.name)}</span>${P.isPov(e.id) ? '<small title="Viewpoint character">viewpoint</small>' : ""}</a></li>`).join("")}</ul></section>`;
     }).join("") || `<p class="muted">Nothing by that name yet.</p>`;
     P.markNew();
+  }
+
+  function welcome() {
+    const eyes = all.filter((e) => P.isPov(e.id));
+    return `<div class="cx-welcome"><h2>Pick a name</h2>
+      <p>The codex holds ${all.length} entries so far. Names start as a one-line glossary entry and earn a full page once they show up in three chapters.</p>
+      <div class="cx-counts">${counts.map(([k, t, n]) => `<button type="button" data-f="${k}"><b>${n}</b><span>${t}</span></button>`).join("")}</div>
+      <p class="sec-kick" style="margin-top:2rem">Whose eyes we've read through</p>
+      <div class="cx-eyes">${eyes.map((e) => `<a href="#${e.id}">${P.sigil(e, { size: 58 })}<span>${P.esc(e.name)}</span></a>`).join("")}</div></div>`;
   }
 
   function drawEntry(id) {
     const e = P.entityById[id];
     if (!e || !P.visible(e.h)) {
-      const counts = Object.entries(P.FOLDERS).map(([k, t]) => [t, all.filter((x) => x.folder === k).length]).filter(([, n]) => n);
-      entry.innerHTML = `<div class="empty"><strong>Pick a name from the list.</strong>
-        The codex holds ${all.length} entries so far: ${counts.map(([t, n]) => `${n} in ${t.toLowerCase()}`).join(", ")}.
-        Names start as a one-line glossary entry and earn a full page once they show up in three chapters.</div>`;
+      entry.classList.remove("has-entry");
+      document.documentElement.classList.remove("locked");
+      entry.innerHTML = welcome();
+      entry.querySelectorAll(".cx-counts button").forEach((b) => b.addEventListener("click", () => { setFolder(b.dataset.f); shelves.scrollIntoView({ behavior: "smooth" }); }));
+      document.title = "Codex · The Wade of Kings";
       return;
     }
-    const first = P.unitById[e.first_seen.split("@")[0]];
-    const ties = D.relations.filter((r) => P.visible(r.h) && (r.from === e.id || r.to === e.id));
-    const onstage = e.units.map((u) => P.unitById[u]).filter((u) => u && P.visible(u.h));
-    const body = P.renderSections(e.sections);
-    entry.innerHTML = `
-      <h1>${P.esc(e.name)}</h1>
-      ${e.aka.length && P.friendH() === null ? `<p class="aka">also ${e.aka.map(P.esc).join(", ")}</p>` : ""}
-      <div class="facts"><span>First met in <a class="ent" href="journal.html#${P.unitAnchor(first.id)}">${P.esc(P.unitLabel(first))}</a></span>
-        ${P.isPov(e.id) ? "<span>A viewpoint character</span>" : ""}<span>${e.dossier ? "Full entry" : "Glossary entry"}</span></div>
-      ${P.summaryOf(e) ? `<p class="summary">${P.summaryOf(e)}</p>` : ""}
-      ${body ? `<section class="prose">${body}</section>` : ""}
-      ${ties.length ? `<section><h2>Ties</h2><ul class="ties">${ties.map((r) => {
-        const other = r.from === e.id ? r.to : r.from;
-        const who = r.basis === "said" && r.said_by ? `, says ${P.esc(r.said_by)}` : r.basis === "inferred" ? ", Wade's reading" : "";
-        const u = P.unitById[r.cite];
-        return `<li><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].color}" title="${P.TYPES[r.type].label}"></span>
-          <span>${P.entLink(other)}: ${P.esc(r.label)}<span class="muted small">${who}</span>
-          <a class="cite" href="journal.html#${P.unitAnchor(r.cite)}">${P.esc(P.unitLabel(u, { short: true }))}</a></span></li>`;
-      }).join("")}</ul><p class="small"><a href="unfolding.html#${e.id}">See ${P.esc(e.name)} in the web</a></p></section>` : ""}
-      ${onstage.length ? `<section><h2>On the page in</h2><div class="onstage">${onstage.map((u) =>
-        `<a href="journal.html#${P.unitAnchor(u.id)}" title="${P.esc(P.unitLabel(u))}">${P.esc(u.short)}</a>`).join("")}</div>
-        <p class="muted small" style="margin-top:.5rem">${D.meta.presence === "text" ? "Chapters whose text names this entry." : "Chapters whose summary names this entry (the full text will sharpen this)."}</p></section>` : ""}`;
+    entry.classList.add("has-entry");
+    entry.innerHTML = `<div class="cx-entry-bar"><a class="cx-back" href="#" id="back">${P.icon("back")}Codex</a>
+      <a class="arrow-link" href="unfolding.html#${e.id}">In the web</a></div>${P.profile(e)}
+      ${P.tiesOf(e.id, P.limit()).length ? `<p style="margin-top:1.5rem"><a class="cta ghost" href="unfolding.html#${e.id}">${P.icon("unfolding")}See ${P.esc(e.name)} in The Unfolding</a></p>` : ""}`;
+    entry.querySelector("#back").addEventListener("click", (ev) => {
+      ev.preventDefault();
+      if (cameFromList) history.back();
+      else { history.replaceState(null, "", location.pathname); route(); }
+    });
     P.markNew();
     document.title = `${e.name} · Codex · The Wade of Kings`;
+    if (matchMedia("(max-width: 860px)").matches) { document.documentElement.classList.add("locked"); entry.scrollTop = 0; }
+    else if (entry.getBoundingClientRect().top < 0) entry.scrollIntoView({ block: "start" });
   }
 
-  document.getElementById("find").addEventListener("input", (ev) => drawList(ev.target.value));
-  window.addEventListener("hashchange", () => { drawList(document.getElementById("find").value); drawEntry(location.hash.slice(1)); window.scrollTo({ top: 0 }); });
-  drawList("");
-  drawEntry(location.hash.slice(1));
+  let cameFromList = false;
+  shelves.addEventListener("click", (ev) => { if (ev.target.closest("a")) cameFromList = true; });
+  entry.addEventListener("click", (ev) => { if (ev.target.closest('a[href^="#"]:not(#back), a[href*="codex.html#"]')) cameFromList = true; });
+  function route() {
+    const id = location.hash.slice(1);
+    drawList();
+    drawEntry(id);
+    if (!id) cameFromList = false;
+  }
+  find.addEventListener("input", drawList);
+  window.addEventListener("hashchange", route);
+  route();
 })();
 </script>
 </body>

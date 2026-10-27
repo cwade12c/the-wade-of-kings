@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c1118">
 <title>Chronicle · The Wade of Kings</title>
 <link rel="stylesheet" href="assets/palanaeum.css">
 </head>
@@ -12,13 +13,20 @@
     <h1>Chronicle</h1>
     <p class="lede">The read itself, day by day: when Wade moved his bookmark, and what the ardent filed.</p>
   </header>
-  <ol class="chronicle" id="chronicle"></ol>
+  <ol class="ch-list" id="chronicle"></ol>
 </main>
 <script src="data/palanaeum.js"></script>
 <script src="assets/palanaeum.js"></script>
 <script>
 (function () {
+  "use strict";
   const D = P.data;
+  // commit types, in the order a day's work is told
+  const KINDS = {
+    milestone: ["Milestones", "#f0c36a"], checkpoint: ["Bookmark", "#d8ecff"], capture: ["Captured", "#b993ff"],
+    codex: ["Codex", "#83cbb0"], art: ["Art", "#f5a3cf"], journal: ["Journal", "#f0c36a"], fix: ["Fixes", "#f08f86"],
+    tool: ["Tools", "#8a95a5"],
+  };
   const days = {};
   for (const c of D.checkpoints) {
     if (!P.visible(c.h)) continue;
@@ -33,10 +41,24 @@
   const list = Object.values(days).sort((a, b) => b.date.localeCompare(a.date));
   document.getElementById("chronicle").innerHTML = list.length ? list.map((d) => {
     const reach = P.units[d.h];
-    const moves = d.moves.map((m) => m.note).filter(Boolean);
-    return `<li><time datetime="${d.date}">${new Date(d.date + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</time>
-      <div><h2>Through ${P.esc(P.unitLabel(reach))}</h2>${moves.map((m) => `<p class="muted">${P.esc(m)}</p>`).join("")}
-      ${d.entries.length ? `<ul>${d.entries.map((e) => `<li>${P.esc(e)}</li>`).join("")}</ul>` : ""}</div></li>`;
+    const dt = new Date(d.date + "T12:00:00");
+    const groups = {};
+    d.entries.forEach((e) => {
+      const m = e.match(/^(\w+)(?:\(([^)]*)\))?:\s*(.*)$/);
+      const k = m && KINDS[m[1]] ? m[1] : "other";
+      (groups[k] ||= []).push(m ? m[3] : e);
+    });
+    const order = [...Object.keys(KINDS), "other"].filter((k) => groups[k]);
+    return `<li class="ch-day"><div class="ch-date"><b>${dt.getDate()}</b><span>${dt.toLocaleDateString(undefined, { month: "short" })}</span><span>${dt.getFullYear()}</span></div>
+      <div class="ch-card"><h2><span class="orb" style="--c:${P.unitColor(reach)}"></span>Through ${P.esc(P.unitLabel(reach))}</h2>
+      ${d.moves.map((m) => m.note).filter(Boolean).map((m) => `<p class="ch-move">${P.esc(m)}</p>`).join("")}
+      ${order.length ? `<div class="ch-groups">${order.map((k) => {
+        const [label, c] = KINDS[k] || ["Other", "#a9b3c1"];
+        const items = groups[k];
+        const li = (xs) => xs.map((x) => `<li>${P.esc(x)}</li>`).join("");
+        return `<div class="ch-g" style="--c:${c}"><span>${label} · ${items.length}</span><div><ul>${li(items.slice(0, 4))}</ul>
+          ${items.length > 4 ? `<details><summary>${items.length - 4} more</summary><ul>${li(items.slice(4))}</ul></details>` : ""}</div></div>`;
+      }).join("")}</div>` : ""}</div></li>`;
   }).join("") : `<li><div class="empty">Nothing yet.</div></li>`;
 })();
 </script>

@@ -2,37 +2,149 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c1118">
 <title>Journal · The Wade of Kings</title>
 <link rel="stylesheet" href="assets/palanaeum.css">
 </head>
 <body data-page="journal">
-<main class="wrap narrow">
+<main class="wrap">
   <header class="page-head">
     <h1>Journal</h1>
-    <p class="lede">Every chapter in reading order: whose eyes it's told through, what happened, and what Wade said about it, in his own words.</p>
+    <p class="lede">Every chapter in reading order: whose eyes it's told through, what happened, and what Wade made of it, in his own words.</p>
   </header>
-  <ol class="chapters" id="chapters"></ol>
+  <div class="jr-bar">
+    <button type="button" class="chip jr-jump" id="jump">Chapters</button>
+    <div class="chips scroll" id="povs" role="group" aria-label="Show one viewpoint"></div>
+    <label class="jr-toggle"><input type="checkbox" id="voice"> Wade's words only</label>
+  </div>
+  <div class="jr-grid">
+    <nav class="jr-toc" id="toc" aria-label="Chapters"></nav>
+    <ol class="jr-list" id="chapters"></ol>
+  </div>
 </main>
 <script src="data/palanaeum.js"></script>
 <script src="assets/palanaeum.js"></script>
 <script>
 (function () {
-  let lastPart = null;
+  "use strict";
+  const shown = P.data.units.filter((x) => P.visible(x.h));
+  const list = document.getElementById("chapters");
+  const toc = document.getElementById("toc");
+  const wide = matchMedia("(min-width: 981px)").matches;
+  const partOf = (u) => u.part || "";
+  const partName = (key, units) => key ? key.split(/:\s*/) : [units.map((u) => u.label).join(" & "), ""];
+  const tick = (u) => P.esc(u.kind === "chapter" ? u.n : u.kind === "interlude" ? u.short : u.label.slice(0, 3));
+
+  // group units by part, keeping reading order
+  const groups = [];
+  shown.forEach((u) => {
+    if (!groups.length || groups[groups.length - 1].key !== partOf(u)) groups.push({ key: partOf(u), units: [] });
+    groups[groups.length - 1].units.push(u);
+  });
+
   const html = [];
-  for (const u of P.data.units.filter((x) => P.visible(x.h))) {
-    if (u.part && u.part !== lastPart) html.push(`<li class="part-marker">${P.esc(u.part)}</li>`);
-    lastPart = u.part || lastPart;
-    const pov = u.pov.map((id) => P.entLink(id)).join(" and ");
-    const flash = /ago|before|flashback/i.test(u.when || "");
-    html.push(`<li class="chapter ${u.kind}${flash ? " flashback" : ""}" id="${P.unitAnchor(u.id)}"${P.isNew(u.h) ? ' data-new="1"' : ""}>
-      <p class="label">${P.esc(u.label)}</p>
-      <h2>${P.esc(u.title && u.title.toLowerCase() !== u.label.toLowerCase() ? u.title : u.label)}</h2>
-      <p class="who">${pov ? `Through ${pov}'s eyes` : ""}${u.when ? `${pov ? ". " : ""}<span class="when">${P.esc(u.when)}</span>` : ""}</p>
-      <div class="prose">${P.renderSections(u.sections, { skipTitles: true }) || '<p class="muted">No notes yet.</p>'}</div></li>`);
+  groups.forEach((g, gi) => {
+    const [a, b] = partName(g.key, g.units);
+    html.push(`<li class="jr-part" data-g="${gi}"><div><small>${P.esc(b ? a : "Before Part One")}</small><h2>${P.esc(b || a)}</h2></div></li>`);
+    g.units.forEach((u) => {
+      const c = P.unitColor(u);
+      const wade = u.sections.filter((s) => /wade/i.test(s.title));
+      const rest = u.sections.filter((s) => !/wade/i.test(s.title));
+      const voice = P.renderSections(wade, { skipTitles: true });
+      const notes = P.renderSections(rest, { skipTitles: rest.length < 2 });
+      const n = rest.reduce((k, s) => k + P.sectionCount(s), 0);
+      const word = u.kind === "prelude" || u.kind === "prologue";
+      const pov = u.pov.map((id) => `<a class="jr-pov" href="codex.html#${id}" style="--pc:${P.povColor(id)}"><i></i>${P.esc(P.entName(id))}</a>`).join(" ");
+      html.push(`<li class="jr-ch${voice ? "" : " quiet"}" id="${P.unitAnchor(u.id)}" data-g="${gi}" data-pov="${u.pov.join(" ")}" style="--c:${c}"${P.isNew(u.h) ? ' data-new="1"' : ""}>
+        <header class="jr-ch-head">
+          <span class="orb jr-num${word ? " word" : ""}${u.kind === "interlude" ? " il" : ""}" style="--c:${c}" aria-hidden="true">${word ? P.esc(u.label.slice(0, 3)) : P.esc(u.kind === "interlude" ? u.short : u.n)}</span>
+          <div><p class="jr-meta"><span class="lab">${P.esc(u.label)}</span>${pov ? `<span>through ${pov}</span>` : ""}${u.when ? `<span class="when">${P.esc(u.when)}</span>` : ""}</p>
+          <h2>${P.esc(P.unitTitle(u))}</h2></div>
+        </header>
+        <div class="jr-body">
+          <div class="jr-voice">${voice ? `<div class="jr-clamp">${voice}</div>` : '<p class="none">Wade didn\'t leave a note on this one.</p>'}</div>
+          ${notes ? `<details class="jr-notes"${wide ? " open" : ""}><summary>What happened <span>${n} note${n === 1 ? "" : "s"}</span></summary><div class="prose">${notes}</div></details>` : ""}
+        </div></li>`);
+    });
+  });
+  list.innerHTML = html.join("");
+
+  // long notes open clamped; one tap shows all of Wade's words
+  requestAnimationFrame(() => list.querySelectorAll(".jr-clamp").forEach((c) => {
+    if (c.scrollHeight <= c.clientHeight + 48) { c.classList.add("fits"); return; }
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "jr-more";
+    b.textContent = "Keep reading";
+    b.setAttribute("aria-expanded", "false");
+    b.addEventListener("click", () => {
+      const open = c.classList.toggle("open");
+      b.textContent = open ? "Show less" : "Keep reading";
+      b.setAttribute("aria-expanded", String(open));
+      if (!open) c.closest(".jr-ch").scrollIntoView({ block: "nearest" });
+    });
+    c.after(b);
+  }));
+
+  // table of contents
+  const tocHtml = groups.map((g) => {
+    const [a, b] = partName(g.key, g.units);
+    return `<h3>${P.esc(b ? a : "Before Part One")}</h3>` + g.units.map((u) =>
+      `<a href="#${P.unitAnchor(u.id)}" data-id="${P.unitAnchor(u.id)}" style="--c:${P.unitColor(u)}"><span class="orb${u.kind === "interlude" ? " il" : ""}" style="--c:${P.unitColor(u)}"></span><b>${tick(u)}</b><span>${P.esc(P.unitTitle(u))}</span></a>`).join("");
+  }).join("");
+  toc.innerHTML = tocHtml;
+  document.getElementById("jump").textContent = "Chapters";
+  document.getElementById("jump").addEventListener("click", () => {
+    const s = P.sheet(`<h2 style="font-size:2rem">Chapters</h2><nav class="jr-sheet-toc">${tocHtml}</nav>`, { label: "Chapters", cls: "sheet-toc" });
+    s.querySelectorAll("a").forEach((a) => a.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      s.close();
+      setTimeout(() => { document.getElementById(a.dataset.id)?.scrollIntoView({ behavior: P.reducedMotion ? "auto" : "smooth" }); history.replaceState(null, "", `#${a.dataset.id}`); }, 300);
+    }));
+  });
+
+  // scrollspy: the contents follow the reading
+  const tocLinks = Object.fromEntries([...toc.querySelectorAll("a")].map((a) => [a.dataset.id, a]));
+  const io = new IntersectionObserver((es) => {
+    es.forEach((e) => {
+      if (!e.isIntersecting) return;
+      Object.values(tocLinks).forEach((a) => a.classList.toggle("active", a.dataset.id === e.target.id));
+      const a = tocLinks[e.target.id];
+      if (a && toc.scrollHeight > toc.clientHeight) a.scrollIntoView({ block: "nearest" });
+    });
+  }, { rootMargin: "-30% 0px -60% 0px" });
+  list.querySelectorAll(".jr-ch").forEach((li) => io.observe(li));
+
+  // filters: one viewpoint at a time, or only Wade's words
+  const povCount = {};
+  shown.forEach((u) => u.pov.forEach((id) => { povCount[id] = (povCount[id] || 0) + 1; }));
+  const povs = document.getElementById("povs");
+  povs.innerHTML = `<button type="button" class="chip" data-p="" aria-pressed="true">Every chapter<span class="n">${shown.length}</span></button>` +
+    Object.entries(povCount).sort((a, b) => b[1] - a[1]).map(([id, n]) =>
+      `<button type="button" class="chip" data-p="${id}" aria-pressed="false" style="--c:${P.povColor(id)}"><span class="dot"></span>${P.esc(P.entName(id))}<span class="n">${n}</span></button>`).join("");
+  let pov = "";
+  function filter() {
+    const seen = new Set();
+    list.querySelectorAll(".jr-ch").forEach((li) => {
+      const hide = !!pov && !li.dataset.pov.split(" ").includes(pov);
+      li.classList.toggle("hide", hide);
+      if (!hide) seen.add(li.dataset.g);
+    });
+    list.querySelectorAll(".jr-part").forEach((li) => li.classList.toggle("hide", !seen.has(li.dataset.g)));
+    Object.entries(tocLinks).forEach(([id, a]) => a.classList.toggle("hide", document.getElementById(id).classList.contains("hide")));
   }
-  document.getElementById("chapters").innerHTML = html.join("");
-  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+  povs.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+    pov = c.dataset.p;
+    povs.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed", String(x === c)));
+    filter();
+  }));
+  document.getElementById("voice").addEventListener("change", (ev) => list.classList.toggle("voice-only", ev.target.checked));
+
+  if (location.hash) {
+    const t = document.getElementById(location.hash.slice(1));
+    if (t) { const d = t.querySelector("details"); if (d) d.open = true; requestAnimationFrame(() => t.scrollIntoView()); }
+  }
 })();
 </script>
 </body>

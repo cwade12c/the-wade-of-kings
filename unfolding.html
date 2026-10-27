@@ -2,37 +2,54 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c1118">
 <title>The Unfolding · The Wade of Kings</title>
 <link rel="stylesheet" href="assets/palanaeum.css">
 </head>
 <body data-page="unfolding">
-<main>
-  <div class="web-shell">
-    <aside class="web-rail">
+<main class="uf">
+  <div class="uf-stage" id="stage">
+    <div class="uf-motes" id="motes" aria-hidden="true"></div>
+    <svg id="web" role="img" aria-label="Relationship web: everyone met so far and the ties between them"></svg>
+    <div class="uf-readout" id="readout">
       <h1>The Unfolding</h1>
-      <p>Everyone Wade has met and every tie the book has drawn between them, rebuilt from cited notes. Press play to watch it grow from the Prelude.</p>
-      <ul class="legend" id="legend" aria-label="Show or hide each kind of tie"></ul>
-      <ul class="legend styles" aria-label="Line styles">
+      <div class="uf-at" id="at"></div>
+      <p class="uf-counts" id="counts"></p>
+    </div>
+    <div class="uf-tools" role="group" aria-label="View">
+      <button type="button" id="z-in" aria-label="Zoom in">+</button>
+      <button type="button" id="z-out" aria-label="Zoom out">−</button>
+      <button type="button" id="z-fit" aria-label="Fit everyone in view"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button type="button" id="f-btn" aria-label="Kinds of tie and key" aria-expanded="false" aria-controls="filters"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
+    </div>
+    <div class="uf-filters" id="filters" hidden>
+      <h2>Kinds of tie</h2>
+      <div class="uf-types" id="legend" role="group" aria-label="Show or hide each kind of tie"></div>
+      <h2>How we know</h2>
+      <ul class="uf-styles" aria-label="Line styles">
         <li><span class="line"></span>Shown on the page</li>
         <li><span class="line said"></span>A character says so</li>
         <li><span class="line inferred"></span>Wade's reading, not yet confirmed</li>
       </ul>
-      <p>Lit spheres are viewpoint characters; squares are groups. Arrows mark command, dots support, bars hostility.</p>
-      <div class="node-card" id="card" hidden></div>
-    </aside>
-    <div class="web-canvas">
-      <svg id="web" role="img" aria-label="Relationship web"></svg>
-      <div class="stormwall" id="wall"></div>
-      <div class="web-tip" id="tip" role="status"></div>
+      <h2>Reading the web</h2>
+      <p>Lit, glowing spheres are viewpoint characters; squares are groups. Arrows mark command, dots support, bars hostility. Pinch or scroll to zoom, drag to pan, and pick anyone to see their ties.</p>
     </div>
+    <aside class="uf-card" id="card" hidden aria-live="polite"></aside>
+    <div class="uf-storm" id="storm" aria-hidden="true">
+      <div class="uf-front"></div>
+      <div class="uf-plate" id="plate"></div>
+    </div>
+    <div class="web-tip" id="tip" role="status"></div>
   </div>
-  <div class="scrubber">
-    <div class="wrap">
-      <button class="play" id="play" type="button">Play from the Prelude</button>
-      <div class="string" id="string" role="group" aria-label="Choose a chapter to see the web as it stood then"></div>
+  <div class="uf-dock">
+    <div class="uf-btns">
+      <button type="button" id="prev" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM19 5v14L9 12z"/></svg></button>
+      <button type="button" class="play" id="play" aria-label="Play from the Prelude"></button>
+      <button type="button" id="next" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM5 5v14l10-7z"/></svg></button>
     </div>
-    <div class="wrap"><p class="string-caption" id="caption" aria-live="polite"></p></div>
+    <p class="uf-cap" id="caption" aria-live="polite"></p>
+    <div class="uf-orbs" id="orbs" role="group" aria-label="Choose a chapter to see the web as it stood then"></div>
   </div>
 </main>
 <script src="data/palanaeum.js"></script>
@@ -41,75 +58,169 @@
 <script src="assets/web.js"></script>
 <script>
 (function () {
-  const card = document.getElementById("card");
-  const wall = document.getElementById("wall");
-  let current = P.limit();
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const card = $("card"), storm = $("storm"), plate = $("plate");
+  const shownUnits = P.units.filter((u) => P.visible(u.h));
+  const LIM = P.limit();
+  let current = LIM, sel = null;
+  const SWEEP = 1500, STEP = 2300;
+  const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>';
+  const PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>';
 
+  // drifting motes of light: the room is never quite still
+  if (!P.reducedMotion) {
+    let seed = 5; const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    $("motes").innerHTML = Array.from({ length: 34 }, () =>
+      `<i style="left:${(r() * 100).toFixed(1)}%;top:${(10 + r() * 90).toFixed(1)}%;--s:${(1 + r() * 2.2).toFixed(1)}px;--t:${(9 + r() * 12).toFixed(1)}s;--d:${(-r() * 20).toFixed(1)}s;--o:${(0.25 + r() * 0.5).toFixed(2)};--dx:${((r() - 0.5) * 60).toFixed(0)}px"></i>`).join("");
+  }
+
+  const narrow = () => matchMedia("(max-width: 760px)").matches;
+  const web = P.web($("web"), {
+    labels: "all", interactive: true, zoom: true, tip: $("tip"),
+    pad: narrow() ? { top: 120, right: 16, bottom: 20, left: 16 } : { top: 110, right: 80, bottom: 30, left: 40 },
+    onSelect: (n) => { sel = n; renderCard(n); history.replaceState(null, "", n ? `#${n.id}` : location.pathname); },
+  });
+
+  // ------------------------------------------------------------ the card for a chosen name
   function renderCard(n) {
     if (!n) { card.hidden = true; return; }
     const e = n.e;
-    const ties = P.data.relations.filter((r) => r.h <= current && (r.from === e.id || r.to === e.id));
+    const ties = P.tiesOf(e.id, current);
     const first = P.unitById[e.first_seen.split("@")[0]];
+    const onstage = (e.units || []).filter((id) => P.unitById[id] && P.unitById[id].h <= current).length;
+    card.style.setProperty("--pc", P.entColor(e, current));
     card.hidden = false;
-    card.innerHTML = `<h2><a class="ent" href="codex.html#${e.id}">${P.esc(e.name)}</a></h2>
-      <p class="muted small">First met in ${P.esc(P.unitLabel(first))}</p>
-      <p class="small">${P.summaryOf(e, current)}</p>
+    card.innerHTML = `<button type="button" class="icon-btn c-x" aria-label="Close">${P.icon("close")}</button>
+      <div class="c-head">${P.sigil(e, { size: 58, h: current })}<div><p>${P.esc(P.FOLDERS[e.folder] || "")}${P.isPov(e.id, current) ? " · viewpoint" : ""}</p><h2>${P.esc(e.name)}</h2></div></div>
+      ${P.summaryOf(e, current) ? `<p class="c-sum">${P.summaryOf(e, current)}</p>` : ""}
+      <div class="c-stats"><span>First met <b>${P.esc(first ? first.short : "")}</b></span><span><b>${onstage}</b> chapter${onstage === 1 ? "" : "s"}</span><span><b>${ties.length}</b> tie${ties.length === 1 ? "" : "s"}</span></div>
       <ul>${ties.map((r) => {
         const other = r.from === e.id ? r.to : r.from;
-        return `<li><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].color};display:inline-block;vertical-align:middle;margin:0 .4rem 0 0"></span><b>${P.esc(P.entName(other))}</b>: ${P.esc(r.label)}</li>`;
-      }).join("")}</ul>`;
+        return `<li><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].hex}"></span><span><button type="button" data-id="${other}">${P.esc(P.entName(other))}</button>: ${P.esc(r.label)}</span></li>`;
+      }).join("")}</ul>
+      <div class="c-acts"><button type="button" class="cta" id="expand">${P.icon("expand")}Full profile</button>
+        <a class="cta ghost" href="codex.html#${e.id}">Codex entry</a></div>`;
+    card.querySelector(".c-x").addEventListener("click", () => web.select(null));
+    card.querySelectorAll("li button").forEach((b) => b.addEventListener("click", () => web.select(b.dataset.id, { center: true })));
+    card.querySelector("#expand").addEventListener("click", () => P.openProfile(e.id, {
+      h: current,
+      link: (id) => `codex.html#${id}`,
+      onPick: (id) => (web.has(id) ? web.select(id, { center: true }) : (location.href = `codex.html#${id}`)),
+    }));
   }
 
-  const web = P.web(document.getElementById("web"), {
-    labels: "all", interactive: true, tip: document.getElementById("tip"),
-    onSelect: (n) => { renderCard(n); history.replaceState(null, "", n ? `#${n.id}` : location.pathname); },
+  // ------------------------------------------------------------ filters
+  const legend = $("legend");
+  legend.innerHTML = Object.entries(P.TYPES).map(([k, t]) => `<label>
+    <input type="checkbox" value="${k}" checked><span class="line" style="--c:${t.hex}"></span><span>${t.label}</span><span class="count"></span></label>`).join("");
+  legend.querySelectorAll("input").forEach((i) => i.addEventListener("change", () => {
+    web.setTypes([...legend.querySelectorAll("input:checked")].map((x) => x.value));
+    readout();
+  }));
+  const fBtn = $("f-btn"), filters = $("filters");
+  fBtn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    filters.hidden = !filters.hidden;
+    fBtn.setAttribute("aria-expanded", String(!filters.hidden));
   });
+  document.addEventListener("click", (ev) => { if (!filters.hidden && !filters.contains(ev.target) && ev.target !== fBtn) { filters.hidden = true; fBtn.setAttribute("aria-expanded", "false"); } });
+  $("z-in").addEventListener("click", () => web.zoomBy(1.4));
+  $("z-out").addEventListener("click", () => web.zoomBy(1 / 1.4));
+  $("z-fit").addEventListener("click", () => web.fit());
 
-  const legend = document.getElementById("legend");
-  function drawLegend() {
-    legend.innerHTML = Object.entries(P.TYPES).map(([k, t]) => `<li><label>
-      <input type="checkbox" value="${k}" checked><span class="line" style="--c:${t.color}"></span>
-      <span>${t.label}</span><span class="count">${web.count(k)}</span></label></li>`).join("");
-    legend.querySelectorAll("input").forEach((i) => i.addEventListener("change", () =>
-      web.setTypes([...legend.querySelectorAll("input:checked")].map((x) => x.value))));
+  // ------------------------------------------------------------ the timeline
+  const orbs = $("orbs");
+  orbs.innerHTML = shownUnits.map((u) => `<button type="button" class="uf-tick" data-h="${u.h}" aria-label="${P.esc(P.unitLabel(u))}" aria-pressed="false">
+    <span class="orb${u.kind === "interlude" ? " il" : ""}" style="--c:${P.unitColor(u)}"></span><small>${P.esc(u.kind === "chapter" ? u.n : u.kind === "interlude" ? u.short : u.label.slice(0, 3))}</small></button>`).join("") +
+    `<span class="uf-edge" title="Not read yet"></span>`;
+  orbs.querySelectorAll(".uf-tick").forEach((b) => b.addEventListener("click", () => { stop(); goTo(Number(b.dataset.h), true); }));
+
+  function describe(u) {
+    const pov = u.pov.map(P.entName).join(" and ");
+    return `<strong>${P.esc(P.unitLabel(u))}</strong>${pov ? ` · through <i style="--c:${P.unitColor(u)}">${P.esc(pov)}</i>'s eyes` : ""}${u.part ? ` · <span>${P.esc(u.part.split(":")[0])}</span>` : ""}`;
   }
-  drawLegend();
-
-  const string = P.sphereString(document.getElementById("string"), document.getElementById("caption"), {
-    onSelect: (u) => goTo(u.h, true),
-  });
-  function sweep() {
-    if (P.reducedMotion) return;
-    wall.classList.remove("sweep"); void wall.offsetWidth; wall.classList.add("sweep");
+  function readout() {
+    const u = P.units[current];
+    const at = $("at");
+    if (!u) { at.innerHTML = ""; $("counts").textContent = ""; $("caption").textContent = "Before the Prelude: an empty sky."; return; }
+    const num = P.unitNumeral(u), word = u.kind === "prelude" || u.kind === "prologue";
+    at.style.setProperty("--c", P.unitColor(u));
+    at.innerHTML = `<span class="numeral${word ? " word" : ""}">${P.esc(num)}</span><span class="t"><b>${P.esc(P.unitTitle(u))}</b><span>${P.esc(word ? "" : u.label)}${u.pov.length ? `${word ? "" : " · "}${P.esc(u.pov.map(P.entName).join(" & "))}` : ""}</span></span>`;
+    const c = web.visibleCounts();
+    $("counts").innerHTML = `<b>${c.nodes}</b> names · <b>${c.links}</b> ties`;
+    $("caption").innerHTML = describe(u);
+    legend.querySelectorAll(".count").forEach((el, i) => { el.textContent = web.count(Object.keys(P.TYPES)[i]); });
+  }
+  function sweep(u) {
+    if (P.reducedMotion || !u) return;
+    const word = u.kind === "prelude" || u.kind === "prologue";
+    storm.style.setProperty("--sweep", `${SWEEP}ms`);
+    storm.style.setProperty("--c", P.unitColor(u));
+    plate.innerHTML = `<small>${P.esc(word ? "The Way of Kings" : u.kind === "interlude" ? "Interlude" : "Chapter")}</small>
+      <b class="${word ? "word" : ""}">${P.esc(word ? u.label : u.kind === "interlude" ? u.short : u.n)}</b><span>${P.esc(P.unitTitle(u) === u.label ? "" : P.unitTitle(u))}</span>
+      ${u.pov.length ? `<i>${P.esc(u.pov.map(P.entName).join(" & "))}</i>` : ""}`;
+    storm.classList.remove("go"); void storm.offsetWidth; storm.classList.add("go");
+    clearTimeout(sweep.t);
+    sweep.t = setTimeout(() => storm.classList.remove("go"), SWEEP + 50);
   }
   function goTo(h, withSweep) {
     current = h;
-    if (withSweep) sweep();
-    web.setHorizon(h);
-    string.setActive(h);
-    legend.querySelectorAll(".count").forEach((c, i) => { c.textContent = web.count(Object.keys(P.TYPES)[i]); });
+    if (withSweep) sweep(P.units[h]);
+    web.setHorizon(h, { sweepMs: withSweep && !P.reducedMotion ? SWEEP : 0 });
+    orbs.querySelectorAll(".uf-tick").forEach((b) => {
+      const bh = Number(b.dataset.h);
+      b.querySelector(".orb").classList.toggle("dim", bh > h);
+      b.setAttribute("aria-pressed", String(bh === h));
+      if (bh === h) {
+        const left = b.offsetLeft - orbs.clientWidth / 2 + b.offsetWidth / 2;
+        orbs.scrollTo({ left, behavior: P.reducedMotion ? "auto" : "smooth" });
+      }
+    });
+    $("prev").disabled = h <= 0;
+    $("next").disabled = h >= LIM;
+    readout();
+    if (sel && sel.h <= h) renderCard(sel);
   }
 
+  // ------------------------------------------------------------ play
   let timer = null;
-  const play = document.getElementById("play");
-  play.addEventListener("click", () => {
-    if (timer) { clearInterval(timer); timer = null; play.textContent = "Play from the Prelude"; return; }
-    if (P.reducedMotion) { goTo(P.limit(), false); return; }
-    let h = 0;
-    goTo(-1, false);
-    play.textContent = "Pause";
+  const play = $("play");
+  const setPlay = (on) => {
+    play.innerHTML = on ? PAUSE : PLAY;
+    play.setAttribute("aria-label", on ? "Pause" : current >= LIM ? "Play from the Prelude" : "Play on");
+  };
+  function stop() { if (timer) { clearInterval(timer); timer = null; } setPlay(false); }
+  function start() {
+    if (P.reducedMotion) { goTo(LIM, false); return; }
+    web.select(null);
+    let h = current >= LIM ? 0 : current + 1;
+    if (h === 0) goTo(-1, false);
+    setPlay(true);
     const step = () => {
       goTo(h, true);
       h += 1;
-      if (h > P.limit()) { clearInterval(timer); timer = null; play.textContent = "Play from the Prelude"; }
+      if (h > LIM) stop();
     };
     step();
-    timer = setInterval(step, 1300);
+    timer = setInterval(step, STEP);
+  }
+  play.addEventListener("click", () => (timer ? stop() : start()));
+  $("prev").addEventListener("click", () => { stop(); if (current > 0) goTo(current - 1, false); });
+  $("next").addEventListener("click", () => { stop(); if (current < LIM) goTo(current + 1, true); });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.target.closest("input,select,textarea") || document.querySelector(".sheet")) return;
+    if (ev.key === "ArrowRight" && current < LIM) { stop(); goTo(current + 1, true); }
+    if (ev.key === "ArrowLeft" && current > 0) { stop(); goTo(current - 1, false); }
+    if (ev.key === "Escape") web.select(null);
   });
 
-  goTo(P.limit(), false);
+  setPlay(false);
+  goTo(LIM, false);
   const id = location.hash.slice(1);
-  if (id) web.select(id);
+  if (id) web.select(id, { center: true });
+  window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h && web.has(h)) web.select(h, { center: true }); });
+  if (new URLSearchParams(location.search).has("play")) setTimeout(start, 500);
 })();
 </script>
 </body>
