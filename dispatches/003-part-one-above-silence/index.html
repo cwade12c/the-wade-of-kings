@@ -38,7 +38,7 @@
   .lm-who { font: italic 400 13px var(--display); fill: var(--dusk); }
 
   .cast { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 6px 26px; text-align: center; padding: 8px 0 4px; }
-  .cast span { font-family: var(--display); line-height: 1.05; color: var(--c); text-shadow: 0 0 22px color-mix(in srgb, var(--c) 35%, transparent); white-space: nowrap; }
+  .cast span { font-size: var(--fs); font-family: var(--display); line-height: 1.05; color: var(--c); text-shadow: 0 0 22px color-mix(in srgb, var(--c) 35%, transparent); white-space: nowrap; }
   .legend-p { display: flex; justify-content: center; gap: 28px; margin-top: 18px; font-size: 13px; color: var(--dusk); flex-wrap: wrap; }
   .legend-p i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); margin-right: 8px; vertical-align: 0; }
 
@@ -68,6 +68,22 @@
 
   .below-poster { max-width: 1200px; margin: 1.25rem auto 0; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; color: var(--dusk); font-size: var(--step--1); }
 
+  @media (max-width: 700px) {
+    .masthead-p { padding-top: 40px; }
+    .masthead-p .kick { font-size: 11px; letter-spacing: .26em; }
+    .masthead-p .sub { font-size: 19px; }
+    .sect { margin-top: 40px; }
+    .sect > h2 { letter-spacing: .16em; font-size: 13px; }
+    .cast { gap: 2px 16px; }
+    .cast span { font-size: calc(var(--fs) * .52 + 4px); }
+    .legend-p { gap: 8px 16px; font-size: 12px; }
+    .threads { grid-template-columns: 1fr !important; }
+    .call blockquote { font-size: 18px; }
+    .gauge svg { width: 170px; height: 170px; }
+    .stat b { font-size: 44px; }
+    .colophon { padding: 18px 22px 24px; }
+    .colophon > div:last-child { text-align: left !important; }
+  }
   @media (max-width: 900px) {
     .pad { padding: 0 22px; }
     .threads { grid-template-columns: 1fr 1fr; }
@@ -198,48 +214,59 @@
     ["9", "Damnation", "kal"], ["10", "Stories of Surgeons", "kal", "flash"], ["11", "Droplets", "kal"],
     ["I-1", "Ishikk", "int"], ["I-2", "Nan Balat", "int"], ["I-3", "The Glory of Ignorance", "int"],
   ];
-  const LANE = { cenn: 250, kal: 330, sha: 410, int: 490 };
-  const W = 1072, x0 = 110, dx = (W - 2 * x0) / (U.length - 1);
-  const X = (i) => x0 + i * dx;
-  const ys = (i) => U[i][2] === "kal" && U[i][3] ? LANE.kal + 36 : LANE[U[i][2]];
-  let svg = `<svg viewBox="0 40 ${W + 90} 500" role="img" aria-label="Part One's chapters in reading order, one line per viewpoint">
-    <defs>${Object.entries(C).map(([k, c]) => `<radialGradient id="st-${k}"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`).join("")}
-    <filter id="glow" filterUnits="userSpaceOnUse" x="-100" y="0" width="1400" height="700"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
-  // faint guides
-  U.forEach((u, i) => { svg += `<line x1="${X(i)}" y1="200" x2="${X(i)}" y2="520" stroke="#2e3b4e" stroke-width="1" stroke-dasharray="2 5"/>`; });
-  // lane labels
-  [["cenn", "Cenn"], ["kal", "Kaladin"], ["sha", "Shallan"], ["int", "Interludes"]].forEach(([k, n]) => {
-    svg += `<text class="lm-lane" x="${W - 4}" y="${LANE[k] + 6}" text-anchor="end" fill="${C[k]}" opacity=".0">${n}</text>`;
-  });
-  // routes per lane (curves between consecutive stations on the same viewpoint)
-  ["kal", "sha"].forEach((k) => {
-    const idx = U.map((u, i) => (u[2] === k ? i : -1)).filter((i) => i >= 0);
-    for (let j = 0; j < idx.length - 1; j++) {
-      const a = idx[j], b = idx[j + 1], xa = X(a), xb = X(b), ya = ys(a), yb = ys(b);
-      const flash = U[a][3] || U[b][3];
-      const d = `M${xa} ${ya} C ${xa + (xb - xa) * 0.5} ${ya}, ${xa + (xb - xa) * 0.5} ${yb}, ${xb} ${yb}`;
-      svg += `<path class="route${flash ? " flash" : ""}" d="${d}" stroke="${C[k]}" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9" filter="url(#glow)"/>`;
+  const defs = (w, h) => `<defs>${Object.entries(C).map(([k, c]) => `<radialGradient id="st-${k}"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`).join("")}
+    <filter id="glow" filterUnits="userSpaceOnUse" x="-100" y="-100" width="${w + 200}" height="${h + 200}"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+  const label = (u) => (u[0].startsWith("I-") ? u[0] : "CH " + u[0]);
+  // Draws the map either across (wide screens) or down (phones). pos(i) gives a station's point;
+  // curve(a, b) joins two points along the reading direction.
+  function draw(vertical) {
+    let W, H, pos, curve, svg = "";
+    if (!vertical) {
+      const LANE = { cenn: 250, kal: 330, sha: 410, int: 490 };
+      const x0 = 110, dx = (1072 - 2 * x0) / (U.length - 1);
+      W = 1162; H = 540;
+      pos = (i) => [x0 + i * dx, U[i][3] ? LANE.kal + 36 : LANE[U[i][2]]];
+      curve = ([xa, ya], [xb, yb]) => `M${xa} ${ya} C ${(xa + xb) / 2} ${ya}, ${(xa + xb) / 2} ${yb}, ${xb} ${yb}`;
+      U.forEach((u, i) => { const [x] = pos(i); svg += `<line x1="${x}" y1="200" x2="${x}" y2="520" stroke="#2e3b4e" stroke-width="1" stroke-dasharray="2 5"/>`; });
+      U.forEach((u, i) => { const [x] = pos(i); svg += `<g transform="translate(${x} 188) rotate(-40)"><text class="lm-num" x="0" y="0">${label(u)}</text><text class="lm-title" x="0" y="18">${u[1]}</text></g>`; });
+      [["cenn", 0, "Cenn"], ["kal", 1, "Kaladin"], ["sha", 2, "Shallan"], ["int", 11, "Ishikk · Balat · Szeth"]].forEach(([k, i, n]) => {
+        const [x, y] = pos(i); svg += `<text class="lm-who" x="${x - 30}" y="${y + 5}" text-anchor="end" style="fill:${C[k]}">${n}</text>`;
+      });
+      const [fx, fy] = pos(9); svg += `<text class="lm-who" x="${fx}" y="${fy + 36}" text-anchor="middle">young Kal, years before</text>`;
+    } else {
+      const LANE = { cenn: 34, kal: 76, sha: 118, int: 160 };
+      const y0 = 92, dy = 62;
+      W = 380; H = y0 + (U.length - 1) * dy + 40;
+      pos = (i) => [U[i][3] ? LANE.kal + 26 : LANE[U[i][2]], y0 + i * dy];
+      curve = ([xa, ya], [xb, yb]) => `M${xa} ${ya} C ${xa} ${(ya + yb) / 2}, ${xb} ${(ya + yb) / 2}, ${xb} ${yb}`;
+      U.forEach((u, i) => { const [, y] = pos(i); svg += `<line x1="16" y1="${y}" x2="${W}" y2="${y}" stroke="#2e3b4e" stroke-width="1" stroke-dasharray="2 5"/>
+        <text class="lm-num" x="196" y="${y - 6}">${label(u)}</text><text class="lm-title" x="196" y="${y + 13}" style="font-size:17px">${u[1]}${u[3] ? ' <tspan class="lm-who" style="font-size:13px">· flashback</tspan>' : ""}</text>`; });
+      [["cenn", "Cenn"], ["kal", "Kaladin"], ["sha", "Shallan"], ["int", "Interludes"]].forEach(([k, n]) => {
+        svg += `<text class="lm-who" transform="translate(${LANE[k] + 4} 54) rotate(-55)" style="fill:${C[k]};font-size:15px">${n}</text>`;
+      });
     }
-  });
-  // Cenn's thread hands off to Kaladin; interludes are standalone stops on their own line
-  svg += `<path class="route" d="M${X(0)} ${LANE.cenn} C ${X(0) + dx * 0.5} ${LANE.cenn}, ${X(0) + dx * 0.5} ${LANE.kal}, ${X(1)} ${LANE.kal}" stroke="${C.cenn}" stroke-width="4" fill="none" stroke-dasharray="1 9" stroke-linecap="round" opacity=".8"/>`;
-  svg += `<path class="route" d="M${X(11)} ${LANE.int} L ${X(13)} ${LANE.int}" stroke="${C.int}" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="1 9" opacity=".7"/>`;
-  // stations + titles
-  U.forEach((u, i) => {
-    const x = X(i), y = ys(i), c = C[u[2]], k = u[2];
-    svg += `<g class="station" style="--i:${i}">
-      <circle class="halo-st" cx="${x}" cy="${y}" r="22" fill="url(#st-${k})" opacity=".8"/>
-      <circle cx="${x}" cy="${y}" r="9.5" fill="#0b1017" stroke="${c}" stroke-width="3.2"${u[3] ? ' stroke-dasharray="4 3"' : ""}/>
-      <circle cx="${x}" cy="${y}" r="3.6" fill="#fff"/></g>`;
-    svg += `<g transform="translate(${x} 188) rotate(-40)"><text class="lm-num" x="0" y="0">${u[0] === u[0].replace("I-", "") ? "CH " + u[0] : u[0]}</text><text class="lm-title" x="0" y="18">${u[1]}</text></g>`;
-  });
-  // lane names at the first station of each lane
-  [["cenn", 0, "Cenn"], ["kal", 1, "Kaladin"], ["sha", 2, "Shallan"], ["int", 11, "Ishikk · Balat · Szeth"]].forEach(([k, i, n]) => {
-    svg += `<text class="lm-who" x="${X(i) - 30}" y="${LANE[k] + 5}" text-anchor="end" fill="${C[k]}" style="fill:${C[k]}">${n}</text>`;
-  });
-  svg += `<text class="lm-who" x="${X(9)}" y="${LANE.kal + 72}" text-anchor="middle">young Kal, years before</text>`;
-  svg += `</svg>`;
-  document.getElementById("linemap").innerHTML = svg;
+    ["kal", "sha"].forEach((k) => {
+      const idx = U.map((u, i) => (u[2] === k ? i : -1)).filter((i) => i >= 0);
+      for (let j = 0; j < idx.length - 1; j++) {
+        const a = idx[j], b = idx[j + 1], flash = U[a][3] || U[b][3];
+        svg += `<path class="route${flash ? " flash" : ""}" d="${curve(pos(a), pos(b))}" stroke="${C[k]}" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9" filter="url(#glow)"/>`;
+      }
+    });
+    svg += `<path d="${curve(pos(0), pos(1))}" stroke="${C.cenn}" stroke-width="4" fill="none" stroke-dasharray="1 9" stroke-linecap="round" opacity=".8"/>`;
+    svg += `<path d="${curve(pos(11), pos(12))} ${curve(pos(12), pos(13)).replace("M", "M ")}" stroke="${C.int}" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="1 9" opacity=".7"/>`;
+    U.forEach((u, i) => {
+      const [x, y] = pos(i), c = C[u[2]], k = u[2];
+      svg += `<g class="station" style="--i:${i}">
+        <circle class="halo-st" cx="${x}" cy="${y}" r="22" fill="url(#st-${k})" opacity=".8"/>
+        <circle cx="${x}" cy="${y}" r="9.5" fill="#0b1017" stroke="${c}" stroke-width="3.2"${u[3] ? ' stroke-dasharray="4 3"' : ""}/>
+        <circle cx="${x}" cy="${y}" r="3.6" fill="#fff"/></g>`;
+    });
+    const vb = vertical ? `0 0 ${W} ${H}` : `0 40 ${W} 500`;
+    return `<svg viewBox="${vb}" role="img" aria-label="Part One's chapters in reading order, one line per viewpoint">${defs(W, H)}${svg}</svg>`;
+  }
+  const narrow = matchMedia("(max-width: 700px)");
+  const render = () => { document.getElementById("linemap").innerHTML = draw(narrow.matches); };
+  render(); narrow.addEventListener("change", render);
 
   // ------------------------------------------------------------ cast (counts frozen from the codex at ch 12)
   const CAST = [
@@ -254,7 +281,7 @@
   const size = (n) => 18 + n * 7.5;
   document.getElementById("cast").innerHTML = order.map((i) => {
     const [n, k, lane] = CAST[i];
-    return `<span style="--c:${C[lane]};font-size:${size(k)}px">${n}</span>`;
+    return `<span style="--c:${C[lane]};--fs:${size(k)}px">${n}</span>`;
   }).join("");
 
   // ------------------------------------------------------------ gauge
