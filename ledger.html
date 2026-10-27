@@ -34,6 +34,7 @@
 (function () {
   const D = P.data;
   const at = (id) => P.unitLabel(P.unitById[id.split("@")[0]], { short: true });
+  const amended = (x) => x.amended ? `<span><em>amended before reading on</em></span>` : "";
   const recalled = (x) => x.recalled_from ? `<span><em>recalled from ${P.esc(at(x.recalled_from))} (intake)</em></span>` : "";
   const preds = D.predictions.filter((p) => P.visible(p.h));
   document.getElementById("predictions").innerHTML = preds.length ? preds.map((p) => {
@@ -43,7 +44,7 @@
     const history = conf.length > 1 ? `<span>${conf.map((c) => `${c.p}%`).join(" then ")}</span>` : "";
     return `<article class="call"${P.isNew(p.h) ? ' data-new="1"' : ""}>
       <p class="claim">“${p.claim}”</p>
-      <div class="meta"><span>${P.esc(p.id)}, made at ${P.esc(at(p.made_at))}</span>${recalled(p)}
+      <div class="meta"><span>${P.esc(p.id)}, made at ${P.esc(at(p.made_at))}</span>${recalled(p)}${amended(p)}
         <span class="confidence" title="Confidence"><span class="bar"><i style="width:${last.p}%"></i></span>${last.p}%</span>${history}
         ${resolved ? `<span class="stamp ${p.status}">${p.status === "called" ? "Called it" : p.status}</span>` : ""}</div>
       <div class="prose small" style="margin-top:.6rem">${P.renderSections(p.sections)}</div></article>`;
@@ -55,7 +56,7 @@
     const answered = q.status !== "open" && q.ah !== null && P.visible(q.ah);
     return `<article class="call"${P.isNew(q.h) ? ' data-new="1"' : ""}>
       <p class="claim" style="font-size:1.1rem">“${q.question}”</p>
-      <div class="meta"><span>${P.esc(q.id)}, asked at ${P.esc(at(q.asked_at))}</span>${recalled(q)}
+      <div class="meta"><span>${P.esc(q.id)}, asked at ${P.esc(at(q.asked_at))}</span>${recalled(q)}${amended(q)}
         <span>${answered ? `answered in ${P.esc(at(q.answered_at))}` : "still open"}</span></div>
       <div class="prose small" style="margin-top:.6rem">${P.renderSections(q.sections)}</div></article>`;
   }).join("") : `<div class="empty"><strong>No questions yet.</strong>Anything Wade wonders about (“why did…”, “who was…”) gets filed here until the book answers it.</div>`;
