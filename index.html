@@ -285,7 +285,7 @@
   } else {
     html += `<a class="hm-call" href="ledger.html"><div><p class="k">Predictions</p><q>None on the record yet.</q></div></a>`;
   }
-  if (un) html += `<a class="hm-call unhinged" href="ledger.html#unhinged"><div><p class="k">The Unhinged Ledger · ${P.esc(un.id)}</p><q>${un.claim}</q>
+  if (un) html += `<a class="hm-call unhinged" href="ledger.html#deep-end"><div><p class="k">The Deep End · ${P.esc(un.id)}</p><q>${un.claim}</q>
       <p class="m">${P.esc(atU(un.made_at))} · ${P.esc(un.made_on)} · frozen forever</p></div></a>`;
   calls.innerHTML = html;
 })();

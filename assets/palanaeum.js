@@ -31,7 +31,7 @@
     ["dispatches.html", "Dispatches", "dispatches", "Maps, posters and illustrated guides"],
     ["codex.html", "Codex", "codex", "Everyone and everything met so far"],
     ["journal.html", "Journal", "journal", "Every chapter, and what Wade made of it"],
-    ["ledger.html", "Theories", "theories", "Predictions, questions and the Unhinged Ledger"],
+    ["ledger.html", "Theories", "theories", "Predictions, questions and The Deep End"],
     ["chronicle.html", "Chronicle", "chronicle", "The read itself, day by day"],
   ];
   const FOLDERS = {
@@ -254,7 +254,6 @@
     const el = document.createElement("footer");
     el.className = "site-foot";
     el.innerHTML = `<div class="wrap">
-      <p class="poker">Read further than Wade? Please don't react to his predictions, not even with a 👀. Every reaction is a spoiler.</p>
       <div class="meta"><nav class="foot-nav" aria-label="Pages">${NAV.map(([href, label]) => `<a href="${root}${href}">${label}</a>`).join("")}</nav>
         Spoilers through ${esc(hz.book)}, ${esc(friendH() === null ? unitLabel(unitById[hz.id]) : unitById[hz.id].label)}.<br>
         Kept by Wade's ardent in the Palanaeum. <a href="${root}feed.xml">Follow the feed</a></div></div>`;

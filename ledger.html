@@ -17,7 +17,7 @@
   <div class="th-tabs" role="tablist" aria-label="Kinds of call" id="tabs"></div>
   <section class="th-panel" id="p-predictions" role="tabpanel" aria-labelledby="t-predictions"></section>
   <section class="th-panel" id="p-questions" role="tabpanel" aria-labelledby="t-questions" hidden></section>
-  <section class="th-panel" id="p-unhinged" role="tabpanel" aria-labelledby="t-unhinged" hidden></section>
+  <section class="th-panel" id="p-deep-end" role="tabpanel" aria-labelledby="t-deep-end" hidden></section>
 </main>
 <script src="data/palanaeum.js"></script>
 <script src="assets/palanaeum.js"></script>
@@ -120,24 +120,25 @@
     drawQuestions();
   }
 
-  // ------------------------------------------------------------ the Unhinged Ledger
+  // ------------------------------------------------------------ The Deep End
   const un = D.unhinged.filter((u) => P.visible(u.h)).slice().reverse();
-  document.getElementById("p-unhinged").innerHTML = `<p class="muted" style="max-width:60ch;margin-bottom:1.25rem">The boldest calls, made after “hear me out”. Append-only: nothing here can ever be edited.</p>` +
+  document.getElementById("p-deep-end").innerHTML = `<p class="muted" style="max-width:60ch;margin-bottom:1.25rem">Wade’s boldest theories, preserved from the moment he makes them.</p>` +
     (un.length ? `<div class="th-unh">${un.map((u) => `<article class="th-u"><p class="k"><span class="lock" aria-hidden="true">🔒</span>${P.esc(u.id)} · sealed</p>
       <blockquote class="wade">${u.claim}</blockquote><p class="m">Made at ${P.esc(at(u.made_at))} · ${P.esc(u.made_on)}</p></article>`).join("")}</div>`
-      : `<div class="empty"><strong>Empty, for now.</strong>Say “hear me out” and the wildest theories go here, forever.</div>`);
+      : `<div class="empty"><strong>Empty, for now.</strong>Wade’s wildest theories will land here as he reads.</div>`);
 
   // ------------------------------------------------------------ tabs
   const avg = preds.length ? Math.round(preds.reduce((k, p) => { const c = p.confidence.filter((x) => P.visible(x.h)); return k + (c[c.length - 1] || p.confidence[0]).p; }, 0) / preds.length) : 0;
   const TABS = [
     ["predictions", "Predictions", preds.length, preds.length ? `average confidence ${avg}%` : "none yet", "#5fb0ff"],
     ["questions", "Questions", nOpen, `open · ${qs.length - nOpen} answered`, "#b993ff"],
-    ["unhinged", "Unhinged", un.length, "sealed forever", "#ea5f6f"],
+    ["deep-end", "The Deep End", un.length, "sealed forever", "#ea5f6f"],
   ];
   const tabs = document.getElementById("tabs");
   tabs.innerHTML = TABS.map(([k, label, n, sub, c]) => `<button type="button" class="th-tab" role="tab" id="t-${k}" aria-controls="p-${k}" aria-selected="false" style="--c:${c}">
     <b>${n}</b><span>${label}</span><small>${sub}</small></button>`).join("");
   function show(k, scroll) {
+    if (k === "unhinged") k = "deep-end"; // Keep older links working.
     if (!TABS.some((t) => t[0] === k)) k = "predictions";
     TABS.forEach(([t]) => {
       document.getElementById(`t-${t}`).setAttribute("aria-selected", String(t === k));
