@@ -78,6 +78,8 @@
       .force("y", d3.forceY((d) => anchor[d.circle][1]).strength(0.13))
       .stop();
     for (let i = 0; i < 420; i++) sim.tick();
+    // a tie goes on the map once it's cited and both its ends have been met
+    links.forEach((l) => { l.on = Math.max(l.h, l.source.h, l.target.h); });
     // A last pass of collisions alone, wide enough that no two spheres touch even when drawn
     // at their largest. (Nothing is clamped to the box afterwards: the view fits whatever
     // shape the web takes, so spheres are never pushed back on top of each other.)
@@ -470,7 +472,7 @@
 
     // ------------------------------------------------------------ state
     const state = { h: lim, types: new Set(Object.keys(P.TYPES)), selected: null };
-    const shown = (l) => l.h <= state.h && state.types.has(l.type);
+    const shown = (l) => l.on <= state.h && state.types.has(l.type);
     function apply(prevH, sweepMs) {
       curH = state.h;
       const lit = (n) => P.isPov(n.id, state.h);
@@ -489,7 +491,7 @@
         node.filter((n) => n.h > prevH && n.h <= state.h).select(".node-body")
           .classed("infusing", false).style("animation-delay", (n) => `${delay(n)}ms`)
           .each(function () { void this.getBoundingClientRect(); }).classed("infusing", true);
-        link.filter((l) => l.h > prevH && l.h <= state.h).classed("drawing", false)
+        link.filter((l) => l.on > prevH && l.on <= state.h).classed("drawing", false)
           .each(function (l) {
             this.querySelector(".edge-line").style.animationDelay = `${Math.max(delay(l.source), delay(l.target)) + 250}ms`;
             void this.getBoundingClientRect();
@@ -515,7 +517,7 @@
       },
       focused: () => focus,
       neighbours: (id) => (byId[id] ? [...neighbours(byId[id])].filter((x) => x !== id) : []),
-      count: (type) => links.filter((l) => l.type === type && l.h <= state.h).length,
+      count: (type) => links.filter((l) => l.type === type && l.on <= state.h).length,
       visibleCounts: () => ({ nodes: nodes.filter((n) => n.h <= state.h).length, links: links.filter(shown).length }),
       fit() { userMoved = false; setT(fitTransform(), 500); },
       zoomBy(f) { if (zoom) svg.transition("cam").duration(P.reducedMotion ? 0 : 300).call(zoom.scaleBy, f); },
