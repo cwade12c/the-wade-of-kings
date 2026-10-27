@@ -78,7 +78,9 @@
   const narrow = () => matchMedia("(max-width: 760px)").matches;
   const web = P.web($("web"), {
     labels: "all", interactive: true, zoom: true, tip: $("tip"),
-    pad: narrow() ? { top: 120, right: 16, bottom: 20, left: 16 } : { top: 110, right: 80, bottom: 30, left: 40 },
+    pad: narrow() ? { top: 92, right: 12, bottom: 16, left: 12 } : { top: 110, right: 80, bottom: 30, left: 40 },
+    // on a phone, open close enough to read, on whoever tonight's chapter follows
+    initial: narrow() ? { k: 0.72, cy: 0.56, focus: (P.units[LIM] || { pov: [] }).pov } : null,
     onSelect: (n) => { sel = n; renderCard(n); history.replaceState(null, "", n ? `#${n.id}` : location.pathname); },
   });
 
@@ -133,7 +135,7 @@
   const orbs = $("orbs");
   orbs.innerHTML = shownUnits.map((u) => `<button type="button" class="uf-tick" data-h="${u.h}" aria-label="${P.esc(P.unitLabel(u))}" aria-pressed="false">
     <span class="orb${u.kind === "interlude" ? " il" : ""}" style="--c:${P.unitColor(u)}"></span><small>${P.esc(u.kind === "chapter" ? u.n : u.kind === "interlude" ? u.short : u.label.slice(0, 3))}</small></button>`).join("") +
-    `<span class="uf-edge" title="Not read yet"></span>`;
+    `<span class="uf-ahead" title="Not read yet"><span class="dun" style="--o:.6;--j:0"></span><span class="dun" style="--o:.38;--j:1"></span><span class="dun" style="--o:.2;--j:2"></span><small>unread</small></span>`;
   orbs.querySelectorAll(".uf-tick").forEach((b) => b.addEventListener("click", () => { stop(); goTo(Number(b.dataset.h), true); }));
 
   function describe(u) {
@@ -194,6 +196,7 @@
   function start() {
     if (P.reducedMotion) { goTo(LIM, false); return; }
     web.select(null);
+    if (narrow()) web.fit();   // the storm sweeps the whole sky, so show all of it
     let h = current >= LIM ? 0 : current + 1;
     if (h === 0) goTo(-1, false);
     setPlay(true);

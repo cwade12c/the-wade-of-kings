@@ -9,7 +9,9 @@
     "caravan", "purelake", "davar", "kharbranth"];
   const DASH = { seen: null, said: "7 5", inferred: "1.5 5", guess: "1.5 5" };
   const LABEL_PX = 12.5;      // on-screen label size
-  const MINOR_AT = 0.8;       // zoom at which every name gets its label
+  const AREA = 760000;        // layout room, the density that reads well on a desktop
+  const BOOST_AT = 0.9;       // zoomed out past this, spheres and lines keep their on-screen size…
+  const BOOST_MAX = 1.8;      // …up to this much
 
   P.web = function (svgEl, opts = {}) {
     const lim = opts.limit ?? P.limit();
@@ -36,9 +38,10 @@
     links.forEach((l) => { l.total = pairs[l.key] + 1; });
 
     // ------------------------------------------------------------ layout, shaped to the box
+    // Every screen gets the same room per name, shaped to the box: tall on a phone, wide on a monitor.
     const box0 = svgEl.getBoundingClientRect();
-    const W = Math.max(560, Math.min(1100, box0.width || 1000));
-    const HGT = Math.max(520, Math.min(1100, box0.height || 680));
+    const aspect = Math.max(0.6, Math.min(1.9, (box0.width || 1000) / (box0.height || 680)));
+    const W = Math.sqrt(AREA * aspect), HGT = Math.sqrt(AREA / aspect);
     // clusters ("circles") sit on an ellipse, in an order that keeps related ones adjacent
     const circles = [...new Set(nodes.map((n) => n.circle))]
       .sort((a, b) => ((CIRCLE_ORDER.indexOf(a) + 1) || 99) - ((CIRCLE_ORDER.indexOf(b) + 1) || 99));
@@ -54,9 +57,9 @@
       n.y = ay + Math.sin(i * 2.4) * 25;
     });
     const sim = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id((d) => d.id).distance((l) => (l.type === "family" ? 55 : 85)).strength(0.3))
-      .force("charge", d3.forceManyBody().strength(-230))
-      .force("collide", d3.forceCollide((d) => d.r + 18))
+      .force("link", d3.forceLink(links).id((d) => d.id).distance((l) => (l.type === "family" ? 62 : 92)).strength(0.3))
+      .force("charge", d3.forceManyBody().strength(-260))
+      .force("collide", d3.forceCollide((d) => d.r + 22))
       .force("x", d3.forceX((d) => anchor[d.circle][0]).strength(0.13))
       .force("y", d3.forceY((d) => anchor[d.circle][1]).strength(0.13))
       .stop();
@@ -90,7 +93,7 @@
     // end markers: a second cue beside colour (arrow = command, dot = support, bar = hostility)
     const marker = (id, color, draw) => {
       const m = defs.append("marker").attr("id", `${uid}-${id}`).attr("viewBox", "-6 -6 12 12").attr("refX", 0).attr("refY", 0)
-        .attr("markerWidth", 9).attr("markerHeight", 9).attr("orient", "auto").attr("markerUnits", "userSpaceOnUse");
+        .attr("markerWidth", 4.5).attr("markerHeight", 4.5).attr("orient", "auto").attr("markerUnits", "strokeWidth");
       draw(m, color);
     };
     marker("command", P.TYPES.command.hex, (m, c) => m.append("path").attr("d", "M-4,-4L3,0L-4,4").attr("fill", "none").attr("stroke", c).attr("stroke-width", 2));
@@ -101,15 +104,16 @@
     const gLinks = view.append("g");
     const gNodes = view.append("g");
 
+    let S = 1;   // the current size boost for spheres and lines
     function linkPath(l) {
       const s = l.source, t = l.target;
       const dx = t.x - s.x, dy = t.y - s.y, dist = Math.hypot(dx, dy) || 1;
       const ux = dx / dist, uy = dy / dist;
       let off = (l.idx - (l.total - 1) / 2) * 20;
       if (s.id > t.id) off = -off; // offsets relative to the pair's canonical direction
-      const sx = s.x + ux * (s.r + 2), sy = s.y + uy * (s.r + 2);
-      const end = l.type === "family" || l.type === "other" ? 2 : 7;
-      const tx = t.x - ux * (t.r + end), ty = t.y - uy * (t.r + end);
+      const sx = s.x + ux * (s.r * S + 2), sy = s.y + uy * (s.r * S + 2);
+      const end = (l.type === "family" || l.type === "other" ? 2 : 7) * S;
+      const tx = t.x - ux * (t.r * S + end), ty = t.y - uy * (t.r * S + end);
       if (!off) return `M${sx},${sy}L${tx},${ty}`;
       return `M${sx},${sy}Q${(sx + tx) / 2 - uy * off},${(sy + ty) / 2 + ux * off} ${tx},${ty}`;
     }
@@ -125,10 +129,11 @@
     const node = gNodes.selectAll("g").data(nodes).join("g").attr("class", "node")
       .attr("transform", (n) => `translate(${n.x},${n.y})`).attr("tabindex", opts.interactive ? 0 : null)
       .attr("role", opts.interactive ? "button" : null).attr("aria-label", (n) => n.e.name);
-    node.append("circle").attr("class", "halo").attr("r", (n) => n.r * 2.6).attr("fill", `url(#${uid}-halo)`)
+    const scaled = node.append("g").attr("class", "node-scale");
+    scaled.append("circle").attr("class", "halo").attr("r", (n) => n.r * 2.6).attr("fill", `url(#${uid}-halo)`)
       .style("--d", (n, i) => `${(-i * 0.37) % 4.6}s`);
-    node.append("circle").attr("class", "ring").attr("r", (n) => n.r + 6);
-    const body = node.append("g").attr("class", "node-body");
+    scaled.append("circle").attr("class", "ring").attr("r", (n) => n.r + 6);
+    const body = scaled.append("g").attr("class", "node-body");
     body.filter((n) => n.square).append("rect").attr("x", (n) => -n.r).attr("y", (n) => -n.r)
       .attr("width", (n) => n.r * 2).attr("height", (n) => n.r * 2).attr("rx", 3);
     body.filter((n) => !n.square).append("circle").attr("r", (n) => n.r);
@@ -136,38 +141,97 @@
     const major = (n) => P.isPov(n.id, lim) || n.degree >= 3;
     const label = opts.labels === "none" ? d3.select(null) : node.append("text")
       .attr("class", (n) => `web-label${major(n) ? "" : " minor"}`)
-      .attr("text-anchor", (n) => (n.flip ? "end" : "start"))
+      .attr("font-size", LABEL_PX)
       .text((n) => n.e.name.replace(/^The /, ""));
+    // measure each name once at its on-screen size (and again when the web font arrives)
+    const measure = () => label.each(function (n) { const w = this.getComputedTextLength(); if (w > 0) n.tw = w; });
+    measure();
 
     // ------------------------------------------------------------ zoom and fit
     let T = d3.zoomIdentity, userMoved = false;
     const pad = { top: 24, right: 24, bottom: 24, left: 24, ...(opts.pad || {}) };
-    let curH = lim;
-    // Greedy label placement: viewpoints first, then the best-tied; a label that would
-    // collide with one already placed waits until you zoom in far enough to fit it.
-    const priority = nodes.slice().sort((a, b) => (P.isPov(b.id, lim) - P.isPov(a.id, lim)) || (b.degree - a.degree));
+    let curH = lim, pinned = new Set();
+    // Label placement, greedy: whoever is picked (and everyone tied to them) first, then
+    // viewpoints, then the best-tied. Each name tries right, left, below and above, and takes
+    // the first spot that covers no other label and no other sphere. A name with no free spot
+    // waits until you zoom in far enough to make room.
+    const nowPov = () => new Set((P.units[curH] || { pov: [] }).pov);
+    const rank = (n, now) => (pinned.has(n.id) ? 1e6 : 0) + (now.has(n.id) ? 1e5 : 0) + (P.isPov(n.id, curH) ? 1e4 : 0) + n.degree;
+    const boxHits = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+    const circleHits = (b, cx, cy, r) => {
+      const dx = cx - Math.max(b[0], Math.min(cx, b[2])), dy = cy - Math.max(b[1], Math.min(cy, b[3]));
+      return dx * dx + dy * dy < r * r;
+    };
     function layoutLabels() {
       if (opts.labels === "none") return;
-      const k = T.k, placed = [], show = new Set();
-      for (const n of priority) {
-        if (n.h > curH) continue;
-        const want = opts.labels === "pov" ? P.isPov(n.id, curH) : opts.labels === "major" ? major(n) : k >= MINOR_AT || major(n);
+      const k = T.k, cw = svgEl.getBoundingClientRect().width || W;
+      const shown = nodes.filter((n) => n.h <= curH);
+      const spheres = shown.map((n) => [T.applyX(n.x), T.applyY(n.y), n.r * S * k + 3, n]);
+      const hh = LABEL_PX * 1.15, gap = 4, placed = [];
+      nodes.forEach((n) => { n.lab = null; });
+      const now = nowPov();
+      for (const n of shown.slice().sort((a, b) => rank(b, now) - rank(a, now))) {
+        const forced = pinned.has(n.id);
+        const want = forced || (opts.labels === "pov" ? P.isPov(n.id, curH) : opts.labels === "major" ? major(n) : true);
         if (!want) continue;
-        const sx = T.applyX(n.x), sy = T.applyY(n.y), r = n.r * k;
-        const w = n.e.name.replace(/^The /, "").length * LABEL_PX * 0.54, hh = LABEL_PX * 1.05;
-        const x0 = n.flip ? sx - r - 4 - w : sx + r + 4, y0 = sy - hh / 2;
-        if (placed.some((b) => x0 < b[2] && x0 + w > b[0] && y0 < b[3] && y0 + hh > b[1])) continue;
-        placed.push([x0 - 2, y0, x0 + w + 2, y0 + hh]);
-        show.add(n.id);
+        const sx = T.applyX(n.x), sy = T.applyY(n.y), r = n.r * S * k;
+        const w = n.tw || n.e.name.length * LABEL_PX * 0.55;
+        const side = [{ k: "r", x0: sx + r + gap, y0: sy - hh / 2 }, { k: "l", x0: sx - r - gap - w, y0: sy - hh / 2 }];
+        if (n.flip) side.reverse();
+        const cands = [...side, { k: "b", x0: sx - w / 2, y0: sy + r + 1 }, { k: "t", x0: sx - w / 2, y0: sy - r - 1 - hh }];
+        // first look for a spot clear of everything; important names may then sit over a
+        // sphere (the dark halo keeps them legible), but never over another name
+        const important = forced || now.has(n.id) || P.isPov(n.id, curH) || n.degree >= 4;
+        // how many spheres a spot would cover (Infinity if it's off screen, over a name, or over a lit sphere)
+        const cost = (c) => {
+          const b = [c.x0 - 1, c.y0, c.x0 + w + 1, c.y0 + hh];
+          if (b[0] < 2 || b[2] > cw - 2 || placed.some((p) => boxHits(b, p))) return Infinity;
+          let hits = 0;
+          for (const [cx, cy, cr, m] of spheres) {
+            if (m === n || !circleHits(b, cx, cy, cr)) continue;
+            if (P.isPov(m.id, curH)) return Infinity;
+            hits += 1;
+          }
+          return hits;
+        };
+        const costs = cands.map(cost);
+        const best = Math.min(...costs);
+        let pick = best === 0 || (important && best <= 2) ? cands[costs.indexOf(best)] : null;
+        if (!pick && forced) pick = cands[0];
+        if (!pick) continue;
+        n.lab = pick.k;
+        placed.push([pick.x0 - 2, pick.y0, pick.x0 + w + 2, pick.y0 + hh]);
       }
-      label.style("opacity", (n) => (show.has(n.id) ? null : 0));
+      label.each(function (n) {
+        if (!n.lab) { this.style.opacity = 0; return; }
+        this.style.opacity = "";
+        const r = n.r * S, g = gap / k;
+        const [x, y, a] = {
+          r: [r + g, (LABEL_PX * 0.36) / k, "start"],
+          l: [-(r + g), (LABEL_PX * 0.36) / k, "end"],
+          b: [0, r + (1 + LABEL_PX * 0.86) / k, "middle"],
+          t: [0, -(r + (1 + LABEL_PX * 0.3) / k), "middle"],
+        }[n.lab];
+        this.setAttribute("x", x);
+        this.setAttribute("y", y);
+        this.setAttribute("text-anchor", a);
+      });
     }
     function applyZoom(t) {
       T = t;
       view.attr("transform", t);
       const k = t.k;
-      label.attr("font-size", LABEL_PX / k).attr("stroke-width", 4 / k)
-        .attr("x", (n) => (n.flip ? -1 : 1) * (n.r + 4 / k)).attr("y", 4.2 / k);
+      // zoomed out, spheres and lines stay a readable size on screen
+      const s = Math.max(1, Math.min(BOOST_MAX, BOOST_AT / k));
+      if (Math.abs(s - S) > 0.015) {
+        S = s;
+        scaled.attr("transform", S === 1 ? null : `scale(${S.toFixed(3)})`);
+        link.selectAll("path").attr("d", linkPath);
+        link.select(".edge-line").attr("stroke-width", 2 * S);
+        link.select(".edge-flow").attr("stroke-width", 2.2 * S);
+        link.select(".edge-hit").attr("stroke-width", 14 * S);
+      }
+      label.attr("font-size", LABEL_PX / k).attr("stroke-width", 4 / k);
       layoutLabels();
     }
     function fitTransform() {
@@ -194,14 +258,26 @@
         sel.call(zoom.transform, t);
       } else applyZoom(t);
     }
-    if (nodes.length) setT(fitTransform());
+    // On a small screen the whole web at once is too small to read, so it can open closer in,
+    // centred on the names given (the chapter's viewpoints); the fit button shows everything.
+    function startTransform() {
+      const fit = fitTransform(), ini = opts.initial;
+      if (!ini || fit.k >= ini.k) return fit;
+      const focus = (ini.focus || []).map((id) => byId[id]).filter((n) => n && n.h <= lim);
+      if (!focus.length) return fit;
+      const b = svgEl.getBoundingClientRect();
+      const fx = focus.reduce((a, n) => a + n.x, 0) / focus.length, fy = focus.reduce((a, n) => a + n.y, 0) / focus.length;
+      return d3.zoomIdentity.translate(b.width / 2 - fx * ini.k, (ini.cy || 0.5) * b.height - fy * ini.k).scale(ini.k);
+    }
+    if (nodes.length) setT(startTransform());
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); layoutLabels(); });
     if (window.ResizeObserver) {
       let last = `${box0.width}x${box0.height}`;
       new ResizeObserver(() => {
         const b = svgEl.getBoundingClientRect(), key = `${Math.round(b.width)}x${Math.round(b.height)}`;
         if (key === last || !b.width) return;
         last = key;
-        if (!userMoved && nodes.length) setT(fitTransform());
+        if (!userMoved && nodes.length) setT(startTransform());
       }).observe(svgEl);
     }
 
@@ -214,6 +290,8 @@
     };
     function focusOn(n) {
       const near = n ? neighbours(n) : null;
+      pinned = near || new Set();
+      layoutLabels();
       node.style("opacity", (d) => (!near || near.has(d.id) ? null : 0.16));
       link.style("opacity", (l) => (!n || l.source.id === n.id || l.target.id === n.id ? null : 0.06))
         .classed("hot", (l) => !!n && (l.source.id === n.id || l.target.id === n.id));
