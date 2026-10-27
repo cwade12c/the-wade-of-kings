@@ -76,41 +76,94 @@
   }
 
   const narrow = () => matchMedia("(max-width: 760px)").matches;
+  const stage = $("stage");
   const web = P.web($("web"), {
-    labels: "all", interactive: true, zoom: true, tip: $("tip"),
+    labels: "all", interactive: true, zoom: true, focusMode: true, tip: $("tip"),
     pad: narrow() ? { top: 92, right: 12, bottom: 16, left: 12 } : { top: 110, right: 80, bottom: 30, left: 40 },
     // on a phone, open close enough to read, on whoever tonight's chapter follows
     initial: narrow() ? { k: 0.72, cy: 0.56, focus: (P.units[LIM] || { pov: [] }).pov } : null,
-    onSelect: (n) => { sel = n; renderCard(n); history.replaceState(null, "", n ? `#${n.id}` : location.pathname); },
+    // the free space a focus ring may use: above the peek bar on a phone, left of the card on a desktop
+    focusBox: () => {
+      const st = stage.getBoundingClientRect();
+      if (narrow()) {
+        const top = card.querySelector(".c-top");
+        const peek = card.hidden || !top ? 0 : top.offsetHeight + 30;
+        return { x: 6, y: 18, w: st.width - 12, h: st.height - peek - 30 };
+      }
+      const right = card.hidden ? 80 : card.offsetWidth + 100;
+      return { x: 30, y: 96, w: st.width - right - 30, h: st.height - 120 };
+    },
+    onSelect: (n) => {
+      sel = n;
+      renderCard(n);
+      stage.classList.toggle("focusing", !!n);
+      history.replaceState(null, "", n ? `#${n.id}` : location.pathname);
+    },
   });
 
   // ------------------------------------------------------------ the card for a chosen name
+  // On a phone it opens as a short peek bar, so the ring stays in view above it; tap or swipe
+  // up for the details, swipe down (or ×) to let go. On a desktop it sits beside the ring.
+  let cardState = "peek";
+  const CHEVRON = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14.5l6-6 6 6"/></svg>';
+  function setCardState(st) {
+    cardState = st;
+    card.dataset.state = st;
+    const g = card.querySelector(".c-grab"), b = card.querySelector(".c-more-btn");
+    [g, b].forEach((x) => x && x.setAttribute("aria-expanded", String(st === "open")));
+    if (b) b.setAttribute("aria-label", st === "open" ? "Hide details" : "Show details");
+  }
   function renderCard(n) {
-    if (!n) { card.hidden = true; return; }
+    if (!n) { card.hidden = true; cardState = "peek"; return; }
     const e = n.e;
     const ties = P.tiesOf(e.id, current);
     const first = P.unitById[e.first_seen.split("@")[0]];
     const onstage = (e.units || []).filter((id) => P.unitById[id] && P.unitById[id].h <= current).length;
     card.style.setProperty("--pc", P.entColor(e, current));
     card.hidden = false;
-    card.innerHTML = `<button type="button" class="icon-btn c-x" aria-label="Close">${P.icon("close")}</button>
-      <div class="c-head">${P.sigil(e, { size: 58, h: current })}<div><p>${P.esc(P.FOLDERS[e.folder] || "")}${P.isPov(e.id, current) ? " · viewpoint" : ""}</p><h2>${P.esc(e.name)}</h2></div></div>
-      ${P.summaryOf(e, current) ? `<p class="c-sum">${P.summaryOf(e, current)}</p>` : ""}
-      <div class="c-stats"><span>First met <b>${P.esc(first ? first.short : "")}</b></span><span><b>${onstage}</b> chapter${onstage === 1 ? "" : "s"}</span><span><b>${ties.length}</b> tie${ties.length === 1 ? "" : "s"}</span></div>
-      <ul>${ties.map((r) => {
-        const other = r.from === e.id ? r.to : r.from;
-        return `<li><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].hex}"></span><span><button type="button" data-id="${other}">${P.esc(P.entName(other))}</button>: ${P.esc(r.label)}</span></li>`;
-      }).join("")}</ul>
-      <div class="c-acts"><button type="button" class="cta" id="expand">${P.icon("expand")}Full profile</button>
-        <a class="cta ghost" href="codex.html#${e.id}">Codex entry</a></div>`;
+    card.innerHTML = `<button type="button" class="c-grab" aria-label="Show details" aria-expanded="false"></button>
+      <div class="c-top">${P.sigil(e, { size: 46, h: current })}
+        <div class="c-id"><p>${P.esc(P.FOLDERS[e.folder] || "")}${P.isPov(e.id, current) ? " · viewpoint" : ""}</p><h2>${P.esc(e.name)}</h2>
+          <p class="c-line"><span><b>${ties.length}</b> tie${ties.length === 1 ? "" : "s"}</span> · <span><b>${onstage}</b> chapter${onstage === 1 ? "" : "s"}</span> · <span>first met ${P.esc(first ? first.short : "")}</span></p></div>
+        <div class="c-btns"><button type="button" class="icon-btn c-more-btn" aria-label="Show details" aria-expanded="false">${CHEVRON}</button>
+          <button type="button" class="icon-btn c-x" aria-label="Let go of ${P.esc(e.name)}">${P.icon("close")}</button></div></div>
+      <div class="c-more">
+        ${P.summaryOf(e, current) ? `<p class="c-sum">${P.summaryOf(e, current)}</p>` : ""}
+        <ul>${ties.map((r) => {
+          const other = r.from === e.id ? r.to : r.from;
+          return `<li><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].hex}"></span><span><button type="button" data-id="${other}">${P.esc(P.entName(other))}</button>: ${P.esc(r.label)}</span></li>`;
+        }).join("")}</ul>
+        <div class="c-acts"><button type="button" class="cta" id="expand">${P.icon("expand")}Full profile</button>
+          <a class="cta ghost" href="codex.html#${e.id}">Codex entry</a></div></div>`;
+    setCardState(cardState);
+    const toggle = () => setCardState(cardState === "open" ? "peek" : "open");
     card.querySelector(".c-x").addEventListener("click", () => web.select(null));
-    card.querySelectorAll("li button").forEach((b) => b.addEventListener("click", () => web.select(b.dataset.id, { center: true })));
+    card.querySelector(".c-more-btn").addEventListener("click", toggle);
+    card.querySelector(".c-grab").addEventListener("click", toggle);
+    card.querySelector(".c-id").addEventListener("click", () => { if (narrow()) toggle(); });
+    card.querySelectorAll("li button").forEach((b) => b.addEventListener("click", () => web.select(b.dataset.id)));
     card.querySelector("#expand").addEventListener("click", () => P.openProfile(e.id, {
       h: current,
       link: (id) => `codex.html#${id}`,
-      onPick: (id) => (web.has(id) ? web.select(id, { center: true }) : (location.href = `codex.html#${id}`)),
+      onPick: (id) => (web.has(id) ? web.select(id) : (location.href = `codex.html#${id}`)),
     }));
   }
+  // swipe the card: up opens the details, down folds them, down again lets go
+  (function swipe() {
+    let y0 = null;
+    card.addEventListener("pointerdown", (ev) => {
+      if (!narrow() || !ev.target.closest(".c-grab, .c-top") || ev.target.closest(".c-btns")) return;
+      y0 = ev.clientY;
+    });
+    card.addEventListener("pointerup", (ev) => {
+      if (y0 === null) return;
+      const dy = ev.clientY - y0;
+      y0 = null;
+      if (dy < -30) setCardState("open");
+      else if (dy > 30) { if (cardState === "open") setCardState("peek"); else web.select(null); }
+    });
+    card.addEventListener("pointercancel", () => { y0 = null; });
+  })();
 
   // ------------------------------------------------------------ filters
   const legend = $("legend");
@@ -221,8 +274,8 @@
   setPlay(false);
   goTo(LIM, false);
   const id = location.hash.slice(1);
-  if (id) web.select(id, { center: true });
-  window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h && web.has(h)) web.select(h, { center: true }); });
+  if (id) web.select(id);
+  window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h && web.has(h)) web.select(h); });
   if (new URLSearchParams(location.search).has("play")) setTimeout(start, 500);
 })();
 </script>

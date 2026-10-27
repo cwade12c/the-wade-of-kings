@@ -645,7 +645,8 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
   80% { opacity: var(--o); }
   100% { opacity: 0; transform: translate(var(--dx), -90px); }
 }
-.uf-readout { position: absolute; top: 1rem; left: 1.25rem; z-index: 3; pointer-events: none; max-width: calc(100% - 9rem); }
+.uf-readout { position: absolute; top: 1rem; left: 1.25rem; z-index: 3; pointer-events: none; max-width: calc(100% - 9rem); isolation: isolate; }
+.uf-readout::before { content: ""; position: absolute; inset: -2.2rem -3.5rem -1.8rem -2.5rem; z-index: -1; background: radial-gradient(closest-side, rgba(14, 21, 30, 0.9) 45%, rgba(14, 21, 30, 0)); }
 .uf-readout h1 { font-size: clamp(1.5rem, 3vw, 2.2rem); text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6); }
 .uf-at { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
 .uf-at .numeral { font: 400 clamp(2.6rem, 6vw, 3.8rem)/0.9 var(--display); color: var(--c, #fff); text-shadow: 0 0 30px color-mix(in srgb, var(--c, #fff) 55%, transparent); transition: color .4s; }
@@ -728,29 +729,35 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-plate i { font-style: normal; color: var(--c); font-size: var(--step--1); letter-spacing: 0.08em; margin-top: 0.4rem; }
 
 /* the card for a chosen node */
+.uf-card[hidden] { display: none !important; }
 .uf-card {
   --pc: var(--sphere);
   position: absolute; z-index: 6; top: 1rem; right: 4.2rem; width: 22rem; max-height: calc(100% - 2rem); overflow: auto; overscroll-behavior: contain;
-  background: rgba(14, 20, 28, 0.94); border: 1px solid color-mix(in srgb, var(--pc) 35%, var(--rule)); border-radius: 22px; padding: 1.1rem 1.15rem 1.15rem;
+  background: rgba(14, 20, 28, 0.95); border: 1px solid color-mix(in srgb, var(--pc) 35%, var(--rule)); border-radius: 22px; padding: 1rem 1.1rem 1.15rem;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 50px color-mix(in srgb, var(--pc) 12%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   animation: card-in .3s var(--ease-out);
 }
 @keyframes card-in { from { opacity: 0; transform: translateY(10px) scale(.98); } }
-.uf-card .c-head { display: flex; gap: 0.9rem; align-items: center; }
-.uf-card .c-head h2 { font-size: 1.7rem; line-height: 1.05; }
-.uf-card .c-head p { margin: 0.2rem 0 0; font-size: var(--step--2); color: var(--dusk); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
-.uf-card .c-x { position: absolute; top: 0.6rem; right: 0.6rem; }
+.uf-card .c-grab { display: none; }
+.uf-card .c-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.8rem; align-items: center; }
+.uf-card .c-id p { margin: 0; font-size: var(--step--2); color: var(--dusk); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+.uf-card .c-id h2 { font-size: 1.55rem; line-height: 1.05; margin: 0.1rem 0 0.15rem; }
+.uf-card .c-id .c-line { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: var(--step--1); }
+.uf-card .c-id .c-line b { color: var(--parchment); }
+.uf-card .c-id .c-line span { white-space: nowrap; }
+.uf-card .c-btns { display: flex; gap: 0.3rem; align-self: start; }
+.uf-card .c-more-btn { display: none; }
+.uf-card .c-more-btn .ico { transition: transform .3s var(--ease-out); }
+.uf-card[data-state="open"] .c-more-btn .ico { transform: rotate(180deg); }
 .uf-card .c-sum { margin: 0.9rem 0 0.75rem; font-size: 0.97rem; color: #f0e8d8; }
-.uf-card .c-stats { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
-.uf-card .c-stats span { font-size: var(--step--2); color: var(--dusk); border: 1px solid var(--rule); border-radius: 999px; padding: 0.15rem 0.6rem; }
-.uf-card .c-stats b { color: var(--parchment); }
-.uf-card ul { list-style: none; padding: 0; margin: 0 0 0.9rem; display: grid; gap: 0.15rem; }
+.uf-card ul { list-style: none; padding: 0; margin: 0.6rem 0 0.9rem; display: grid; gap: 0.15rem; }
 .uf-card li { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.55rem; align-items: baseline; font-size: var(--step--1); color: var(--dusk); padding: 0.18rem 0; }
 .uf-card li .tie-swatch { margin-top: 0; }
 .uf-card li button { all: unset; cursor: pointer; color: var(--parchment); font-weight: 700; }
-.uf-card li button:hover { color: var(--sphere); }
+.uf-card li button:hover, .uf-card li button:focus-visible { color: var(--sphere); }
 .uf-card .c-acts { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .uf-card .cta { padding: 0.55rem 1rem; font-size: 0.86rem; }
+.web-sub { font-family: var(--text); font-weight: 700; letter-spacing: 0.01em; }
 
 /* the timeline dock */
 .uf-dock {
@@ -837,8 +844,22 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
   .uf-tools { top: 0.75rem; right: 0.75rem; }
   .uf-tools button { width: 2.4rem; height: 2.4rem; border-radius: 12px; }
   .uf-filters { right: 0.75rem; left: 0.75rem; width: auto; top: auto; bottom: 0.75rem; max-height: 70%; }
-  .uf-card { top: auto; bottom: 0; left: 0; right: 0; width: auto; max-height: 62%; border-radius: 22px 22px 0 0; border-bottom: 0; padding-top: 1.4rem; }
-  .uf-card::before { content: ""; position: absolute; top: 0.5rem; left: 50%; width: 2.5rem; height: 4px; margin-left: -1.25rem; border-radius: 4px; background: var(--rule); }
+  /* the phone card: a peek bar that leaves the ring in view; details on tap or swipe */
+  .uf-card {
+    top: auto; bottom: 0; left: 0; right: 0; width: auto; max-height: 64%; border-radius: 22px 22px 0 0; border-bottom: 0;
+    padding: 1.15rem 0.9rem 0.85rem; animation: sheet-up .35s var(--ease-out); overflow: hidden; display: flex; flex-direction: column;
+  }
+  .uf-card[data-state="open"] { overflow: auto; }
+  @keyframes sheet-up { from { transform: translateY(100%); } }
+  .uf-card .c-grab { display: block; position: absolute; top: 0; left: 0; right: 0; height: 1.2rem; border: 0; background: none; cursor: pointer; padding: 0; }
+  .uf-card .c-grab::before { content: ""; position: absolute; top: 0.45rem; left: 50%; width: 2.5rem; height: 4px; margin-left: -1.25rem; border-radius: 4px; background: var(--mist); opacity: .6; }
+  .uf-card .c-top { touch-action: none; }
+  .uf-card .c-more-btn { display: inline-flex; }
+  .uf-card .c-id h2 { font-size: 1.3rem; }
+  .uf-card[data-state="peek"] .c-more { display: none; }
+  .uf-card[data-state="open"] .c-more { animation: acc-in .35s var(--ease-out); }
+  .uf-stage.focusing .uf-readout, .uf-stage.focusing .uf-tools { opacity: 0; pointer-events: none; }
+  .uf-readout, .uf-tools { transition: opacity .3s; }
 }
 
 /* ------------------------------------------------------------ codex */
