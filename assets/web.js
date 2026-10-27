@@ -11,12 +11,13 @@
      takes the first spot that covers no other name and no other sphere.
    - Focus: pick someone and everyone tied to them glides into a ring around them, keeping
      roughly the direction they sat in, each labelled with what the tie is. Whatever else
-     stood in the way drifts aside. Let go and everything glides home. */
+     stood in the way drifts aside. Let go and everything glides home.
+   - Ties that follow from the family lines (opts.implied) are drawn thin and faint. They join
+     focus rings, but have no say in a sphere's size, its name's priority, or the layout. */
 (function () {
   "use strict";
   const CIRCLE_ORDER = ["heralds", "szeth", "kholin", "shattered-plains", "amaram-army", "kaladin-family",
     "caravan", "purelake", "davar", "kharbranth"];
-  const DASH = { seen: null, said: "7 5", inferred: "1.5 5", guess: "1.5 5" };
   const LABEL_PX = 12.5;      // on-screen name size
   const SUB_PX = 10.5;        // on-screen size of a tie's label under a name, in focus
   const AREA = 760000;        // layout room, the density that reads well on a desktop
@@ -30,12 +31,14 @@
   P.web = function (svgEl, opts = {}) {
     const lim = opts.limit ?? P.limit();
     const ent = P.entityById;
-    const rels = P.data.relations.filter((r) => r.h <= lim && ent[r.from] && ent[r.to] && ent[r.from].h <= lim && ent[r.to].h <= lim);
+    const faint = (r) => !!(P.BASES[r.basis] || {}).faint;
+    const rels = P.data.relations.concat(opts.implied ? P.data.implied || [] : [])
+      .filter((r) => r.h <= lim && ent[r.from] && ent[r.to] && ent[r.from].h <= lim && ent[r.to].h <= lim);
     const ids = new Set();
     rels.forEach((r) => { ids.add(r.from); ids.add(r.to); });
     const nodes = [...ids].map((id) => ({ id, e: ent[id], degree: 0 }));
     const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
-    rels.forEach((r) => { byId[r.from].degree++; byId[r.to].degree++; });
+    rels.forEach((r) => { if (!faint(r)) { byId[r.from].degree++; byId[r.to].degree++; } });
     nodes.forEach((n) => {
       n.h = n.e.h;
       n.r = 5 + Math.sqrt(n.degree) * 2.6;
@@ -71,7 +74,7 @@
       n.y = ay + Math.sin(i * 2.4) * 25;
     });
     const sim = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id((d) => d.id).distance((l) => (l.type === "family" ? 62 : 92)).strength(0.3))
+      .force("link", d3.forceLink(links.filter((l) => !faint(l))).id((d) => d.id).distance((l) => (l.type === "family" ? 62 : 92)).strength(0.3))
       .force("charge", d3.forceManyBody().strength(-260))
       .force("collide", d3.forceCollide((d) => d.r + 22))
       .force("x", d3.forceX((d) => anchor[d.circle][0]).strength(0.13))
@@ -79,7 +82,11 @@
       .stop();
     for (let i = 0; i < 420; i++) sim.tick();
     // a tie goes on the map once it's cited and both its ends have been met
-    links.forEach((l) => { l.on = Math.max(l.h, l.source.h, l.target.h); });
+    links.forEach((l) => {
+      if (typeof l.source === "string") { l.source = byId[l.source]; l.target = byId[l.target]; }   // faint ties sat out the layout
+      l.on = Math.max(l.h, l.source.h, l.target.h);
+    });
+    const width = (l) => (faint(l) ? 1.1 : 2), flowWidth = (l) => (faint(l) ? 1.2 : 2.2);
     // A last pass of collisions alone, wide enough that no two spheres touch even when drawn
     // at their largest. (Nothing is clamped to the box afterwards: the view fits whatever
     // shape the web takes, so spheres are never pushed back on top of each other.)
@@ -138,10 +145,11 @@
 
     const link = gLinks.selectAll("g").data(links).join("g").attr("class", "edge").style("color", (l) => P.TYPES[l.type].hex);
     link.append("path").attr("class", "edge-line").attr("fill", "none")
-      .attr("stroke", (l) => P.TYPES[l.type].hex).attr("stroke-width", 2).attr("stroke-linecap", "round")
-      .attr("stroke-dasharray", (l) => DASH[l.basis])
+      .attr("stroke", (l) => P.TYPES[l.type].hex).attr("stroke-width", width).attr("stroke-linecap", "round")
+      .attr("stroke-opacity", (l) => (faint(l) ? 0.5 : null))
+      .attr("stroke-dasharray", (l) => (P.BASES[l.basis] || {}).dash || null)
       .attr("marker-end", (l) => (["command", "support", "hostile"].includes(l.type) ? `url(#${uid}-${l.type})` : null));
-    link.append("path").attr("class", "edge-flow").attr("stroke-width", 2.2).attr("stroke-dasharray", "1 22").attr("stroke-opacity", 0.55);
+    link.append("path").attr("class", "edge-flow").attr("stroke-width", flowWidth).attr("stroke-dasharray", "1 22").attr("stroke-opacity", 0.55);
     link.append("path").attr("class", "edge-hit").attr("fill", "none").attr("stroke", "transparent").attr("stroke-width", 14);
 
     const node = gNodes.selectAll("g").data(nodes).join("g").attr("class", "node")
@@ -273,8 +281,8 @@
         S = s;
         scaled.attr("transform", S === 1 ? null : `scale(${S.toFixed(4)})`);
         link.selectAll("path").attr("d", linkPath);
-        link.select(".edge-line").attr("stroke-width", 2 * S);
-        link.select(".edge-flow").attr("stroke-width", 2.2 * S);
+        link.select(".edge-line").attr("stroke-width", (l) => width(l) * S);
+        link.select(".edge-flow").attr("stroke-width", (l) => flowWidth(l) * S);
         link.select(".edge-hit").attr("stroke-width", 14 * S);
       }
       label.attr("font-size", LABEL_PX / t.k).attr("stroke-width", 4 / t.k);
@@ -460,9 +468,9 @@
           showTip(evt, `<strong>${P.esc(n.e.name)}</strong>${summary ? `<br><span class="muted">${P.esc(summary)}</span>` : ""}`);
         }).on("mouseleave", () => { if (!focus) focusOn(state.selected); hideTip(); });
         link.on("mouseenter", (evt, l) => {
-          const u = P.unitById[l.cite];
-          const who = l.basis === "said" && l.said_by ? `, says ${P.esc(l.said_by)}` : l.basis === "seen" ? "" : ` (${l.basis === "inferred" ? "Wade's reading" : l.basis})`;
-          showTip(evt, `${P.esc(l.source.e.name)} → ${P.esc(l.target.e.name)}<br><strong>${P.esc(l.label)}</strong>${who}<br><span class="muted">${P.esc(P.TYPES[l.type].label)}, ${P.esc(P.unitLabel(u, { short: true }))}</span>`);
+          const u = P.unitById[l.cite], note = P.basisNote(l, { long: true });
+          const who = !note || faint(l) ? "" : l.basis === "said" ? `, ${note}` : ` (${note})`;
+          showTip(evt, `${P.esc(l.source.e.name)} → ${P.esc(l.target.e.name)}<br><strong>${P.esc(l.label)}</strong>${who}<br><span class="muted">${P.esc(P.TYPES[l.type].label)}, ${faint(l) ? note : P.esc(P.unitLabel(u, { short: true }))}</span>`);
         }).on("mouseleave", hideTip);
       }
       node.on("click", (evt, n) => { evt.stopPropagation(); api.select(n.id); })
@@ -471,8 +479,9 @@
     }
 
     // ------------------------------------------------------------ state
-    const state = { h: lim, types: new Set(Object.keys(P.TYPES)), selected: null };
-    const shown = (l) => l.on <= state.h && state.types.has(l.type);
+    const state = { h: lim, types: new Set(Object.keys(P.TYPES)), styles: new Set(Object.keys(P.STYLES)), selected: null };
+    const styleOf = (l) => (P.BASES[l.basis] || P.BASES.seen).style;
+    const shown = (l) => l.on <= state.h && state.types.has(l.type) && state.styles.has(styleOf(l));
     function apply(prevH, sweepMs) {
       curH = state.h;
       const lit = (n) => P.isPov(n.id, state.h);
@@ -507,6 +516,7 @@
       nodes, links,
       setHorizon(h, o = {}) { const prev = state.h; state.h = h; apply(prev, o.sweepMs); },
       setTypes(types) { state.types = new Set(types); apply(); },
+      setStyles(styles) { state.styles = new Set(styles); apply(); },
       select(id) {
         const n = id ? byId[id] : null;
         state.selected = n && n.h <= state.h ? n : null;
@@ -517,8 +527,10 @@
       },
       focused: () => focus,
       neighbours: (id) => (byId[id] ? [...neighbours(byId[id])].filter((x) => x !== id) : []),
-      count: (type) => links.filter((l) => l.type === type && l.on <= state.h).length,
-      visibleCounts: () => ({ nodes: nodes.filter((n) => n.h <= state.h).length, links: links.filter(shown).length }),
+      // stated ties only: the faint ones are counted on their own
+      count: (type) => links.filter((l) => !faint(l) && l.type === type && l.on <= state.h).length,
+      countStyle: (style) => links.filter((l) => styleOf(l) === style && l.on <= state.h).length,
+      visibleCounts: () => ({ nodes: nodes.filter((n) => n.h <= state.h).length, links: links.filter((l) => !faint(l) && shown(l)).length }),
       fit() { userMoved = false; setT(fitTransform(), 500); },
       zoomBy(f) { if (zoom) svg.transition("cam").duration(P.reducedMotion ? 0 : 300).call(zoom.scaleBy, f); },
       reframe() { if (focus) enterFocus(focus, 450); },

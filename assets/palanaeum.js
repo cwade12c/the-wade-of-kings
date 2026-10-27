@@ -50,6 +50,21 @@
     hostile: { label: "Hostility", color: "var(--hostile)", hex: "#ea5f6f" },
     other: { label: "Other ties", color: "var(--other)", hex: "#8a95a5" },
   };
+  // How we know a tie, and how it's drawn: one entry per basis. The Unfolding's legend toggles
+  // one row per style. "follows" is never written by hand: the build derives those family ties.
+  const BASES = {
+    seen: { style: "seen", dash: null },
+    said: { style: "said", dash: "7 5" },
+    inferred: { style: "reading", dash: "1.5 5", note: "Wade's reading" },
+    guess: { style: "reading", dash: "1.5 5", note: "a guess" },
+    follows: { style: "follows", dash: null, faint: true },
+  };
+  const STYLES = {
+    seen: "Shown on the page",
+    said: "A character says so",
+    reading: "Wade's reading or a guess, not yet confirmed",
+    follows: "Follows from other family lines",
+  };
   const FRIEND_KEY = "palanaeum.friend";
   const SEEN_KEY = "palanaeum.seen";
 
@@ -284,12 +299,27 @@
   }
 
   // ------------------------------------------------------------ the profile of a codex entry
-  const tiesOf = (id, h) => DATA.relations.filter((r) => r.h <= h && (r.from === id || r.to === id) &&
-    entityById[r.from] && entityById[r.to] && entityById[r.from].h <= h && entityById[r.to].h <= h);
+  // Stated ties first; with { implied: true }, then the family ties that follow from them.
+  const tiesOf = (id, h, opts = {}) => DATA.relations.concat(opts.implied ? DATA.implied || [] : [])
+    .filter((r) => r.h <= h && (r.from === id || r.to === id) &&
+      entityById[r.from] && entityById[r.to] && entityById[r.from].h <= h && entityById[r.to].h <= h);
+  const stated = (ties) => ties.filter((r) => r.basis !== "follows").length;
+
+  // The few words on how a tie is known: "says Adolin", "Wade's reading", "through Gavilar".
+  // { long: true } spells out the lines a derived tie follows from, with their chapters.
+  function basisNote(r, opts = {}) {
+    if (r.basis === "said") return r.said_by ? `says ${esc(r.said_by)}` : "";
+    if (r.basis !== "follows") return esc((BASES[r.basis] || {}).note || "");
+    if (opts.long) {
+      return `follows from ${r.via.map((v) => `${esc(entName(v.from))} &amp; ${esc(entName(v.to))}, ${esc(v.label)} (${esc(unitLabel(unitById[v.cite], { short: true }))})`).join("; ")}`;
+    }
+    const between = [...new Set(r.via.flatMap((v) => [v.from, v.to]))].filter((x) => x !== r.from && x !== r.to);
+    return `through ${between.map((x) => esc(entName(x))).join(" and ")}`;
+  }
 
   // Everyone this entry is tied to, around it in a ring, grouped by kind of tie.
   function egoWeb(e, h, opts = {}) {
-    const ties = tiesOf(e.id, h);
+    const ties = tiesOf(e.id, h, { implied: true });
     if (!ties.length) return "";
     const order = Object.keys(TYPES);
     const others = [];
@@ -300,7 +330,6 @@
       slot.rels.push(r);
     });
     const n = others.length, R = n > 12 ? 148 : 128, W = 520, HH = 420;
-    const DASH = { seen: "", said: "6 5", inferred: "1.5 5", guess: "1.5 5" };
     let lines = "", dots = "";
     others.forEach((o, i) => {
       const a = (i / n) * Math.PI * 2 - Math.PI / 2;
@@ -308,7 +337,8 @@
       o.rels.forEach((r, k) => {
         const off = (k - (o.rels.length - 1) / 2) * 14;
         const mx = x / 2 - Math.sin(a) * off, my = y / 2 + Math.cos(a) * off;
-        lines += `<path d="M0,0Q${mx.toFixed(1)},${my.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}" stroke="${TYPES[r.type].hex}" stroke-dasharray="${DASH[r.basis] || ""}"><title>${esc(entName(o.id))}: ${esc(r.label)}</title></path>`;
+        const b = BASES[r.basis] || BASES.seen;
+        lines += `<path d="M0,0Q${mx.toFixed(1)},${my.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}" stroke="${TYPES[r.type].hex}" stroke-dasharray="${b.dash || ""}"${b.faint ? ' stroke-width="1.2" stroke-opacity=".55"' : ""}><title>${esc(entName(o.id))}: ${esc(r.label)}</title></path>`;
       });
       const oe = entityById[o.id], c = entColor(oe, h);
       const right = Math.cos(a) >= -0.01, anchor = Math.abs(Math.cos(a)) < 0.2 ? "middle" : right ? "start" : "end";
@@ -338,7 +368,8 @@
   function profile(e, opts = {}) {
     const h = opts.h ?? limit();
     const first = unitById[e.first_seen.split("@")[0]];
-    const ties = tiesOf(e.id, h);
+    const ties = tiesOf(e.id, h, { implied: true });
+    const drawn = stated(ties), more = ties.length - drawn;
     const onstage = (e.units || []).map((u) => unitById[u]).filter((u) => u && u.h <= h);
     const povN = units.filter((u) => u.h <= h && u.pov.includes(e.id)).length;
     const link = opts.link || ((id) => `${root}codex.html#${id}`);
@@ -350,9 +381,9 @@
     }).join("");
     const tieRows = ties.map((r) => {
       const other = r.from === e.id ? r.to : r.from;
-      const who = r.basis === "said" && r.said_by ? `says ${esc(r.said_by)}` : r.basis === "inferred" ? "Wade's reading" : "";
+      const who = basisNote(r);
       const u = unitById[r.cite];
-      return `<li style="--c:${TYPES[r.type].hex}"><span class="tie-swatch ${r.basis}" title="${TYPES[r.type].label}"></span>
+      return `<li style="--c:${TYPES[r.type].hex}"${r.basis === "follows" ? ` title="${basisNote(r, { long: true })}"` : ""}><span class="tie-swatch ${r.basis}" title="${TYPES[r.type].label}"></span>
         <a class="tie-who" href="${link(other)}" data-id="${other}">${esc(entName(other))}</a>
         <span class="tie-what">${esc(r.label)}${who ? ` <span class="muted small">· ${who}</span>` : ""}</span>
         <a class="cite" href="${root}journal.html#${unitAnchor(r.cite)}">${esc(unitLabel(u, { short: true }))}</a></li>`;
@@ -371,7 +402,7 @@
       <div class="pf-stats">
         <div><b>${esc(first ? unitNumeral(first) : "")}</b><span>first met${first ? `, <a href="${root}journal.html#${unitAnchor(first.id)}">${esc(unitTitle(first))}</a>` : ""}</span></div>
         <div><b>${onstage.length}</b><span>chapter${onstage.length === 1 ? "" : "s"} on the page</span></div>
-        <div><b>${ties.length}</b><span>tie${ties.length === 1 ? "" : "s"} drawn</span></div>
+        <div><b>${drawn}</b><span>tie${drawn === 1 ? "" : "s"} drawn${more ? `, ${more} more implied` : ""}</span></div>
         <div><b>${povN}</b><span>through their eyes</span></div>
       </div>
       <section class="pf-sec"><h2>On the page</h2>${presence(e, h)}
@@ -452,7 +483,7 @@
     friendH, limit, visible, visibleAt, isNew, isPov, summaryOf, unitLabel, unitTitle, unitNumeral, unitAnchor,
     entName, entLink, renderSections, sectionCount, markNew, lightbox, sheet, gauge,
     povColor, unitColor, entColor, sigil, egoWeb, presence, profile, openProfile, tiesOf,
-    reducedMotion,
+    BASES, STYLES, basisNote, stated, reducedMotion,
   };
 
   if (!DATA) {

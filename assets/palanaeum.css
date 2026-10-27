@@ -352,6 +352,7 @@ blockquote.wade.is-new::after { all: unset; content: "Wade · new"; display: blo
 .tie-swatch { width: 1.1rem; height: 0; margin-top: 0.3rem; align-self: center; border-top: 3px solid var(--c, var(--other)); border-radius: 2px; }
 .tie-swatch.said { border-top-style: dashed; }
 .tie-swatch.inferred, .tie-swatch.guess { border-top-style: dotted; }
+.tie-swatch.follows { border-top-width: 1.5px; opacity: 0.6; }
 .tie-who { color: var(--parchment); font-weight: 700; text-decoration: none; }
 .tie-who:hover { color: var(--sphere); }
 .tie-what { color: var(--dusk); }
@@ -675,11 +676,28 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-types label:has(input:not(:checked)) { opacity: 0.4; }
 .uf-types .line { height: 0; border-top: 3px solid var(--c); border-radius: 2px; }
 .uf-types .count { color: var(--mist); }
-.uf-styles { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.35rem; color: var(--dusk); }
-.uf-styles li { display: grid; grid-template-columns: 2rem 1fr; gap: 0.6rem; align-items: center; padding: 0 0.5rem; }
-.uf-styles .line { border-top: 3px solid var(--dusk); }
-.uf-styles .said { border-top-style: dashed; }
-.uf-styles .inferred { border-top-style: dotted; }
+.uf-types .line.said { border-top-style: dashed; }
+.uf-types .line.reading { border-top-style: dotted; }
+.uf-types .line.follows { border-top-width: 1.5px; opacity: 0.6; }
+.uf-find {
+  position: absolute; top: 1rem; right: 4.2rem; z-index: 5; width: min(19rem, calc(100% - 5.5rem));
+  background: rgba(14, 20, 28, 0.94); border: 1px solid var(--rule); border-radius: 18px; padding: 0.6rem; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  animation: pop-in .18s var(--ease-out);
+}
+.uf-find-field { position: relative; }
+.uf-find-field input {
+  width: 100%; font: inherit; color: var(--parchment); background: rgba(0, 0, 0, 0.25); border: 1px solid var(--rule); border-radius: 999px; padding: 0.6rem 1rem 0.6rem 2.5rem;
+}
+.uf-find-field input:focus { border-color: var(--sphere); outline: none; box-shadow: 0 0 0 3px rgba(216, 236, 255, 0.12); }
+.uf-find-field svg { position: absolute; left: 0.9rem; top: 50%; width: 1.05rem; height: 1.05rem; transform: translateY(-50%); color: var(--mist); pointer-events: none; }
+.uf-find-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.1rem; }
+.uf-find-list:empty { display: none; }
+.uf-find-list li { display: grid; grid-template-columns: 0.65rem 1fr auto; align-items: center; gap: 0.6rem; padding: 0.45rem 0.7rem; border-radius: 10px; cursor: pointer; color: var(--parchment); }
+.uf-find-list li[aria-selected="true"], .uf-find-list li:hover { background: rgba(255, 255, 255, 0.07); }
+.uf-find-list .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 50%, transparent); }
+.uf-find-list .sq .dot { border-radius: 2px; }
+.uf-find-list small { color: var(--mist); font-size: var(--step--2); }
+.uf-find-hint { margin: 0.5rem 0.7rem 0.2rem; font-size: var(--step--1); color: var(--dusk); }
 .uf-filters p { color: var(--dusk); margin: 0; }
 
 /* the highstorm that sweeps a chapter in */
@@ -750,6 +768,7 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-card ul { list-style: none; padding: 0; margin: 0.6rem 0 0.9rem; display: grid; gap: 0.15rem; }
 .uf-card li { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.55rem; align-items: baseline; font-size: var(--step--1); color: var(--dusk); padding: 0.18rem 0; }
 .uf-card li .tie-swatch { margin-top: 0; }
+.uf-card li .c-how { color: var(--mist); }
 .uf-card li button { all: unset; cursor: pointer; color: var(--parchment); font-weight: 700; }
 .uf-card li button:hover, .uf-card li button:focus-visible { color: var(--sphere); }
 .uf-card .c-acts { display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -841,6 +860,7 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
   .uf-tools { top: 0.75rem; right: 0.75rem; }
   .uf-tools button { width: 2.4rem; height: 2.4rem; border-radius: 12px; }
   .uf-filters { right: 0.75rem; left: 0.75rem; width: auto; top: auto; bottom: 0.75rem; max-height: 70%; }
+  .uf-find { top: 0.75rem; left: 0.75rem; right: 3.75rem; width: auto; }
   /* the phone card: a peek bar that leaves the ring in view; details on tap or swipe */
   .uf-card {
     top: auto; bottom: 0; left: 0; right: 0; width: auto; max-height: 64%; border-radius: 22px 22px 0 0; border-bottom: 0;

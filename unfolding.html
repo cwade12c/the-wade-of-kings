@@ -18,22 +18,27 @@
       <p class="uf-counts" id="counts"></p>
     </div>
     <div class="uf-tools" role="group" aria-label="View">
+      <button type="button" id="find-btn" aria-label="Find a name" aria-expanded="false" aria-controls="find"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
       <button type="button" id="z-in" aria-label="Zoom in">+</button>
       <button type="button" id="z-out" aria-label="Zoom out">−</button>
       <button type="button" id="z-fit" aria-label="Fit everyone in view"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <button type="button" id="f-btn" aria-label="Kinds of tie and key" aria-expanded="false" aria-controls="filters"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
     </div>
+    <div class="uf-find" id="find" hidden>
+      <div class="uf-find-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+        <label class="visually-hidden" for="find-q">Find a name</label>
+        <input id="find-q" type="search" placeholder="Find a name" autocomplete="off" spellcheck="false" enterkeyhint="go"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="find-list"></div>
+      <ul class="uf-find-list" id="find-list" role="listbox" aria-label="Names on the map"></ul>
+      <p class="uf-find-hint" id="find-hint"></p>
+    </div>
     <div class="uf-filters" id="filters" hidden>
       <h2>Kinds of tie</h2>
       <div class="uf-types" id="legend" role="group" aria-label="Show or hide each kind of tie"></div>
       <h2>How we know</h2>
-      <ul class="uf-styles" aria-label="Line styles">
-        <li><span class="line"></span>Shown on the page</li>
-        <li><span class="line said"></span>A character says so</li>
-        <li><span class="line inferred"></span>Wade's reading, not yet confirmed</li>
-      </ul>
+      <div class="uf-types" id="styles" role="group" aria-label="Show or hide each way of knowing"></div>
       <h2>Reading the web</h2>
-      <p>Lit, glowing spheres are viewpoint characters; squares are groups. Arrows mark command, dots support, bars hostility. Pinch or scroll to zoom, drag to pan, and pick anyone to see their ties.</p>
+      <p>Lit, glowing spheres are viewpoint characters; squares are groups. Arrows mark command, dots support, bars hostility; faint gold lines are family ties that follow from the others. Pinch or scroll to zoom, drag to pan, and pick anyone, or find them by name, to see their ties.</p>
     </div>
     <aside class="uf-card" id="card" hidden aria-live="polite"></aside>
     <div class="uf-storm" id="storm" aria-hidden="true">
@@ -78,7 +83,7 @@
   const narrow = () => matchMedia("(max-width: 760px)").matches;
   const stage = $("stage");
   const web = P.web($("web"), {
-    labels: "all", interactive: true, zoom: true, focusMode: true, tip: $("tip"),
+    labels: "all", interactive: true, zoom: true, focusMode: true, implied: true, tip: $("tip"),
     pad: narrow() ? { top: 92, right: 12, bottom: 16, left: 12 } : { top: 110, right: 80, bottom: 30, left: 40 },
     // on a phone, open close enough to read, on whoever tonight's chapter follows
     initial: narrow() ? { k: 0.72, cy: 0.56, focus: (P.units[LIM] || { pov: [] }).pov } : null,
@@ -116,7 +121,8 @@
   function renderCard(n) {
     if (!n) { card.hidden = true; cardState = "peek"; return; }
     const e = n.e;
-    const ties = P.tiesOf(e.id, current);
+    const ties = P.tiesOf(e.id, current, { implied: true });
+    const drawn = P.stated(ties), more = ties.length - drawn;
     const first = P.unitById[e.first_seen.split("@")[0]];
     const onstage = (e.units || []).filter((id) => P.unitById[id] && P.unitById[id].h <= current).length;
     card.style.setProperty("--pc", P.entColor(e, current));
@@ -124,14 +130,15 @@
     card.innerHTML = `<button type="button" class="c-grab" aria-label="Show details" aria-expanded="false"></button>
       <div class="c-top">${P.sigil(e, { size: 46, h: current })}
         <div class="c-id"><p>${P.esc(P.FOLDERS[e.folder] || "")}${P.isPov(e.id, current) ? " · viewpoint" : ""}</p><h2>${P.esc(e.name)}</h2>
-          <p class="c-line"><span><b>${ties.length}</b> tie${ties.length === 1 ? "" : "s"}</span> · <span><b>${onstage}</b> chapter${onstage === 1 ? "" : "s"}</span> · <span>first met ${P.esc(first ? first.short : "")}</span></p></div>
+          <p class="c-line"><span><b>${drawn}</b> tie${drawn === 1 ? "" : "s"}</span>${more ? ` · <span><b>${more}</b> implied</span>` : ""} · <span><b>${onstage}</b> chapter${onstage === 1 ? "" : "s"}</span> · <span>first met ${P.esc(first ? first.short : "")}</span></p></div>
         <div class="c-btns"><button type="button" class="icon-btn c-more-btn" aria-label="Show details" aria-expanded="false">${CHEVRON}</button>
           <button type="button" class="icon-btn c-x" aria-label="Let go of ${P.esc(e.name)}">${P.icon("close")}</button></div></div>
       <div class="c-more">
         ${P.summaryOf(e, current) ? `<p class="c-sum">${P.summaryOf(e, current)}</p>` : ""}
         <ul>${ties.map((r) => {
           const other = r.from === e.id ? r.to : r.from;
-          return `<li><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].hex}"></span><span><button type="button" data-id="${other}">${P.esc(P.entName(other))}</button>: ${P.esc(r.label)}</span></li>`;
+          const how = P.basisNote(r);
+          return `<li${r.basis === "follows" ? ` title="${P.basisNote(r, { long: true })}"` : ""}><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].hex}"></span><span><button type="button" data-id="${other}">${P.esc(P.entName(other))}</button>: ${P.esc(r.label)}${how ? ` <span class="c-how">· ${how}</span>` : ""}</span></li>`;
         }).join("")}</ul>
         <div class="c-acts"><button type="button" class="cta" id="expand">${P.icon("expand")}Full profile</button>
           <a class="cta ghost" href="codex.html#${e.id}">Codex entry</a></div></div>`;
@@ -173,13 +180,80 @@
     web.setTypes([...legend.querySelectorAll("input:checked")].map((x) => x.value));
     readout();
   }));
+  const styles = $("styles");
+  styles.innerHTML = Object.entries(P.STYLES).map(([k, label]) => `<label>
+    <input type="checkbox" value="${k}" checked><span class="line ${k}" style="--c:${k === "follows" ? P.TYPES.family.hex : "var(--dusk)"}"></span><span>${P.esc(label)}</span><span class="count"></span></label>`).join("");
+  styles.querySelectorAll("input").forEach((i) => i.addEventListener("change", () => {
+    web.setStyles([...styles.querySelectorAll("input:checked")].map((x) => x.value));
+    readout();
+  }));
   const fBtn = $("f-btn"), filters = $("filters");
   fBtn.addEventListener("click", (ev) => {
     ev.stopPropagation();
+    if (!find.hidden) setFind(false);
     filters.hidden = !filters.hidden;
     fBtn.setAttribute("aria-expanded", String(!filters.hidden));
   });
-  document.addEventListener("click", (ev) => { if (!filters.hidden && !filters.contains(ev.target) && ev.target !== fBtn) { filters.hidden = true; fBtn.setAttribute("aria-expanded", "false"); } });
+  document.addEventListener("click", (ev) => {
+    if (!filters.hidden && !filters.contains(ev.target) && ev.target !== fBtn) { filters.hidden = true; fBtn.setAttribute("aria-expanded", "false"); }
+    if (!find.hidden && !find.contains(ev.target) && !findBtn.contains(ev.target)) setFind(false);
+  });
+
+  // ------------------------------------------------------------ find a name
+  // Only names already on the map at the chapter shown, in plain alphabetical order with word
+  // starts first. Never ranked by ties or mentions, so the list itself gives nothing away.
+  const findBtn = $("find-btn"), find = $("find"), fq = $("find-q"), flist = $("find-list"), fhint = $("find-hint");
+  const fold = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const plain = (n) => n.e.name.replace(/^The /, "");
+  let hits = [], active = 0;
+  function setFind(on) {
+    find.hidden = !on;
+    findBtn.setAttribute("aria-expanded", String(on));
+    fq.setAttribute("aria-expanded", "false");
+    if (!on) return;
+    filters.hidden = true;
+    fBtn.setAttribute("aria-expanded", "false");
+    fq.value = "";
+    suggest();
+    fq.focus();
+  }
+  function suggest() {
+    const t = fold(fq.value.trim());
+    const keys = (n) => [n.e.name, ...(P.friendH() === null ? n.e.aka : [])].map(fold);   // friends don't get aliases
+    hits = !t ? [] : web.nodes.filter((n) => n.h <= current).map((n) => ({ n, k: keys(n) }))
+      .filter((x) => x.k.some((k) => k.includes(t)))
+      .map((x) => ({ n: x.n, start: x.k.some((k) => k.split(/[\s-]+/).some((w) => w.startsWith(t))) ? 0 : 1 }))
+      .sort((a, b) => a.start - b.start || plain(a.n).localeCompare(plain(b.n)))
+      .slice(0, 8).map((x) => x.n);
+    active = 0;
+    flist.innerHTML = hits.map((n, i) => `<li role="option" id="find-${i}" data-id="${n.id}" aria-selected="${i === 0}"${n.square ? ' class="sq"' : ""}>
+      <span class="dot" style="--c:${P.entColor(n.e, current)}"></span><span>${P.esc(n.e.name)}</span><small>${P.esc(P.FOLDERS[n.e.folder] || "")}</small></li>`).join("");
+    fq.setAttribute("aria-expanded", String(hits.length > 0));
+    if (hits.length) fq.setAttribute("aria-activedescendant", "find-0");
+    else fq.removeAttribute("aria-activedescendant");
+    fhint.textContent = !t ? "Anyone, or any group, on the map so far." : hits.length ? "" : "No one on the map by that name.";
+    fhint.hidden = !fhint.textContent;
+  }
+  function move(d) {
+    if (!hits.length) return;
+    active = (active + d + hits.length) % hits.length;
+    flist.querySelectorAll("li").forEach((li, i) => li.setAttribute("aria-selected", String(i === active)));
+    fq.setAttribute("aria-activedescendant", `find-${active}`);
+  }
+  function pick(id) {
+    setFind(false);
+    web.select(id);
+    const n = document.querySelector("#web .node.selected");
+    if (n) n.focus({ preventScroll: true });
+  }
+  findBtn.addEventListener("click", (ev) => { ev.stopPropagation(); setFind(find.hidden); });
+  fq.addEventListener("input", suggest);
+  fq.addEventListener("keydown", (ev) => {
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); move(ev.key === "ArrowDown" ? 1 : -1); }
+    else if (ev.key === "Enter") { ev.preventDefault(); if (hits[active]) pick(hits[active].id); }
+    else if (ev.key === "Escape") { ev.preventDefault(); setFind(false); findBtn.focus(); }
+  });
+  flist.addEventListener("click", (ev) => { const li = ev.target.closest("li[data-id]"); if (li) pick(li.dataset.id); });
   $("z-in").addEventListener("click", () => web.zoomBy(1.4));
   $("z-out").addEventListener("click", () => web.zoomBy(1 / 1.4));
   $("z-fit").addEventListener("click", () => web.fit());
@@ -206,6 +280,7 @@
     $("counts").innerHTML = `<b>${c.nodes}</b> names · <b>${c.links}</b> ties`;
     $("caption").innerHTML = describe(u);
     legend.querySelectorAll(".count").forEach((el, i) => { el.textContent = web.count(Object.keys(P.TYPES)[i]); });
+    styles.querySelectorAll(".count").forEach((el, i) => { el.textContent = web.countStyle(Object.keys(P.STYLES)[i]); });
   }
   function sweep(u) {
     if (P.reducedMotion || !u) return;
@@ -269,6 +344,7 @@
     if (ev.key === "ArrowRight" && current < LIM) { stop(); goTo(current + 1, true); }
     if (ev.key === "ArrowLeft" && current > 0) { stop(); goTo(current - 1, false); }
     if (ev.key === "Escape") web.select(null);
+    if (ev.key === "/" && find.hidden) { ev.preventDefault(); setFind(true); }
   });
 
   setPlay(false);
