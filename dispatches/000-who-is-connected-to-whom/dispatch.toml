@@ -6,3 +6,4 @@ kind = "image"
 file = "chart.png"
 caption = "Wade's own map of the cast, made at the end of Chapter 12 because the names were piling up. This is the founding artifact of the Palanaeum."
 note = "Made with another AI before the Palanaeum existed and frozen exactly as it was. The living web on The Unfolding is rebuilt separately from cited text."
+covers = ["kholin", "davar", "shattered-plains", "szeth"]
