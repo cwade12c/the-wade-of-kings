@@ -10,7 +10,7 @@
 <main class="wrap">
   <header class="page-head">
     <h1>Dispatches</h1>
-    <p class="lede">One-off maps and posters, each made at a moment in the read and frozen exactly as it was. The living pages keep changing; these never do.</p>
+    <p class="lede">Maps and posters, each stamped with how far into the read it's safe. Most are frozen exactly as they were made. Living dispatches keep growing as Wade reads, and always show what they're safe through.</p>
   </header>
   <div class="dispatch-wall" id="wall"></div>
 </main>
@@ -24,10 +24,11 @@
     const u = P.unitById[d.horizon.split("@")[0]];
     const media = d.kind === "image"
       ? `<img src="${P.esc(d.url)}" alt="${P.esc(d.title)}" loading="lazy" data-full="${P.esc(d.url)}">`
+      : d.preview ? `<a href="${P.esc(d.url)}"><img src="${P.esc(d.preview)}" alt="${P.esc(d.title)}" loading="lazy"></a>`
       : `<a href="${P.esc(d.url)}">Open dispatch #${P.esc(d.id)}</a>`;
     return `<article class="dispatch-card"${P.isNew(d.h) ? ' data-new="1"' : ""}><figure>${media}
-      <figcaption><p class="num">Dispatch #${P.esc(d.id)}, made at ${P.esc(P.unitLabel(u))}, ${P.esc(d.date)}</p>
-      <h2>${P.esc(d.title)}</h2><p>${d.caption}</p><p class="muted small">${d.note}</p></figcaption></figure></article>`;
+      <figcaption><p class="num">Dispatch #${P.esc(d.id)}, ${d.living ? `<span style="color:var(--sphere)">living</span>, safe through` : "made at"} ${P.esc(P.unitLabel(u))}, ${P.esc(d.date)}</p>
+      <h2>${d.kind === "page" ? `<a href="${P.esc(d.url)}" style="color:inherit;text-decoration:none">${P.esc(d.title)}</a>` : P.esc(d.title)}</h2><p>${d.caption}</p><p class="muted small">${d.note}</p></figcaption></figure></article>`;
   }).join("") : `<div class="empty"><strong>No dispatches yet.</strong>They appear at milestones, or whenever a tangle of names needs a map.</div>`;
   wall.querySelectorAll("img[data-full]").forEach((img) => img.addEventListener("click", () => P.lightbox(img.dataset.full, img.alt)));
 })();

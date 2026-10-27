@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch #001 · Spherelight · The Wade of Kings</title>
+<link rel="stylesheet" href="../../assets/palanaeum.css">
+<style>
+  .dx { --velvet: #0d1219; }
+  .dx .page-head { padding-bottom: 0.5rem; }
+  .dx .living { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--rule); border-radius: 999px; padding: .1rem .65rem; color: var(--sphere); }
+  .dx .living i { width: .5rem; height: .5rem; border-radius: 50%; background: var(--sphere); box-shadow: 0 0 10px var(--sphere); }
+  .dx section.block { margin: 3.5rem 0; }
+  .dx section.block > h2 { font-size: var(--step-2); margin-bottom: .35rem; }
+  .dx section.block > .sub { color: var(--dusk); max-width: 62ch; margin-bottom: 1.4rem; }
+  .dx .fact { color: var(--parchment); }
+  .dx .fact .basis { margin-left: .35em; }
+  .dx ul.facts { list-style: none; padding: 0; margin: 0; display: grid; gap: .55rem; }
+  .dx ul.facts li { padding-left: 1.1rem; position: relative; }
+  .dx ul.facts li::before { content: ""; position: absolute; left: 0; top: .62em; width: .4rem; height: .4rem; border-radius: 50%; background: var(--c, var(--dusk)); box-shadow: 0 0 8px var(--c, transparent); }
+
+  /* the gem wall */
+  .velvet { background: radial-gradient(120% 140% at 50% 0%, #1b2634 0%, var(--velvet) 60%); border: 1px solid var(--rule); border-radius: 22px; padding: 2.2rem 1.5rem 1.4rem; position: relative; overflow: hidden; }
+  .velvet::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,.012) 0 2px, transparent 2px 7px); pointer-events: none; }
+  .gem-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: .5rem; align-items: end; position: relative; }
+  .gem-btn { background: none; border: 0; padding: .4rem 0 .2rem; cursor: pointer; color: var(--dusk); font: inherit; display: grid; justify-items: center; gap: .35rem; border-radius: 14px; transition: transform .35s cubic-bezier(.2,.9,.3,1.3), color .2s; }
+  .gem-btn svg { width: 100%; max-width: 128px; height: auto; filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)); }
+  .gem-btn span { font-family: var(--display); font-size: 1.15rem; }
+  .gem-btn:hover, .gem-btn[aria-pressed="true"] { transform: translateY(-8px); color: var(--parchment); }
+  .gem-btn[aria-pressed="true"] span { color: var(--c); text-shadow: 0 0 14px var(--c); }
+  .gem-btn.unseen { opacity: .18; pointer-events: none; }
+  .gem-card { display: grid; grid-template-columns: 220px 1fr; gap: 2rem; margin-top: 1.6rem; padding-top: 1.6rem; border-top: 1px solid var(--rule); align-items: start; min-height: 14rem; }
+  .gem-card .big svg { width: 220px; height: 220px; }
+  .gem-card h3 { font-size: var(--step-3); margin-bottom: .2rem; color: var(--c); text-shadow: 0 0 30px color-mix(in srgb, var(--c) 45%, transparent); }
+  .gem-card .light { font-family: var(--display); font-style: italic; color: var(--dusk); font-size: var(--step-1); margin-bottom: .9rem; }
+  .tag { display: inline-block; font-size: var(--step--1); border: 1px solid var(--c, var(--rule)); color: var(--c, var(--dusk)); border-radius: 999px; padding: .05rem .6rem; margin: 0 .3rem .6rem 0; }
+
+  /* anatomy */
+  .anatomy { display: grid; grid-template-columns: minmax(260px, 380px) 1fr; gap: 2.5rem; align-items: center; }
+  .anatomy .stage { position: relative; }
+  .anatomy .stage svg.sph { width: 100%; height: auto; transition: filter 1.2s ease; }
+  .anatomy .stage.dun svg.sph { filter: saturate(.25) brightness(.55); }
+  .callouts { position: absolute; inset: 0; pointer-events: none; }
+  .callouts text { font: 400 12px var(--text); fill: var(--dusk); }
+  .callouts line, .callouts path { stroke: var(--mist); stroke-width: 1; fill: none; }
+  .switch { display: inline-flex; gap: .5rem; margin-top: 1rem; }
+  .switch button { font: inherit; color: var(--parchment); background: var(--deep); border: 1px solid var(--rule); border-radius: 999px; padding: .35rem .95rem; cursor: pointer; }
+  .switch button[aria-pressed="true"] { border-color: var(--sphere); color: var(--sphere); box-shadow: 0 0 16px rgba(216,236,255,.18); }
+
+  /* ladder */
+  .ladder { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; align-items: end; text-align: center; }
+  .rung svg { width: 100%; max-width: 210px; height: auto; }
+  .rung h3 { font-size: var(--step-2); }
+  .rung p { color: var(--dusk); font-size: var(--step--1); margin: .3rem auto 0; max-width: 26ch; }
+  .xchg { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; margin: .6rem 0 0; color: var(--dusk); font-size: var(--step--1); text-align: center; }
+  .xchg b { color: var(--parchment); font-family: var(--display); font-weight: 400; font-size: 1.25rem; }
+  .thousand { margin-top: 1.8rem; display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; background: var(--deep); border: 1px solid var(--rule); border-radius: 16px; padding: 1rem 1.25rem; }
+  .thousand .dust { display: grid; grid-template-columns: repeat(50, 6px); gap: 3px; }
+  .thousand .dust i { width: 6px; height: 6px; border-radius: 50%; background: #eef6ff; box-shadow: 0 0 5px rgba(238,246,255,.8); opacity: .75; }
+  .thousand .eq { font-family: var(--display); font-size: var(--step-2); color: var(--dusk); }
+  .thousand svg { width: 120px; height: 120px; }
+
+  /* matrix */
+  table.matrix { border-collapse: separate; border-spacing: 6px; margin-top: .5rem; }
+  .matrix th { font-weight: 400; color: var(--dusk); font-size: var(--step--1); text-align: left; padding: 0 .5rem; }
+  .matrix th.g { font-family: var(--display); font-size: 1.1rem; color: var(--parchment); }
+  .matrix td { width: 7.5rem; height: 3.2rem; border-radius: 12px; border: 1px dashed var(--rule); text-align: center; vertical-align: middle; font-size: var(--step--1); color: var(--mist); }
+  .matrix td.seen { border: 1px solid var(--c); color: var(--parchment); background: radial-gradient(80% 120% at 50% 50%, color-mix(in srgb, var(--c) 28%, transparent), transparent 75%); box-shadow: inset 0 0 18px color-mix(in srgb, var(--c) 25%, transparent); }
+
+  /* prices */
+  .prices { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+  .price { background: var(--slate); border: 1px solid var(--rule); border-radius: 14px; padding: 1rem 1.1rem; position: relative; overflow: hidden; }
+  .price::after { content: ""; position: absolute; right: -30px; top: -30px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--c) 45%, transparent), transparent 70%); }
+  .price .amt { font-family: var(--display); font-size: var(--step-1); color: var(--c); }
+  .price .what { color: var(--parchment); margin: .2rem 0 .4rem; }
+
+  /* uses */
+  .uses { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem 2rem; }
+  .use h3 { font-size: var(--step-1); margin-bottom: .2rem; }
+  .use p { color: var(--dusk); margin: 0; }
+
+  .strange { display: grid; grid-template-columns: 200px 1fr; gap: 2rem; align-items: center; }
+  .strange svg { width: 200px; height: 200px; }
+  .dark-halo { mix-blend-mode: multiply; }
+  .unknowns li { color: var(--dusk); }
+  .unknowns a { color: var(--sphere); }
+
+  @media (max-width: 820px) {
+    .gem-row { grid-template-columns: repeat(4, 1fr); }
+    .gem-card, .anatomy, .strange { grid-template-columns: 1fr; }
+    .ladder { grid-template-columns: 1fr; }
+    .xchg { display: none; }
+    .matrix td { width: 4.2rem; }
+  }
+</style>
+</head>
+<body data-page="dispatch" data-horizon="wok:12" data-root="../../">
+<main class="wrap dispatch-page dx">
+  <header class="page-head">
+    <p class="eyebrow">Dispatch #001 · <span class="living"><i></i>Living</span> · safe through <span id="safe"></span></p>
+    <h1>Spherelight</h1>
+    <p class="lede">Everything the book has told us so far about gems: the colours we've seen, what each stone does, what things cost, and where the light goes. This page grows as Wade reads. Every line is cited, and anything the book hasn't said is marked as unknown.</p>
+  </header>
+
+  <section class="block">
+    <h2>The stones on the page</h2>
+    <p class="sub">Seven gemstones have been named so far. Pick one to see everything the book has said about it.</p>
+    <div class="velvet">
+      <div class="gem-row" id="gem-row"></div>
+      <div class="gem-card" id="gem-card"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Anatomy of a sphere</h2>
+    <p class="sub">Money and light are the same object here. Try letting it go dun.</p>
+    <div class="anatomy">
+      <div class="stage" id="anat-stage"></div>
+      <div>
+        <ul class="facts" id="anat-facts"></ul>
+        <div class="switch" role="group" aria-label="Sphere state">
+          <button type="button" data-s="infused" aria-pressed="true">Infused</button>
+          <button type="button" data-s="dun" aria-pressed="false">Dun</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Chip, mark, broam</h2>
+    <p class="sub">The glass is always about the same size. The size of the gem inside sets the denomination, and how brightly it shines.</p>
+    <div class="ladder" id="ladder"></div>
+    <div class="xchg" id="xchg"></div>
+    <div class="thousand" id="thousand"></div>
+  </section>
+
+  <section class="block">
+    <h2>Which spheres we've actually seen</h2>
+    <p class="sub">A lit cell means the book has shown that stone at that size. A dashed cell means it hasn't, which doesn't mean it doesn't exist.</p>
+    <div style="overflow-x:auto"><table class="matrix" id="matrix"></table></div>
+    <ul class="facts" id="coin-names" style="margin-top:1.2rem"></ul>
+  </section>
+
+  <section class="block">
+    <h2>What things cost</h2>
+    <p class="sub">Every price the book has given so far.</p>
+    <div class="prices" id="prices"></div>
+  </section>
+
+  <section class="block">
+    <h2>Where the light goes</h2>
+    <p class="sub">Stormlight isn't only for spending.</p>
+    <div class="uses" id="uses"></div>
+  </section>
+
+  <section class="block">
+    <h2>Stranger lights</h2>
+    <div class="strange">
+      <div id="black"></div>
+      <ul class="facts" id="strange"></ul>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Still dark</h2>
+    <p class="sub">What the book hasn't told us yet.</p>
+    <ul class="facts unknowns" id="unknowns"></ul>
+  </section>
+</main>
+<script src="../../data/palanaeum.js"></script>
+<script src="../../assets/palanaeum.js"></script>
+<script src="../../assets/art.js"></script>
+<script>
+(function () {
+  "use strict";
+  document.head.insertAdjacentHTML("beforeend", `<style>${ART.STYLE}</style>`);
+  const U = (id) => P.unitById[id];
+  const seen = (c) => [].concat(c).every((id) => U(id) && P.visible(U(id).h));
+  const cite = (c) => [].concat(c).map((id) => `<a class="cite" href="../../journal.html#${P.unitAnchor(id)}" title="${P.esc(U(id).full)}">${P.esc(U(id).short)}</a>`).join(" ");
+  const basis = (b) => b && b !== "seen" ? `<span class="basis basis-${b.startsWith("said") ? "said" : b}">${P.esc(b)}</span>` : "";
+  const li = (f, col) => `<li class="fact"${col ? ` style="--c:${col}"` : ""}>${f.t} ${cite(f.c)}${basis(f.b)}</li>`;
+  const latest = (fs) => Math.max(...fs.filter((f) => seen(f.c)).flatMap((f) => [].concat(f.c).map((id) => U(id).h)));
+  document.getElementById("safe").innerHTML = cite(P.data.units[P.limit()].id);
+
+  // ------------------------------------------------------------ the stones
+  const STONES = [
+    { id: "diamond", name: "Diamond", light: "white light", facts: [
+      { t: "The smallest coin, a chip, holds only a tiny splinter of diamond, and still glows", c: "wok:3" },
+      { t: "The lamps lining the Conclave's hallway shine white; Shallan guesses diamond broams are inside", c: "wok:3", b: "inferred" },
+      { t: "Jasnah studies by a goblet filled with diamond broams: “best for light, but less useful in Soulcasting,” so they're worth less", c: "wok:8" },
+      { t: "One of the three stones on Jasnah's Soulcaster", c: "wok:5" },
+      { t: "Bridgemen are paid in diamond marks; Gaz calls them clearmarks", c: "wok:11" },
+    ]},
+    { id: "garnet", name: "Garnet", light: "deep violet", facts: [
+      { t: "Most of the chandeliers in Kharbranth's Conclave are hung with deep violet garnets", c: "wok:5" },
+      { t: "They rank low in value, yet a whole chandelier of them is still worth a great deal", c: "wok:5" },
+    ]},
+    { id: "amethyst", name: "Amethyst", light: "a soft violet light", facts: [
+      { t: "Amethyst broams light the Palanaeum's lift with “a soft violet light”", c: "wok:7" },
+      { t: "A lighteyed woman in Sadeas's warcamp wears infused amethysts in her hair", c: "wok:6" },
+    ]},
+    { id: "sapphire", name: "Sapphire", light: "unwavering azure", facts: [
+      { t: "Sapphire lamps light the Alethi palace; Szeth finds using sacred light for lamps profane", c: "wok:prologue" },
+      { t: "Szeth drains Stormlight from sapphire lamps to power his Lashings", c: "wok:prologue" },
+      { t: "A chit of admittance to the Palanaeum costs a thousand sapphire broams", c: "wok:7" },
+      { t: "Part of the price of Shallan's books: three sapphire", c: "wok:8" },
+    ]},
+    { id: "ruby", name: "Ruby", light: "red", facts: [
+      { t: "Ruby is among the coins in Shallan's money pouch", c: "wok:3" },
+      { t: "One of the three stones on Jasnah's Soulcaster", c: "wok:5" },
+    ]},
+    { id: "emerald", name: "Emerald", light: "green", facts: [
+      { t: "Emeralds are the most valuable, “for they could be used by Soulcasters to create food”", c: "wok:3" },
+      { t: "An emerald broam is the largest denomination, worth a thousand diamond chips", c: "wok:8" },
+      { t: "Tvlakv asks two emerald broams a head for his slaves", c: "wok:6" },
+      { t: "At the bookshop, Shallan has about eight emerald broams left", c: "wok:8" },
+    ]},
+    { id: "smokestone", name: "Smokestone", light: "a pure, glassy black", facts: [
+      { t: "One of the three stones on Jasnah's Soulcaster, “a pure glassy black gemstone”", c: "wok:5" },
+      { t: "As Jasnah turns the boulder to smoke, the smokestone glows brightest of the three", c: "wok:5" },
+      { t: "Afterwards it is “dark and cracked”", c: "wok:8" },
+      { t: "Lirin's fabrial clock has a glowing smokestone at its heart, and must be infused to keep time", c: "wok:10" },
+    ]},
+  ];
+  STONES.forEach((s) => { s.facts = s.facts.filter((f) => seen(f.c)); s.col = ART.GEMS[s.id].glow; });
+  const row = document.getElementById("gem-row"), card = document.getElementById("gem-card");
+  row.innerHTML = STONES.map((s, i) => `<button type="button" class="gem-btn${s.facts.length ? "" : " unseen"}" data-i="${i}" style="--c:${s.col}" aria-pressed="false">
+    ${ART.gem(s.id, { size: 128, seed: i + 3, label: s.name })}<span>${s.name}</span></button>`).join("");
+  function pick(i) {
+    const s = STONES[i];
+    row.querySelectorAll(".gem-btn").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.i === i)));
+    const tags = [];
+    if (s.id === "emerald") tags.push("Most valuable");
+    if (s.id === "garnet") tags.push("Among the less valuable");
+    if (s.id === "diamond") tags.push("Smallest coin", "Less valuable as broams");
+    if (["diamond", "ruby", "smokestone"].includes(s.id)) tags.push("On Jasnah's Soulcaster");
+    card.style.setProperty("--c", s.col);
+    card.innerHTML = `<div class="big">${ART.gem(s.id, { size: 220, seed: i + 3, label: s.name })}</div>
+      <div><h3>${s.name}</h3><p class="light">${s.light}</p>${tags.map((t) => `<span class="tag">${t}</span>`).join("")}
+      <ul class="facts">${s.facts.map((f) => li(f, s.col)).join("")}</ul></div>`;
+  }
+  row.addEventListener("click", (e) => { const b = e.target.closest(".gem-btn"); if (b) pick(+b.dataset.i); });
+  pick(5);
+
+  // ------------------------------------------------------------ anatomy
+  const stage = document.getElementById("anat-stage");
+  stage.innerHTML = ART.sphere("sapphire", { size: 380, gemScale: 0.4, seed: 4 }).replace("<svg ", '<svg class="sph" ') +
+    `<svg class="callouts" viewBox="0 0 380 380" aria-hidden="true">
+      <path d="M262 92 L318 40 L372 40"/><text x="306" y="32">glass bead</text>
+      <path d="M190 190 L96 318 L8 318"/><text x="8" y="310">gem at the centre</text></svg>`;
+  const ANAT = [
+    { t: "A glass bead “a little larger than a person's thumbnail” with a much smaller gemstone set at the centre", c: "wok:3" },
+    { t: "The gemstone absorbs Stormlight, and that's what makes the sphere glow", c: "wok:3" },
+    { t: "The glass is mostly the same size; the size of the gem sets the denomination", c: "wok:3" },
+    { t: "“A cut stone could hold more Stormlight”", c: "wok:5" },
+    { t: "Dun spheres are “considered suspect”; sometimes a moneylender has to judge whether the gem is real", c: "wok:3" },
+    { t: "Gaz leaves his spheres out in a highstorm to infuse them. The safer ways: trade dun spheres for infused ones at a moneychanger, or pay to have them infused in guarded nests", c: "wok:11" },
+  ].filter((f) => seen(f.c));
+  document.getElementById("anat-facts").innerHTML = ANAT.map((f) => li(f, ART.GEMS.sapphire.glow)).join("");
+  document.querySelectorAll(".switch button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".switch button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    stage.classList.toggle("dun", b.dataset.s === "dun");
+  }));
+
+  // ------------------------------------------------------------ ladder
+  const RUNGS = [
+    { n: "Chip", scale: 0.17, glow: 0.45, t: "The smallest. “Far fainter than a lamp, but still visible.”", c: "wok:3" },
+    { n: "Mark", scale: 0.28, glow: 0.7, t: "The middle denomination: “a little less bright than a candle.”", c: "wok:3" },
+    { n: "Broam", scale: 0.44, glow: 1, t: "The highest: about “the same light as several candles.”", c: "wok:3" },
+  ].filter((r) => seen(r.c));
+  document.getElementById("ladder").innerHTML = RUNGS.map((r, i) => `<div class="rung">${ART.sphere("diamond", { size: 210, gemScale: r.scale, glow: r.glow, seed: 9 + i })}
+    <h3>${r.n}</h3><p>${r.t} ${cite(r.c)}</p></div>`).join("");
+  if (seen("wok:3")) document.getElementById("xchg").innerHTML = `<span></span><span><b>× 5</b><br>five chips make a mark ${cite("wok:3")}</span><span></span><span><b>?</b><br>marks to a broam: not told yet</span><span></span>`;
+  if (seen("wok:8")) {
+    document.getElementById("thousand").innerHTML = `<div class="dust" aria-label="a thousand diamond chips">${"<i></i>".repeat(1000)}</div>
+      <span class="eq">=</span>${ART.sphere("emerald", { size: 120, gemScale: 0.44, seed: 2 })}
+      <p style="margin:0;max-width:30ch;color:var(--dusk)">One emerald broam, the largest denomination, is worth <b style="color:var(--parchment)">a thousand diamond chips</b>. ${cite("wok:8")}</p>`;
+  } else document.getElementById("thousand").remove();
+
+  // ------------------------------------------------------------ matrix
+  const SEEN = {
+    "diamond chip": ["wok:3"], "diamond mark": ["wok:11"], "diamond broam": ["wok:8"], "emerald broam": ["wok:6", "wok:8"],
+    "sapphire broam": ["wok:7"], "amethyst broam": ["wok:7"],
+  };
+  const sizes = ["chip", "mark", "broam"];
+  document.getElementById("matrix").innerHTML = `<tr><th></th>${sizes.map((s) => `<th>${s}</th>`).join("")}</tr>` +
+    STONES.filter((s) => s.facts.length).map((s) => `<tr><th class="g" style="color:${s.col}">${s.name}</th>${sizes.map((z) => {
+      const c = SEEN[`${s.id} ${z}`];
+      const vis = c && c.some((id) => seen(id));
+      return vis ? `<td class="seen" style="--c:${s.col}">seen ${cite(c.filter((id) => seen(id))[0])}</td>` : "<td>·</td>";
+    }).join("")}</tr>`).join("");
+  const NAMES = [
+    { t: "<b>Clearmark</b>: what Gaz pays bridgemen; Kaladin works it out as one diamond mark", c: "wok:11" },
+    { t: "<b>Firemark</b>: “wages for a week's sailing,” to a sailor", c: "wok:3" },
+    { t: "<b>Skymark</b>: Shallan's alcove rent is two of them. Which stone it holds, the book hasn't said", c: "wok:8" },
+    { t: "Yalb's winnings: a pile of chips that “glowed with a variety of hues”", c: "wok:8" },
+  ].filter((f) => seen(f.c));
+  document.getElementById("coin-names").innerHTML = NAMES.map((f) => li(f)).join("");
+
+  // ------------------------------------------------------------ prices
+  const PRICES = [
+    { amt: "1,000 sapphire broams", what: "a chit of admittance to the Palanaeum", c: "wok:7", g: "sapphire" },
+    { amt: "2 emerald, 3 sapphire", what: "seven books; the bookseller first asked ten emerald broams", c: "wok:8", g: "emerald" },
+    { amt: "2 emerald broams a head", what: "Tvlakv's asking price for a slave", c: "wok:6", g: "emerald" },
+    { amt: "5 full broams", what: "Elhokar's bet that he can beat Dalinar up the rock", c: "wok:12", g: null },
+    { amt: "a firemark", what: "a week's wages for a sailor; Shallan pays Yalb to wait", c: "wok:3", g: null },
+    { amt: "2 skymarks", what: "rent for a reading alcove in the Palanaeum", c: "wok:8", g: null },
+    { amt: "2 clearmarks a day", what: "a free bridgeman's pay; a slave gets half, one diamond mark", c: "wok:11", g: "diamond" },
+    { amt: "1 mark every 5 days", what: "Kaladin's bribe to keep Gaz in line", c: "wok:11", g: "diamond" },
+    { amt: "a handful of chips and two marks", what: "the thugs' whole take from Took: “not a single broam in the lot”", c: "wok:i3", g: "diamond" },
+  ].filter((p) => seen(p.c));
+  document.getElementById("prices").innerHTML = PRICES.map((p) => `<div class="price" style="--c:${p.g ? ART.GEMS[p.g].glow : "#a9b3c1"}">
+    <div class="amt">${p.amt}</div><div class="what">${p.what}</div>${cite(p.c)}</div>`).join("");
+  // Where the stone isn't stated (firemark, skymark, "full broams"), the card uses neutral light.
+
+  // ------------------------------------------------------------ uses
+  const USES = [
+    { h: "Light", t: "Lamps in palaces and libraries, spheres in a goblet on a reading desk, gems glowing in noblewomen's hair.", c: ["wok:prologue", "wok:3", "wok:8"] },
+    { h: "Shardplate", t: "Plate is powered by gemstones. When it cracks, Stormlight leaks out; Szeth finds two burned out and three still glowing inside Gavilar's.", c: "wok:prologue" },
+    { h: "Szeth's Lashings", t: "He breathes Stormlight in from gems to Lash, and to heal. It leaks away within minutes.", c: "wok:prologue" },
+    { h: "Soulcasting", t: "Jasnah's Soulcaster holds a smokestone, a diamond and a ruby. Emeralds can make food.", c: ["wok:3", "wok:5"] },
+    { h: "Fabrials", t: "Lirin's clock runs on an infused smokestone. The new Alethi bows each need a small infused gemstone to hold their pull.", c: ["wok:10", "wok:12"] },
+    { h: "Crystal in art", t: "In the Ten Essences, eyes are associated with crystal and glass, “the windows into a person's mind and spirit.”", c: "wok:7" },
+  ].filter((u) => seen(u.c));
+  document.getElementById("uses").innerHTML = USES.map((u) => `<div class="use"><h3>${u.h}</h3><p>${u.t} ${cite(u.c)}</p></div>`).join("");
+
+  // ------------------------------------------------------------ stranger lights
+  document.getElementById("black").innerHTML = seen("wok:prologue") ? ART.blackSphere({ size: 200 }) : "";
+  const STRANGE = [
+    { t: "Gavilar's sphere: crystalline, on a chain, completely dark, yet it “seemed to glow somehow. With a light that was black.”", c: "wok:prologue" },
+    { t: "Szeth has hidden it in Jah Keved and doesn't know what it is", c: "wok:i3" },
+    { t: "Took tells a tale of stealing “a sphere that glowed black at night” from the Nightwatcher herself. It makes Szeth uneasy", c: "wok:i3", b: "said: Took" },
+    { t: "Gemhearts: the plateau chrysalises have gemstones at their hearts, and the highprinces race each other to capture them", c: ["wok:9", "wok:12"] },
+  ].filter((f) => seen(f.c));
+  document.getElementById("strange").innerHTML = STRANGE.map((f) => li(f, "#b7b0e0")).join("");
+
+  // ------------------------------------------------------------ still dark
+  const UNK = [
+    { t: "How the different gems fit into a larger system (your <a href=\"../../ledger.html\">Q-017</a>)", c: "wok:5" },
+    { t: "What the black sphere is (your <a href=\"../../ledger.html\">Q-008</a>)", c: "wok:prologue" },
+    { t: "How many marks make a broam, and where ruby, sapphire and amethyst sit in value", c: "wok:8" },
+    { t: "Which stones are in a firemark or a skymark", c: "wok:8" },
+  ].filter((f) => seen(f.c));
+  document.getElementById("unknowns").innerHTML = UNK.map((f) => li(f, "#7d8899")).join("");
+})();
+</script>
+</body>
+</html>

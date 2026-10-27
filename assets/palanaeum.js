@@ -95,7 +95,7 @@
 
   // ------------------------------------------------------------ chrome
   function header() {
-    const here = location.pathname.split("/").pop() || "index.html";
+    const here = document.body.dataset.page === "dispatch" ? "dispatches.html" : (location.pathname.split("/").pop() || "index.html");
     const nav = NAV.map(([href, label]) =>
       `<a href="${root}${href}"${href === here ? ' aria-current="page"' : ""}>${label}</a>`).join("");
     const options = units.slice(0, -1).map((u) =>

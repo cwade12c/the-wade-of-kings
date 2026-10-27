@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch #002 · The colour of rank · The Wade of Kings</title>
+<link rel="stylesheet" href="../../assets/palanaeum.css">
+<style>
+  .dx .living { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--rule); border-radius: 999px; padding: .1rem .65rem; color: var(--sphere); }
+  .dx .living i { width: .5rem; height: .5rem; border-radius: 50%; background: var(--sphere); box-shadow: 0 0 10px var(--sphere); }
+  .dx section.block { margin: 3.5rem 0; }
+  .dx section.block > h2 { font-size: var(--step-2); margin-bottom: .35rem; }
+  .dx section.block > .sub { color: var(--dusk); max-width: 62ch; margin-bottom: 1.4rem; }
+  .dx ul.facts { list-style: none; padding: 0; margin: 0; display: grid; gap: .55rem; }
+  .dx ul.facts li { padding-left: 1.1rem; position: relative; }
+  .dx ul.facts li::before { content: ""; position: absolute; left: 0; top: .62em; width: .4rem; height: .4rem; border-radius: 50%; background: var(--c, var(--dusk)); box-shadow: 0 0 8px var(--c, transparent); }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: minmax(280px, 420px) 1fr; gap: 3rem; align-items: center; background: radial-gradient(90% 120% at 25% 50%, #1d2735 0%, #0d1219 70%); border: 1px solid var(--rule); border-radius: 22px; padding: 2rem; }
+  .hero .eye { position: relative; aspect-ratio: 1; }
+  .hero .eye > div { position: absolute; inset: 0; transition: opacity 1.1s ease; }
+  .hero .eye svg { width: 100%; height: 100%; }
+  .hero .who { font-family: var(--display); font-size: var(--step-3); line-height: 1.05; }
+  .hero .col { font-family: var(--display); font-style: italic; font-size: var(--step-1); color: var(--c); margin: .3rem 0 1rem; text-shadow: 0 0 18px color-mix(in srgb, var(--c) 40%, transparent); }
+  .dots { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: 1.25rem; }
+  .dots button { width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 2px solid var(--rule); background: var(--c); cursor: pointer; padding: 0; }
+  .dots button[aria-pressed="true"] { border-color: var(--parchment); box-shadow: 0 0 12px var(--c); }
+
+  /* spectrum */
+  .spectrum { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .band { border: 1px solid var(--rule); border-radius: 18px; padding: 1.25rem; background: var(--slate); }
+  .band h3 { font-size: var(--step-1); margin-bottom: .2rem; }
+  .band .note { color: var(--dusk); font-size: var(--step--1); margin-bottom: 1rem; }
+  .swatches { display: flex; gap: .9rem; flex-wrap: wrap; }
+  .sw { display: grid; justify-items: center; gap: .25rem; font-size: var(--step--1); color: var(--dusk); }
+  .sw svg { width: 76px; height: 76px; }
+  .torch { position: relative; border-radius: 14px; overflow: hidden; margin-top: 1rem; background: #0b0f15; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 1rem; cursor: crosshair; }
+  .torch .sw { position: relative; }
+  .torch .sw .litv { position: absolute; top: 0; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity .35s ease; }
+  .torch .sw:hover .litv, .torch .sw:focus-within .litv, .torch.lit .sw .litv { opacity: 1; }
+  .torch-cap { color: var(--mist); font-size: var(--step--1); margin-top: .4rem; }
+
+  /* ladders */
+  .ladders { display: grid; grid-template-columns: 1fr 5rem 1fr; align-items: stretch; }
+  .ladder h3 { font-size: var(--step-2); margin-bottom: .2rem; }
+  .ladder .kicker { color: var(--dusk); font-size: var(--step--1); margin-bottom: 1rem; }
+  .rungs { list-style: none; margin: 0; padding: 0 0 0 1.4rem; border-left: 2px solid var(--c); display: grid; gap: .9rem; position: relative; }
+  .rungs li { position: relative; background: var(--slate); border: 1px solid var(--rule); border-radius: 12px; padding: .7rem .9rem; }
+  .rungs li::before { content: ""; position: absolute; left: calc(-1.4rem - 7px); top: 1.05rem; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+  .rungs li.gap { background: none; border-style: dashed; color: var(--mist); font-style: italic; }
+  .rungs li.gap::before { background: var(--storm); border: 2px dashed var(--c); box-shadow: none; }
+  .rungs b { font-family: var(--display); font-weight: 400; font-size: 1.2rem; color: var(--parchment); }
+  .rungs p { margin: .2rem 0 0; color: var(--dusk); font-size: var(--step--1); }
+  .below { margin-top: 1rem; border: 1px solid var(--rule); border-radius: 12px; padding: .8rem 1rem; background: #0e131a; color: var(--dusk); font-size: var(--step--1); }
+  .below b { color: var(--parchment); font-weight: 400; font-family: var(--display); font-size: 1.15rem; }
+  .bridge { display: grid; place-items: center; }
+  .bridge svg { width: 100%; height: 100%; }
+
+  /* wall */
+  .groups { display: grid; gap: 2rem; }
+  .group h3 { font-size: var(--step-1); margin-bottom: .2rem; }
+  .group .gnote { color: var(--dusk); font-size: var(--step--1); margin-bottom: .8rem; }
+  .wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
+  .face { background: var(--slate); border: 1px solid var(--rule); border-radius: 16px; padding: .9rem .6rem .8rem; text-align: center; transition: transform .3s cubic-bezier(.2,.9,.3,1.3), border-color .3s; }
+  .face:hover { transform: translateY(-4px); border-color: var(--c); }
+  .face svg { width: 96px; height: 96px; }
+  .face .n { font-family: var(--display); font-size: 1.15rem; margin-top: .3rem; }
+  .face .c { color: var(--dusk); font-size: var(--step--1); }
+
+  /* customs */
+  .customs { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1rem 2rem; }
+  .custom h4 { font-family: var(--display); font-weight: 400; font-size: var(--step-1); margin: 0 0 .2rem; }
+  .custom p { color: var(--dusk); margin: 0; }
+
+  /* deviations */
+  .dev { display: grid; grid-template-columns: 240px 1fr; gap: 2rem; align-items: center; margin-bottom: 2.2rem; }
+  .dev .stage { position: relative; width: 240px; height: 240px; }
+  .dev .stage > div { position: absolute; inset: 0; transition: opacity 1s ease; }
+  .dev .stage svg { width: 100%; height: 100%; }
+  .dev h3 { font-size: var(--step-2); margin-bottom: .3rem; }
+  .dev p { color: var(--dusk); }
+  .btn { font: inherit; color: var(--parchment); background: var(--deep); border: 1px solid var(--rule); border-radius: 999px; padding: .35rem .95rem; cursor: pointer; }
+  .btn[aria-pressed="true"] { border-color: #8fc7ff; color: #bfe0ff; box-shadow: 0 0 18px rgba(95,176,255,.35); }
+  .iris-glow { animation: pulse 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes pulse { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+  .unknowns li { color: var(--dusk); }
+  @media (prefers-reduced-motion: reduce) { .iris-glow { animation: none; } .hero .eye > div, .dev .stage > div { transition: none; } }
+  @media (max-width: 820px) {
+    .hero, .spectrum, .dev { grid-template-columns: 1fr; }
+    .ladders { grid-template-columns: 1fr; gap: 2rem; }
+    .bridge { display: none; }
+  }
+</style>
+</head>
+<body data-page="dispatch" data-horizon="wok:12" data-root="../../">
+<main class="wrap dispatch-page dx">
+  <header class="page-head">
+    <p class="eyebrow">Dispatch #002 · <span class="living"><i></i>Living</span> · safe through <span id="safe"></span></p>
+    <h1>The colour of rank</h1>
+    <p class="lede">What the book has told us about eyes: lighteyes and darkeyes, the ranks inside each, the customs that follow from them, and the few people who don't fit. This page grows as Wade reads. Every line is cited, and anything the book hasn't said is marked as unknown.</p>
+  </header>
+
+  <section class="hero" id="hero">
+    <div class="eye" id="hero-eye"></div>
+    <div>
+      <p class="eyebrow" style="color:var(--dusk);margin:0 0 .4rem">Eyes the book has described</p>
+      <div class="who" id="hero-who"></div>
+      <p class="col" id="hero-col"></p>
+      <p id="hero-note" style="color:var(--dusk);max-width:44ch"></p>
+      <div class="dots" id="hero-dots" role="group" aria-label="Choose a person"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Light and dark</h2>
+    <p class="sub">Cenn knew which colours a brightlord's eyes would be before he could see them. Kaladin thinks darkeyes are hard to read.</p>
+    <div class="spectrum">
+      <div class="band" style="--c:#8fc7ff">
+        <h3>Lighteyes</h3>
+        <p class="note" id="light-note"></p>
+        <div class="swatches" id="light-sw"></div>
+      </div>
+      <div class="band">
+        <h3>Darkeyes</h3>
+        <p class="note" id="dark-note"></p>
+        <div class="torch" id="torch" tabindex="0" aria-label="Darkeyed irises; hover or focus to bring a light near"></div>
+        <p class="torch-cap">Move your pointer over an eye to bring a light near it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Two ladders</h2>
+    <p class="sub">Each kind of eye has its own ranks. These are the rungs the book has named; dashed rungs are the gaps it hasn't filled in yet.</p>
+    <div class="ladders">
+      <div class="ladder" style="--c:#8fc7ff"><h3>Lighteyes</h3><p class="kicker">ranked by <i>dahn</i></p><ul class="rungs" id="lad-light"></ul></div>
+      <div class="bridge" id="bridge"></div>
+      <div class="ladder" style="--c:#b08d68"><h3>Darkeyes</h3><p class="kicker">ranked by <i>nahn</i></p><ul class="rungs" id="lad-dark"></ul><div class="below" id="below"></div></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Everyone whose eyes we've seen</h2>
+    <p class="sub">Grouped by what the book actually says. If it gives a colour but not a rank, the person goes under "colour only", even where you could guess.</p>
+    <div class="groups" id="groups"></div>
+  </section>
+
+  <section class="block">
+    <h2>What the eyes decide</h2>
+    <div class="customs" id="customs"></div>
+  </section>
+
+  <section class="block">
+    <h2>Outside the pattern</h2>
+    <p class="sub">The few eyes that don't sort neatly.</p>
+    <div id="devs"></div>
+  </section>
+
+  <section class="block">
+    <h2>Still dark</h2>
+    <p class="sub">What the book hasn't told us yet.</p>
+    <ul class="facts unknowns" id="unknowns"></ul>
+  </section>
+</main>
+<script src="../../data/palanaeum.js"></script>
+<script src="../../assets/palanaeum.js"></script>
+<script src="../../assets/art.js"></script>
+<script>
+(function () {
+  "use strict";
+  document.head.insertAdjacentHTML("beforeend", `<style>${ART.STYLE}</style>`);
+  const U = (id) => P.unitById[id];
+  const seen = (c) => [].concat(c).every((id) => U(id) && P.visible(U(id).h));
+  const cite = (c) => [].concat(c).map((id) => `<a class="cite" href="../../journal.html#${P.unitAnchor(id)}" title="${P.esc(U(id).full)}">${P.esc(U(id).short)}</a>`).join(" ");
+  const basis = (b) => b && b !== "seen" ? `<span class="basis basis-${b.startsWith("said") ? "said" : b}">${P.esc(b)}</span>` : "";
+  const li = (f, col) => `<li${col ? ` style="--c:${col}"` : ""}>${f.t} ${cite(f.c)}${basis(f.b)}</li>`;
+  document.getElementById("safe").innerHTML = cite(P.data.units[P.limit()].id);
+
+  // Tones for the irises. These are renderings of the colour words the book uses, nothing more.
+  const T = {
+    "pale green": { h: 128, s: 38, l: 62 }, "light blue": { h: 205, s: 62, l: 66 }, "pale violet": { h: 272, s: 42, l: 66 },
+    "pale grey": { h: 210, s: 8, l: 66 }, "light yellow": { h: 48, s: 70, l: 62 }, "blue": { h: 212, s: 66, l: 52 },
+    "brown": { h: 28, s: 45, l: 28 }, "dark brown": { h: 24, s: 42, l: 20 }, "black": { h: 25, s: 15, l: 10 },
+    "deep dark green": { h: 140, s: 30, l: 20 }, "dark green": { h: 145, s: 34, l: 24 }, "green": { h: 120, s: 45, l: 50 },
+    "yellow": { h: 50, s: 75, l: 58 }, "light grey": { h: 210, s: 8, l: 68 }, "sapphire": { h: 212, s: 90, l: 62 },
+  };
+  const swatchCol = (w) => ART.hsl(T[w].h, T[w].s, Math.max(T[w].l, 45));
+
+  // ------------------------------------------------------------ people
+  const PEOPLE = [
+    { n: "Gavilar Kholin", w: "pale green", g: "light", c: "wok:prologue", note: "“Striking pale green eyes,” seen by his killer." },
+    { n: "Shallan Davar", w: "light blue", g: "light", c: "wok:3", note: "Light blue eyes, though her red hair betrays an “impure family line.”" },
+    { n: "Jasnah Kholin", w: "pale violet", g: "light", c: "wok:5", note: "“Discriminating pale violet eyes.”" },
+    { n: "Taravangian", w: "pale grey", g: "light", c: "wok:5", note: "King of Kharbranth. Pale grey eyes and a kindly face." },
+    { n: "Elhokar", w: "light yellow", g: "light", c: "wok:12", note: "The king, faceplate up: light yellow eyes." },
+    { n: "Dalinar Kholin", w: "blue", g: "light", c: "wok:12", note: "Blue eyes, “delusional and wild” during his episodes." },
+    { n: "a lighteyed woman", w: "blue", g: "light", c: "wok:6", note: "The scribe in Sadeas's camp who sorts the slaves." },
+    { n: "Kaladin", w: "brown", g: "dark", c: "wok:1", note: "“Discerning brown eyes”; a “lowly darkeyed spearman.”" },
+    { n: "a caravan slave", w: "deep dark green", g: "dark", c: "wok:2", note: "Darkeyed, “of course,” perhaps a deep dark green." },
+    { n: "Dallet", w: "black", g: "colour", c: "wok:1", note: "“Confident black eyes.”" },
+    { n: "Kabsal", w: "blue", g: "colour", c: "wok:7", note: "The young ardent; keen blue eyes." },
+    { n: "Gaz", w: "brown", g: "colour", c: "wok:6", note: "Missing one eye; the other is brown." },
+    { n: "the boy like Tien", w: "black", g: "colour", c: "wok:9", note: "Frightened black eyes." },
+    { n: "a Veden bridgeman", w: "brown", g: "colour", c: "wok:9", note: "Brown eyes, open to the rain." },
+    { n: "Szeth", w: "dark green", g: "outside", c: "wok:i3", note: "Dark green, until he summons his Blade." },
+    { n: "Wit", w: "blue", g: "outside", c: "wok:12", note: "Blue eyes, but neither lighteyes nor darkeyes." },
+    { n: "the Parshendi", w: "black", g: "outside", c: "wok:6", note: "Black eyes in lean, marbled faces." },
+  ].filter((p) => seen(p.c));
+
+  // ------------------------------------------------------------ hero
+  const heroP = PEOPLE.filter((p) => p.g === "light" && !p.n.startsWith("a "));
+  const eye = document.getElementById("hero-eye"), dots = document.getElementById("hero-dots");
+  eye.innerHTML = heroP.map((p, i) => `<div style="opacity:${i ? 0 : 1}">${ART.iris(T[p.w], { size: 420, seed: i + 11, label: p.n + "'s eye" })}</div>`).join("");
+  dots.innerHTML = heroP.map((p, i) => `<button type="button" style="--c:${swatchCol(p.w)}" aria-label="${p.n}" aria-pressed="${!i}"></button>`).join("");
+  let cur = 0, timer = null;
+  function show(i) {
+    cur = i;
+    const p = heroP[i];
+    [...eye.children].forEach((d, j) => (d.style.opacity = j === i ? 1 : 0));
+    [...dots.children].forEach((d, j) => d.setAttribute("aria-pressed", String(j === i)));
+    document.getElementById("hero-who").textContent = p.n;
+    const col = document.getElementById("hero-col");
+    col.style.setProperty("--c", swatchCol(p.w)); col.innerHTML = `${p.w} ${cite(p.c)}`;
+    document.getElementById("hero-note").textContent = p.note;
+  }
+  dots.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; clearInterval(timer); show([...dots.children].indexOf(b)); });
+  if (heroP.length) { show(0); if (!P.reducedMotion) timer = setInterval(() => show((cur + 1) % heroP.length), 4200); }
+
+  // ------------------------------------------------------------ spectrum
+  if (seen("wok:1")) document.getElementById("light-note").innerHTML = `A brightlord's eyes “would be blue or green, maybe yellow or light grey.” He was “chosen at birth by the Heralds, marked for rule.” ${cite("wok:1")}${seen("wok:5") ? ` Jasnah's violet adds one more. ${cite("wok:5")}` : ""}`;
+  const lightWords = [["blue", "wok:1"], ["green", "wok:1"], ["yellow", "wok:1"], ["light grey", "wok:1"], ["pale violet", "wok:5"]].filter(([, c]) => seen(c));
+  document.getElementById("light-sw").innerHTML = lightWords.map(([w], i) => `<div class="sw">${ART.iris(T[w], { size: 76, seed: 40 + i, label: w })}<span>${w}</span></div>`).join("");
+  if (seen("wok:2")) document.getElementById("dark-note").innerHTML = `With darkeyes “it was hard to tell. They all looked brown or black unless you caught them in the right light.” ${cite("wok:2")}`;
+  const darkWords = ["brown", "black", "deep dark green"];
+  document.getElementById("torch").innerHTML = darkWords.map((w, i) => {
+    const flat = { h: T[w].h, s: T[w].s * 0.25, l: Math.min(T[w].l, 16) };
+    return `<div class="sw" tabindex="0">${ART.iris(flat, { size: 76, seed: 60 + i, lit: 0.15, label: w + " in shadow" })}<span class="litv">${ART.iris(T[w], { size: 76, seed: 60 + i, lit: 1, label: w + " in light" })}</span><span>${w}</span></div>`;
+  }).join("");
+  const torch = document.getElementById("torch");
+  torch.addEventListener("focus", () => torch.classList.add("lit")); torch.addEventListener("blur", () => torch.classList.remove("lit"));
+
+  // ------------------------------------------------------------ ladders
+  const LIGHT = [
+    { b: "The king", p: "Elhokar. Most highprinces give him “only token nods.”", c: "wok:12" },
+    { b: "Highprinces", p: "The princedoms are “like kingdoms unto themselves.” Sadeas, Dalinar and Vamah ride on the hunt.", c: "wok:12" },
+    { gap: true, p: "The rest of the dahns: not named yet" },
+    { b: "Numbered dahns", p: "Kaladin guesses the lighteyed scribe sorting slaves in Sadeas's camp is “of the fourth or fifth dahn”; an epigraph records “a lighteyed spinster of the eighth dahn.” Which way the numbers run, the book hasn't said.", c: ["wok:6", "wok:8"] },
+    { b: "Low enough to work", p: "Some lighteyes are “of low enough rank that they needed to serve in the army and earn a wage”", c: "wok:12" },
+  ].filter((r) => r.gap || seen(r.c));
+  const DARK = [
+    { b: "First nahn", p: "Bashin the huntmaster: “the highest and most prestigious rank a darkeyes could have, worthy even of marrying into a lighteyed family.”", c: "wok:12" },
+    { b: "Second nahn", p: "A master-servant is “a darkeyed citizen of very high rank.” So are Lirin and Kaladin: Lirin's grandfathers “bought and worked” the family up to it, for full citizenship and the right of travel.", c: ["wok:3", "wok:6", "wok:10"] },
+    { gap: true, p: "The lower nahns: not named yet" },
+  ].filter((r) => r.gap || seen(r.c));
+  const rung = (r) => r.gap ? `<li class="gap">${r.p}</li>` : `<li><b>${r.b}</b><p>${r.p} ${cite(r.c)}${basis(r.basis)}</p></li>`;
+  document.getElementById("lad-light").innerHTML = LIGHT.map(rung).join("");
+  document.getElementById("lad-dark").innerHTML = DARK.map(rung).join("");
+  const BELOW = [
+    { t: "<b>Slaves</b>, branded on the forehead. “You can't hide as a slave,” Kaladin says", c: "wok:2" },
+    { t: "<b>Parshmen</b>: owned, and “even more valuable” than slaves", c: "wok:i3" },
+    { t: "Ranks differ abroad: the Thaylens “had their own system of ranks”", c: "wok:8" },
+  ].filter((f) => seen(f.c));
+  document.getElementById("below").innerHTML = BELOW.map((f) => `<p style="margin:.2rem 0">${f.t} ${cite(f.c)}</p>`).join("");
+  if (seen("wok:12")) document.getElementById("bridge").innerHTML = `<svg viewBox="0 0 80 400" preserveAspectRatio="none" aria-label="first nahn can marry into lighteyed families">
+    <path d="M78 60 C 20 60, 60 300, 2 330" stroke="#d8ecff" stroke-width="1.5" stroke-dasharray="5 5" fill="none" opacity=".6"/>
+</svg>`;
+
+  // ------------------------------------------------------------ the wall
+  const GROUPS = [
+    ["light", "Lighteyes", "Royalty, or called lighteyed on the page."],
+    ["dark", "Darkeyes", "Called darkeyed on the page."],
+    ["colour", "Colour only", "The book gives the colour but not the rank."],
+    ["outside", "Outside the pattern", "See below."],
+  ];
+  document.getElementById("groups").innerHTML = GROUPS.map(([g, h, note]) => {
+    const ps = PEOPLE.filter((p) => p.g === g);
+    if (!ps.length) return "";
+    return `<div class="group"><h3>${h}</h3><p class="gnote">${note}</p><div class="wall">${ps.map((p, i) => `<div class="face" style="--c:${swatchCol(p.w)}" title="${P.esc(p.note)}">
+      ${ART.iris(T[p.w], { size: 96, seed: 100 + i + g.length * 13, label: p.n })}<div class="n">${p.n}</div><div class="c">${p.w} ${cite(p.c)}</div></div>`).join("")}</div></div>`;
+  }).join("");
+
+  // ------------------------------------------------------------ customs
+  const CUSTOMS = [
+    { h: "The sword", t: "Darkeyed guards carry spears; not being lighteyes, they are “forbidden the sword.”", c: "wok:prologue" },
+    { h: "Command", t: "Lighteyed officers ride; Dallet says they “aren't good enough commanders.” Kaladin bribes the stretcher runners, who usually carry off only lighteyes.", c: "wok:1" },
+    { h: "Music", t: "To the Alethi lighteyes, drums are “base instruments of the common, darkeyed people.”", c: "wok:prologue" },
+    { h: "The safehand", t: "Common darkeyed women wear a glove; a woman of Shallan's rank covers hers with her sleeve.", c: "wok:3" },
+    { h: "Art", t: "Shallan's father was furious to find her drawing darkeyed gardeners.", c: "wok:7" },
+    { h: "Names", t: "Kal prefers the short name, because “Kaladin sounded like a lighteyes's name.”", c: "wok:10" },
+    { h: "Trust", t: "Every lighteyes Kaladin has known, slave or free, has seemed to him “corrupt to the core.”", c: "wok:4", b: "said: Kaladin" },
+    { h: "Calling", t: "A good Calling, worked hard, ensures good placement in the afterlife. Lirin wants Kal to use his family's rank and right of travel for surgery, not war.", c: ["wok:3", "wok:10"] },
+  ].filter((f) => seen(f.c));
+  document.getElementById("customs").innerHTML = CUSTOMS.map((f) => `<div class="custom"><h4>${f.h}</h4><p>${f.t} ${cite(f.c)}${basis(f.b)}</p></div>`).join("");
+
+  // ------------------------------------------------------------ deviations
+  const devs = [];
+  if (seen("wok:i3")) devs.push(`<div class="dev"><div class="stage" id="szeth-eye">
+      <div>${ART.iris(T["dark green"], { size: 240, seed: 7, label: "Szeth's eye, dark green" })}</div>
+      <div style="opacity:0">${ART.iris(T.sapphire, { size: 240, seed: 7, glowing: 1, label: "Szeth's eye, glowing sapphire" })}</div></div>
+    <div><h3>Szeth</h3><p>The moment he summons his Blade, his eyes turn “from dark green to pale—almost glowing—sapphire,” which he thinks is “a unique effect of his particular weapon.” ${cite("wok:i3")}</p>
+    <button type="button" class="btn" id="summon" aria-pressed="false">Summon the Blade</button></div></div>`);
+  if (seen("wok:12")) devs.push(`<div class="dev"><div class="stage">${ART.iris(T.blue, { size: 240, seed: 21, label: "Wit's eye" })}</div>
+    <div><h3>Wit</h3><p>“He had blue eyes, but he wasn't really a lighteyes. Nor was he a darkeyes.” As the King's Wit, he is “a category all its own.” ${cite("wok:12")}</p></div></div>`);
+  const MORE = [
+    { t: "A Shardblade kill burns out the eyes: the guard's “smoked and burned,” then “blackened, shriveling up”", c: "wok:prologue" },
+    { t: "In the Ten Essences the eyes go with crystal and glass, “the windows into a person's mind and spirit.” For Shallan, getting a portrait's eyes right is “the most important” part", c: "wok:7" },
+    { t: "One of Ishikk's foreigners has eyes “the wrong shape,” and Easterners think the Shin, with their large, round eyes, look like children", c: ["wok:i1", "wok:i3"] },
+  ].filter((f) => seen(f.c));
+  document.getElementById("devs").innerHTML = devs.join("") + `<ul class="facts">${MORE.map((f) => li(f, "#a9b3c1")).join("")}</ul>`;
+  const summon = document.getElementById("summon");
+  if (summon) summon.addEventListener("click", () => {
+    const on = summon.getAttribute("aria-pressed") !== "true";
+    summon.setAttribute("aria-pressed", String(on));
+    summon.textContent = on ? "Dismiss the Blade" : "Summon the Blade";
+    const [a, b] = document.getElementById("szeth-eye").children;
+    a.style.opacity = on ? 0 : 1; b.style.opacity = on ? 1 : 0;
+  });
+
+  // ------------------------------------------------------------ still dark
+  const UNK = [
+    { t: "Why eye colour decides rank at all, beyond Cenn's belief that the Heralds choose brightlords at birth", c: "wok:1" },
+    { t: "Which way the dahn numbers run, and how many dahns and nahns there are", c: "wok:8" },
+    { t: "What Wit is, if he's neither lighteyed nor darkeyed", c: "wok:12" },
+    { t: "What the ranks below the second nahn are called, and what they allow", c: "wok:10" },
+  ].filter((f) => seen(f.c));
+  document.getElementById("unknowns").innerHTML = UNK.map((f) => li(f, "#7d8899")).join("");
+})();
+</script>
+</body>
+</html>

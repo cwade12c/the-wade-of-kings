@@ -1,0 +1,10 @@
+id = "001"
+title = "Spherelight: what the gems have told us"
+horizon = "wok:12"
+date = "2026-10-27"
+kind = "page"
+file = "index.html"
+caption = "Every gem the book has named so far: its colour, its uses, what things cost, and the spheres we've actually seen. Interactive: pick a stone, or let a sphere go dun."
+note = "Wade asked for it during the intake. A living dispatch: it grows as he reads, and every line carries its citation."
+living = true
+preview = "preview.svg"
