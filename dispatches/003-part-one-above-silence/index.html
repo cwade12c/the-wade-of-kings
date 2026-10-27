@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch #003 · Part One: Above Silence · The Wade of Kings</title>
+<link rel="stylesheet" href="../../assets/palanaeum.css">
+<style>
+  :root { --kal: #5fb0ff; --sha: #b993ff; --cenn: #e3a94a; --int: #6fd6c4; }
+  body.bare .site-head, body.bare .site-foot, body.bare .page-head, body.bare .below-poster { display: none; }
+  body.bare main { padding: 0; }
+  body.bare .poster { margin: 0; border-radius: 0; border: 0; }
+  .poster-wrap { padding-bottom: 3rem; }
+  .poster { position: relative; max-width: 1200px; margin: 0 auto; overflow: hidden; border-radius: 26px; border: 1px solid var(--rule);
+    background: radial-gradient(130% 60% at 50% 0%, #22324a 0%, #131c28 45%, #0b1017 100%); color: var(--parchment); isolation: isolate; }
+  .poster::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .5;
+    background: repeating-linear-gradient(105deg, rgba(255,255,255,.018) 0 1px, transparent 1px 9px); }
+  .poster .sky { position: absolute; inset: 0 0 auto 0; height: 560px; z-index: -1; pointer-events: none; }
+  .poster .sky svg { width: 100%; height: 100%; }
+  .pad { padding: 0 64px; }
+
+  .masthead-p { padding-top: 64px; text-align: center; }
+  .masthead-p .kick { letter-spacing: .38em; text-transform: uppercase; font-size: 13px; color: var(--dusk); }
+  .masthead-p h1 { font-size: clamp(64px, 11vw, 132px); line-height: .92; margin: 18px 0 8px; letter-spacing: .01em;
+    background: linear-gradient(180deg, #fffaf0 0%, #e9dcc0 55%, #b9a888 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 6px 30px rgba(120,170,255,.25)); }
+  .masthead-p .sub { font-family: var(--display); font-style: italic; font-size: 24px; color: var(--dusk); }
+  .masthead-p .rule { width: 220px; height: 1px; margin: 26px auto 0; background: linear-gradient(90deg, transparent, var(--dusk), transparent); }
+
+  .sect { margin-top: 56px; }
+  .sect > h2 { font-size: 15px; font-family: var(--text); font-weight: 700; letter-spacing: .28em; text-transform: uppercase; color: var(--dusk); display: flex; align-items: center; gap: 14px; }
+  .sect > h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--rule), transparent); }
+
+  .linemap svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .lm-title { font: 400 15px var(--display); fill: var(--parchment); }
+  .lm-num { font: 700 10.5px var(--text); fill: var(--mist); letter-spacing: .12em; }
+  .lm-lane { font: 400 19px var(--display); }
+  .lm-who { font: italic 400 13px var(--display); fill: var(--dusk); }
+
+  .cast { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 6px 26px; text-align: center; padding: 8px 0 4px; }
+  .cast span { font-family: var(--display); line-height: 1.05; color: var(--c); text-shadow: 0 0 22px color-mix(in srgb, var(--c) 35%, transparent); white-space: nowrap; }
+  .legend-p { display: flex; justify-content: center; gap: 28px; margin-top: 18px; font-size: 13px; color: var(--dusk); flex-wrap: wrap; }
+  .legend-p i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); margin-right: 8px; vertical-align: 0; }
+
+  .threads { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+  .thread { position: relative; padding: 22px 20px 20px; border-radius: 18px; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 10%, #162130), #111923); border: 1px solid color-mix(in srgb, var(--c) 30%, var(--rule)); }
+  .thread::before { content: ""; position: absolute; left: 20px; right: 20px; top: 0; height: 2px; background: var(--c); box-shadow: 0 0 16px var(--c); border-radius: 2px; }
+  .thread h3 { font-size: 28px; color: var(--c); margin-bottom: 4px; }
+  .thread .span { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--mist); margin-bottom: 12px; }
+  .thread p { font-size: 15px; line-height: 1.5; color: var(--parchment); margin: 0 0 10px; }
+  .thread a.cite { font-size: 11px; }
+
+  .call { display: grid; grid-template-columns: 220px 1fr; gap: 44px; align-items: center; padding: 34px 40px; border-radius: 22px;
+    background: radial-gradient(80% 140% at 0% 50%, rgba(95,176,255,.14), transparent 60%), #0f1620; border: 1px solid var(--rule); }
+  .gauge svg { width: 220px; height: 220px; display: block; }
+  .call blockquote { margin: 0; font-family: var(--display); font-style: italic; font-size: 22px; line-height: 1.42; color: var(--parchment); }
+  .call blockquote::before { content: "“"; font-size: 64px; line-height: 0; vertical-align: -26px; color: var(--kal); margin-right: 4px; }
+  .call .meta { margin-top: 14px; font-size: 13px; color: var(--dusk); }
+
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; text-align: center; }
+  .stat { padding: 18px 8px; border-radius: 16px; background: #0f1620; border: 1px solid var(--rule); }
+  .stat b { display: block; font-family: var(--display); font-weight: 400; font-size: 58px; line-height: 1; color: #fff7e6; text-shadow: 0 0 26px rgba(216,236,255,.35); }
+  .stat span { display: block; margin-top: 8px; font-size: 13px; color: var(--dusk); line-height: 1.35; }
+  .breakdown { text-align: center; color: var(--dusk); font-size: 14px; margin-top: 14px; }
+
+  .colophon { margin-top: 60px; padding: 22px 64px 30px; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; font-size: 13px; color: var(--mist); }
+  .colophon b { font-family: var(--display); font-weight: 400; font-size: 18px; color: var(--dusk); }
+
+  .below-poster { max-width: 1200px; margin: 1.25rem auto 0; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; color: var(--dusk); font-size: var(--step--1); }
+
+  @media (max-width: 900px) {
+    .pad { padding: 0 22px; }
+    .threads { grid-template-columns: 1fr 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .call { grid-template-columns: 1fr; justify-items: center; padding: 24px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .station .halo-st { animation: st-breathe 5s ease-in-out infinite; animation-delay: calc(var(--i) * -0.37s); transform-box: fill-box; transform-origin: center; }
+    @keyframes st-breathe { 0%, 100% { opacity: .55; } 50% { opacity: .95; } }
+    .bolt { animation: flicker 9s linear infinite; }
+    @keyframes flicker { 0%, 91%, 94%, 100% { opacity: 0; } 92%, 95% { opacity: .55; } }
+  }
+</style>
+</head>
+<body data-page="dispatch" data-horizon="wok:12" data-root="../../">
+<main class="wrap dispatch-page poster-wrap">
+  <header class="page-head">
+    <p class="eyebrow">Dispatch #003 · milestone poster · safe through <a class="cite" href="../../journal.html#wok-12">ch 12</a></p>
+    <h1>Part One: Above Silence</h1>
+    <p class="lede">The poster for the end of Part One, which you finished before the Palanaeum existed. Frozen as it was made, on 2026-10-27.</p>
+  </header>
+
+  <article class="poster" id="poster">
+    <div class="sky" id="sky"></div>
+    <div class="masthead-p pad">
+      <div class="kick">The Way of Kings · Part One</div>
+      <h1>Above Silence</h1>
+      <div class="sub">Chapters 1–11 · Interludes 1–3</div>
+      <div class="rule"></div>
+    </div>
+
+    <section class="sect pad">
+      <h2>The route</h2>
+      <div class="linemap" id="linemap"></div>
+    </section>
+
+    <section class="sect pad">
+      <h2>Who we met</h2>
+      <div class="cast" id="cast"></div>
+      <div class="legend-p">
+        <span style="--c:var(--cenn)"><i></i>first seen in Cenn's chapter</span>
+        <span style="--c:var(--kal)"><i></i>in Kaladin's</span>
+        <span style="--c:var(--sha)"><i></i>in Shallan's</span>
+        <span style="--c:var(--int)"><i></i>in the interludes</span>
+        <span>size: how many chapters they appear in</span>
+      </div>
+    </section>
+
+    <section class="sect pad">
+      <h2>Threads that moved</h2>
+      <div class="threads">
+        <div class="thread" style="--c:var(--cenn)"><h3>Cenn</h3><div class="span">Chapter 1</div>
+          <p>A new recruit is pulled into Kaladin Stormblessed's squad just before his first battle. The squad loses no one. <a class="cite" href="../../journal.html#wok-1">ch 1</a></p>
+          <p>An enemy Shardbearer arrives as Cenn blacks out. <a class="cite" href="../../journal.html#wok-1">ch 1</a></p></div>
+        <div class="thread" style="--c:var(--kal)"><h3>Kaladin</h3><div class="span">Chapters 2 · 4 · 6 · 9 · 10 · 11</div>
+          <p>Squadleader, then slave, then bridgeman in Sadeas's army. <a class="cite" href="../../journal.html#wok-2">ch 2</a> <a class="cite" href="../../journal.html#wok-6">ch 6</a></p>
+          <p>A windspren who knows his name turns out to have one of her own: Syl. She leaves, then comes back. <a class="cite" href="../../journal.html#wok-2">ch 2</a> <a class="cite" href="../../journal.html#wok-6">ch 6</a> <a class="cite" href="../../journal.html#wok-9">ch 9</a> <a class="cite" href="../../journal.html#wok-11">ch 11</a></p>
+          <p>At the Honor Chasm he turns back, and makes himself bridgeleader of Bridge Four. <a class="cite" href="../../journal.html#wok-11">ch 11</a></p></div>
+        <div class="thread" style="--c:var(--sha)"><h3>Shallan</h3><div class="span">Chapters 3 · 5 · 7 · 8</div>
+          <p>After six months of chasing Jasnah Kholin, she finds her in Kharbranth. <a class="cite" href="../../journal.html#wok-3">ch 3</a></p>
+          <p>The reveal: she wants the wardship so she can steal the Soulcaster. <a class="cite" href="../../journal.html#wok-5">ch 5</a></p>
+          <p>She wins the wardship. Phase one is done. <a class="cite" href="../../journal.html#wok-8">ch 8</a></p></div>
+        <div class="thread" style="--c:var(--int)"><h3>Interludes</h3><div class="span">Ishikk · Nan Balat · Szeth</div>
+          <p>Foreigners search the Purelake for a man named Hoid. <a class="cite" href="../../journal.html#wok-i1">I-1</a></p>
+          <p>At home, Shallan's brothers have a big problem. <a class="cite" href="../../journal.html#wok-i2">I-2</a></p>
+          <p>Szeth's master dies; whoever picks up the Oathstone becomes the next. <a class="cite" href="../../journal.html#wok-i3">I-3</a></p></div>
+      </div>
+    </section>
+
+    <section class="sect pad">
+      <h2>Wade's boldest open call</h2>
+      <div class="call">
+        <div class="gauge" id="gauge"></div>
+        <div>
+          <blockquote>I’d be willing to bet with high certainty (75%) that there is some connection; I don’t know what the oathpact entailed but if there were 10 people who made the oath and they were, perhaps, the Heralds responsible for making available the shardblades and plates, it’d make sense to me that each of those 10 people commanded their own armies throughout history, especially if they never died. Or, maybe the 10 armies are symbolic; either way, the connection would exist.</blockquote>
+          <div class="meta">P-002 · the ten Heralds and the ten armies · 75% · unchanged at the end of Part One · <a href="../../ledger.html" style="color:var(--sphere)">on the Called It board</a></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sect pad">
+      <h2>What Part One added</h2>
+      <div class="stats">
+        <div class="stat"><b>14</b><span>chapters and interludes</span></div>
+        <div class="stat"><b>29</b><span>new people in the codex</span></div>
+        <div class="stat"><b>50</b><span>new codex entries in all</span></div>
+        <div class="stat"><b>13</b><span>of your questions came from these chapters</span></div>
+        <div class="stat"><b>1</b><span>prediction · 1 unhinged theory</span></div>
+      </div>
+      <p class="breakdown">The 50 entries: 29 people · 8 places · 5 peoples and groups · 4 systems · 2 things · 2 field-guide entries. Questions and the prediction were recalled during the intake.</p>
+    </section>
+
+    <footer class="colophon">
+      <div><b>The Wade of Kings</b><br>Dispatch #003 · end of Part One · made 2026-10-27</div>
+      <div style="text-align:right">Safe through Chapter 12: Unity<br>Kept by Wade's ardent in the Palanaeum</div>
+    </footer>
+  </article>
+  <p class="below-poster"><a href="poster.png" download>Download the poster (PNG)</a> · Frozen: this poster won't change as the reading goes on.</p>
+</main>
+<script src="../../data/palanaeum.js"></script>
+<script src="../../assets/palanaeum.js"></script>
+<script>
+(function () {
+  "use strict";
+  if (new URLSearchParams(location.search).has("bare")) document.body.classList.add("bare");
+  const C = { cenn: "#e3a94a", kal: "#5fb0ff", sha: "#b993ff", int: "#6fd6c4" };
+
+  // ------------------------------------------------------------ sky: a highstorm wall over the masthead
+  (function sky() {
+    let s = `<svg viewBox="0 0 1200 560" preserveAspectRatio="none" aria-hidden="true"><defs>
+      <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a5578" stop-opacity=".55"/><stop offset=".55" stop-color="#1b2a3e" stop-opacity=".25"/><stop offset="1" stop-color="#0b1017" stop-opacity="0"/></linearGradient>
+      <filter id="soft"><feGaussianBlur stdDeviation="14"/></filter></defs>
+      <rect width="1200" height="560" fill="url(#wall)"/>`;
+    let seed = 7; const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 26; i++) {
+      const x = r() * 1300 - 50, y = 40 + r() * 220, rx = 120 + r() * 260, ry = 30 + r() * 60;
+      s += `<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="${rx.toFixed(0)}" ry="${ry.toFixed(0)}" fill="#9fb9dc" opacity="${(0.03 + r() * 0.06).toFixed(3)}" filter="url(#soft)"/>`;
+    }
+    s += `<path class="bolt" d="M905 0 L880 70 L902 74 L868 150 L890 152 L846 238" stroke="#e6f2ff" stroke-width="2.2" fill="none" opacity="0" filter="drop-shadow(0 0 8px #bcd9ff)"/>`;
+    s += "</svg>";
+    document.getElementById("sky").innerHTML = s;
+  })();
+
+  // ------------------------------------------------------------ line map
+  const U = [
+    ["1", "Stormblessed", "cenn"], ["2", "Honor is Dead", "kal"], ["3", "City of Bells", "sha"], ["4", "The Shattered Plains", "kal"],
+    ["5", "Heretic", "sha"], ["6", "Bridge Four", "kal"], ["7", "Anything Reasonable", "sha"], ["8", "Nearer the Flame", "sha"],
+    ["9", "Damnation", "kal"], ["10", "Stories of Surgeons", "kal", "flash"], ["11", "Droplets", "kal"],
+    ["I-1", "Ishikk", "int"], ["I-2", "Nan Balat", "int"], ["I-3", "The Glory of Ignorance", "int"],
+  ];
+  const LANE = { cenn: 250, kal: 330, sha: 410, int: 490 };
+  const W = 1072, x0 = 110, dx = (W - 2 * x0) / (U.length - 1);
+  const X = (i) => x0 + i * dx;
+  const ys = (i) => U[i][2] === "kal" && U[i][3] ? LANE.kal + 36 : LANE[U[i][2]];
+  let svg = `<svg viewBox="0 40 ${W + 90} 500" role="img" aria-label="Part One's chapters in reading order, one line per viewpoint">
+    <defs>${Object.entries(C).map(([k, c]) => `<radialGradient id="st-${k}"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`).join("")}
+    <filter id="glow" filterUnits="userSpaceOnUse" x="-100" y="0" width="1400" height="700"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+  // faint guides
+  U.forEach((u, i) => { svg += `<line x1="${X(i)}" y1="200" x2="${X(i)}" y2="520" stroke="#2e3b4e" stroke-width="1" stroke-dasharray="2 5"/>`; });
+  // lane labels
+  [["cenn", "Cenn"], ["kal", "Kaladin"], ["sha", "Shallan"], ["int", "Interludes"]].forEach(([k, n]) => {
+    svg += `<text class="lm-lane" x="${W - 4}" y="${LANE[k] + 6}" text-anchor="end" fill="${C[k]}" opacity=".0">${n}</text>`;
+  });
+  // routes per lane (curves between consecutive stations on the same viewpoint)
+  ["kal", "sha"].forEach((k) => {
+    const idx = U.map((u, i) => (u[2] === k ? i : -1)).filter((i) => i >= 0);
+    for (let j = 0; j < idx.length - 1; j++) {
+      const a = idx[j], b = idx[j + 1], xa = X(a), xb = X(b), ya = ys(a), yb = ys(b);
+      const flash = U[a][3] || U[b][3];
+      const d = `M${xa} ${ya} C ${xa + (xb - xa) * 0.5} ${ya}, ${xa + (xb - xa) * 0.5} ${yb}, ${xb} ${yb}`;
+      svg += `<path class="route${flash ? " flash" : ""}" d="${d}" stroke="${C[k]}" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9" filter="url(#glow)"/>`;
+    }
+  });
+  // Cenn's thread hands off to Kaladin; interludes are standalone stops on their own line
+  svg += `<path class="route" d="M${X(0)} ${LANE.cenn} C ${X(0) + dx * 0.5} ${LANE.cenn}, ${X(0) + dx * 0.5} ${LANE.kal}, ${X(1)} ${LANE.kal}" stroke="${C.cenn}" stroke-width="4" fill="none" stroke-dasharray="1 9" stroke-linecap="round" opacity=".8"/>`;
+  svg += `<path class="route" d="M${X(11)} ${LANE.int} L ${X(13)} ${LANE.int}" stroke="${C.int}" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="1 9" opacity=".7"/>`;
+  // stations + titles
+  U.forEach((u, i) => {
+    const x = X(i), y = ys(i), c = C[u[2]], k = u[2];
+    svg += `<g class="station" style="--i:${i}">
+      <circle class="halo-st" cx="${x}" cy="${y}" r="22" fill="url(#st-${k})" opacity=".8"/>
+      <circle cx="${x}" cy="${y}" r="9.5" fill="#0b1017" stroke="${c}" stroke-width="3.2"${u[3] ? ' stroke-dasharray="4 3"' : ""}/>
+      <circle cx="${x}" cy="${y}" r="3.6" fill="#fff"/></g>`;
+    svg += `<g transform="translate(${x} 188) rotate(-40)"><text class="lm-num" x="0" y="0">${u[0] === u[0].replace("I-", "") ? "CH " + u[0] : u[0]}</text><text class="lm-title" x="0" y="18">${u[1]}</text></g>`;
+  });
+  // lane names at the first station of each lane
+  [["cenn", 0, "Cenn"], ["kal", 1, "Kaladin"], ["sha", 2, "Shallan"], ["int", 11, "Ishikk · Balat · Szeth"]].forEach(([k, i, n]) => {
+    svg += `<text class="lm-who" x="${X(i) - 30}" y="${LANE[k] + 5}" text-anchor="end" fill="${C[k]}" style="fill:${C[k]}">${n}</text>`;
+  });
+  svg += `<text class="lm-who" x="${X(9)}" y="${LANE.kal + 72}" text-anchor="middle">young Kal, years before</text>`;
+  svg += `</svg>`;
+  document.getElementById("linemap").innerHTML = svg;
+
+  // ------------------------------------------------------------ cast (counts frozen from the codex at ch 12)
+  const CAST = [
+    ["Kaladin", 7, "cenn"], ["Jasnah Kholin", 7, "sha"], ["Amaram", 6, "cenn"], ["Tien", 6, "kal"], ["Shallan", 5, "sha"],
+    ["Cenn", 3, "cenn"], ["Syl", 3, "kal"], ["Tvlakv", 3, "kal"], ["Gaz", 3, "kal"], ["Bluth", 3, "kal"], ["Yalb", 3, "sha"],
+    ["Dallet", 2, "cenn"], ["Lirin", 2, "kal"], ["Jam", 2, "kal"], ["Tozbek", 2, "sha"], ["Kabsal", 2, "sha"], ["Helaran", 2, "sha"], ["Nan Balat", 2, "int"],
+    ["Teft", 1, "kal"], ["Sani", 1, "kal"], ["Taravangian", 1, "sha"], ["Brightlord Davar", 1, "sha"], ["Ishikk", 1, "int"], ["Maib", 1, "int"],
+    ["Thaspic", 1, "int"], ["Hoid", 1, "int"], ["Wikim", 1, "int"], ["Jushu", 1, "int"], ["Took", 1, "int"],
+  ];
+  // Interleave so sizes and colours mix across the cloud, but deterministically.
+  const order = [0, 18, 3, 23, 5, 12, 1, 26, 7, 14, 21, 9, 2, 24, 16, 6, 19, 11, 28, 4, 13, 22, 8, 25, 17, 10, 20, 15, 27];
+  const size = (n) => 18 + n * 7.5;
+  document.getElementById("cast").innerHTML = order.map((i) => {
+    const [n, k, lane] = CAST[i];
+    return `<span style="--c:${C[lane]};font-size:${size(k)}px">${n}</span>`;
+  }).join("");
+
+  // ------------------------------------------------------------ gauge
+  (function gauge(p) {
+    const r = 86, c = 2 * Math.PI * r, arc = c * 0.75, val = arc * p / 100;
+    document.getElementById("gauge").innerHTML = `<svg viewBox="0 0 220 220" role="img" aria-label="${p} percent confidence">
+      <defs><linearGradient id="gg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#3987e5"/><stop offset="1" stop-color="#d8ecff"/></linearGradient>
+      <filter id="gglow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+      <g transform="rotate(135 110 110)">
+        <circle cx="110" cy="110" r="${r}" fill="none" stroke="#1e2937" stroke-width="14" stroke-dasharray="${arc} ${c}" stroke-linecap="round"/>
+        <circle cx="110" cy="110" r="${r}" fill="none" stroke="url(#gg)" stroke-width="14" stroke-dasharray="${val} ${c}" stroke-linecap="round" filter="url(#gglow)"/>
+      </g>
+      <text x="110" y="122" text-anchor="middle" font-family="Fell, Georgia, serif" font-size="64" fill="#fff7e6">${p}%</text>
+      <text x="110" y="152" text-anchor="middle" font-family="Atkinson, sans-serif" font-size="12" letter-spacing="3" fill="#a9b3c1">CONFIDENCE</text></svg>`;
+  })(75);
+})();
+</script>
+</body>
+</html>
