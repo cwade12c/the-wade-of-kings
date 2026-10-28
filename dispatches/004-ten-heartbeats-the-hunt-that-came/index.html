@@ -1,0 +1,1445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch #004 · Ten Heartbeats · The Wade of Kings</title>
+<link rel="stylesheet" href="../../assets/palanaeum.css">
+<style>
+  .dx .page-head h1 { line-height: 1; }
+  .dx .page-head .subtitle { display: block; font-family: var(--display); font-style: italic; font-size: var(--step-2); color: var(--dusk); margin-top: .35rem; }
+  .dx section.block { margin: 3.5rem 0; }
+  .dx section.block > h2 { font-size: var(--step-2); margin-bottom: .35rem; }
+  .dx section.block > .sub { color: var(--dusk); max-width: 62ch; margin-bottom: 1.4rem; }
+
+  /* the stage */
+  .tb-shell { border: 1px solid var(--rule); border-radius: 22px; background: var(--abyss); overflow: hidden; box-shadow: 0 30px 80px -40px rgba(0,0,0,.8); }
+  .tb-stage { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #070a0f; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .tb-stage svg.map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .tb-stage .ov { position: absolute; inset: 0; pointer-events: none; }
+  .tb-focus { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(55% 60% at 50% 50%, transparent 30%, rgba(0, 0, 0, .88) 100%); }
+  .tb-blur svg.map { filter: blur(var(--blur, 0px)) saturate(var(--sat, 1)); }
+
+  .tb-chip { position: absolute; top: .8rem; left: .8rem; display: inline-flex; gap: .5rem; align-items: center; padding: .3rem .75rem .3rem .55rem; border-radius: 999px; background: var(--glass); border: 1px solid var(--rule); backdrop-filter: blur(6px); font-size: var(--step--1); color: var(--parchment); z-index: 4; }
+  .tb-chip i { width: .6rem; height: .6rem; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); transition: background .4s, box-shadow .4s; }
+  .tb-stamp { position: absolute; top: .8rem; right: .8rem; z-index: 4; padding: .25rem .65rem; border-radius: 999px; background: var(--glass); border: 1px solid var(--rule); font-size: var(--step--2); color: var(--dusk); letter-spacing: .04em; }
+
+  .tb-heart { position: absolute; left: 50%; top: 12%; transform: translateX(-50%); text-align: center; z-index: 3; opacity: 0; transition: opacity .25s; }
+  .tb-heart.on { opacity: 1; }
+  .tb-heart b { display: block; font: 400 clamp(2.6rem, 9vw, 5.5rem)/1 var(--display); color: #ffd9d4; text-shadow: 0 0 28px rgba(234, 95, 111, .65), 0 0 2px #000; transform: scale(var(--s, 1)); }
+  .tb-heart span { display: block; margin-top: .2rem; font-size: var(--step--2); letter-spacing: .28em; text-transform: uppercase; color: #f3b3ad; text-shadow: 0 1px 2px #000; }
+
+  .tb-label { position: absolute; transform: translate(-50%, 0); font-size: .7rem; letter-spacing: .03em; color: var(--parchment); text-shadow: 0 1px 2px #000, 0 0 6px #000; white-space: nowrap; }
+  .tb-label.dim { color: var(--dusk); }
+  .tb-names-off .tb-label { display: none; }
+  .tb-bubble { position: absolute; transform: translate(-50%, -100%); max-width: 15rem; padding: .32rem .6rem; border-radius: 10px; background: rgba(12, 17, 24, .9); border: 1px solid var(--c); color: var(--parchment); font-size: .78rem; line-height: 1.3; box-shadow: 0 0 16px -4px var(--c); text-align: center; white-space: normal; width: max-content; }
+  .tb-bubble::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; background: rgba(12, 17, 24, .95); border-right: 1px solid var(--c); border-bottom: 1px solid var(--c); transform: translateX(-50%) rotate(45deg); }
+  .tb-bubble small { display: block; color: var(--c); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; margin-bottom: .05rem; }
+
+  .tb-cut { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: radial-gradient(80% 90% at 50% 45%, rgba(20, 16, 34, .92), rgba(5, 6, 10, .97)); opacity: 0; pointer-events: none; }
+  .tb-cut svg { width: min(92%, 760px); height: 82%; overflow: visible; }
+  .tb-cut .q { position: absolute; left: 0; right: 0; bottom: 6%; text-align: center; font: italic 400 clamp(1.4rem, 4vw, 2.6rem)/1.1 var(--display); color: var(--parchment); text-shadow: 0 0 20px rgba(216, 236, 255, .35); }
+  .tb-cut .q a.cite { font: 400 .8rem var(--text); vertical-align: middle; margin-left: .4rem; pointer-events: auto; }
+
+  .tb-pop { position: absolute; z-index: 6; width: min(17rem, 80%); padding: .7rem .85rem; border-radius: 14px; background: rgba(14, 19, 27, .96); border: 1px solid var(--rule); box-shadow: 0 20px 40px -20px #000; font-size: var(--step--1); pointer-events: auto; }
+  .tb-pop h4 { margin: 0 0 .25rem; font: 400 1.15rem var(--display); display: flex; align-items: center; gap: .45rem; }
+  .tb-pop h4 i { width: .8rem; height: .8rem; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+  .tb-pop p { margin: .2rem 0; color: var(--dusk); }
+  .tb-pop button { position: absolute; top: .35rem; right: .4rem; background: none; border: 0; color: var(--mist); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: .2rem .35rem; }
+
+  .tb-veil { position: absolute; inset: 0; z-index: 9; display: none; place-items: center; text-align: center; padding: 2rem; background: rgba(7, 10, 15, .94); }
+  .tb-veil.on { display: grid; }
+  .tb-veil strong { display: block; font: 400 var(--step-2) var(--display); margin-bottom: .4rem; }
+
+  .tb-start { position: absolute; inset: 0; z-index: 7; display: grid; place-items: center; background: radial-gradient(60% 60% at 50% 50%, rgba(7, 10, 15, .35), rgba(7, 10, 15, .75)); border: 0; cursor: pointer; padding: 0; color: var(--parchment); }
+  .tb-start[hidden] { display: none; }
+  .tb-start span { display: grid; justify-items: center; gap: .7rem; font: 400 var(--step-1) var(--display); }
+  .tb-start svg { width: 4.6rem; height: 4.6rem; border-radius: 50%; background: rgba(216, 236, 255, .1); border: 1px solid rgba(216, 236, 255, .5); padding: 1.25rem 1.1rem 1.25rem 1.4rem; box-shadow: 0 0 40px -6px rgba(216, 236, 255, .6); transition: transform .25s var(--ease-spring); }
+  .tb-start:hover svg, .tb-start:focus-visible svg { transform: scale(1.08); }
+  .tb-start small { font: 400 var(--step--1) var(--text); color: var(--dusk); }
+
+  /* HUD strip */
+  .tb-hud { display: flex; flex-wrap: wrap; gap: .6rem 1.6rem; align-items: center; justify-content: space-between; padding: .7rem 1rem; border-top: 1px solid var(--rule); background: var(--deep); font-size: var(--step--1); }
+  .tb-legs { display: grid; grid-template-columns: auto auto; gap: .2rem .6rem; align-items: center; }
+  .tb-legs .k { color: var(--mist); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; }
+  .tb-legs .pips { display: flex; gap: .28rem; }
+  .tb-legs .pips i { width: .78rem; height: .78rem; border-radius: 50%; background: #8b6cc4; box-shadow: 0 0 6px rgba(139, 108, 196, .7); transition: background .3s, box-shadow .3s, transform .3s; }
+  .tb-legs .pips i.dead { background: transparent; box-shadow: inset 0 0 0 1.5px #5d5868; transform: scale(.85); }
+  .tb-legs .pips i.snap { background: transparent; box-shadow: inset 0 0 0 1.5px #c76bd8; transform: scale(.85) rotate(45deg); border-radius: 2px; }
+  .tb-tally { font: 400 1.25rem/1 var(--display); }
+  .tb-tally small { display: block; font: 400 .7rem var(--text); color: var(--mist); letter-spacing: .1em; text-transform: uppercase; margin-top: .2rem; }
+  .tb-plate { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .tb-plate div { display: flex; gap: .45rem; align-items: center; }
+  .tb-plate svg { width: 1.6rem; height: 1.6rem; }
+  .tb-plate b { font-weight: 400; color: var(--parchment); }
+  .tb-plate span { display: block; color: var(--mist); font-size: .72rem; }
+  .tb-plate span.hurt { color: var(--sphere); }
+
+  /* controls */
+  .tb-deck { display: grid; grid-template-columns: auto 1fr auto; gap: .8rem; align-items: center; padding: .75rem 1rem; border-top: 1px solid var(--rule); background: var(--slate); }
+  .tb-btns, .tb-opts { display: flex; gap: .35rem; align-items: center; }
+  .tb-deck button { display: inline-grid; place-items: center; min-width: 2.5rem; height: 2.5rem; padding: 0 .65rem; border-radius: 999px; border: 1px solid var(--rule); background: var(--deep); color: var(--parchment); cursor: pointer; font-size: var(--step--1); }
+  .tb-deck button:hover { border-color: var(--dusk); }
+  .tb-deck button[aria-pressed="true"] { border-color: var(--sphere); color: var(--sphere); }
+  .tb-deck button.play { width: 3rem; height: 3rem; background: var(--parchment); color: var(--abyss); border: 0; }
+  .tb-deck svg { width: 1.05rem; height: 1.05rem; }
+  .tb-scrub { position: relative; height: 2.5rem; display: grid; align-items: center; }
+  .tb-scrub input { width: 100%; margin: 0; accent-color: var(--sphere); position: relative; z-index: 2; background: transparent; }
+  .tb-ticks { position: absolute; left: 0; right: 0; top: 50%; height: 0; pointer-events: none; }
+  .tb-ticks i { position: absolute; top: -9px; width: 1px; height: 18px; background: var(--rule); }
+  .tb-time { font-variant-numeric: tabular-nums; color: var(--dusk); font-size: var(--step--1); min-width: 6.4rem; text-align: right; }
+
+  /* narration */
+  .tb-below { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; gap: 1.5rem; margin-top: 1.25rem; align-items: start; }
+  .tb-card { border: 1px solid var(--rule); border-radius: 18px; padding: 1.2rem 1.35rem 1rem; background: var(--slate); min-height: 13rem; }
+  .tb-card .eb { font-size: var(--step--1); color: var(--mist); display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+  .tb-card .eb i { width: .55rem; height: .55rem; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); display: inline-block; }
+  .tb-card h3 { font-size: var(--step-2); margin: .3rem 0 .5rem; }
+  .tb-card h3.quote { font-style: italic; }
+  .tb-card p { margin: 0 0 .6rem; }
+  .tb-card blockquote.wade { margin: .9rem 0 .2rem; font-size: .95em; }
+  .tb-card .asked { font-size: var(--step--2); color: var(--mist); letter-spacing: .12em; text-transform: uppercase; margin-top: .9rem; }
+  .tb-card .asked a { color: var(--ink); }
+  .tb-beats { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; max-height: 26rem; overflow: auto; border: 1px solid var(--rule); border-radius: 18px; padding: .5rem; background: var(--deep); scrollbar-width: thin; }
+  .tb-beats button { width: 100%; display: grid; grid-template-columns: 1.8rem 1fr; gap: .4rem; align-items: baseline; text-align: left; padding: .42rem .55rem; border-radius: 10px; border: 1px solid transparent; background: none; cursor: pointer; color: var(--dusk); font-size: var(--step--1); }
+  .tb-beats button span { color: var(--mist); font-variant-numeric: tabular-nums; }
+  .tb-beats button:hover { color: var(--parchment); background: var(--slate); }
+  .tb-beats button[aria-current="true"] { color: var(--parchment); background: var(--slate); border-color: var(--rule); }
+  .tb-beats button[aria-current="true"] span { color: var(--sphere); }
+
+  /* cast + notes */
+  .tb-cast { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .8rem; }
+  .tb-cast > div { display: grid; grid-template-columns: 2.6rem 1fr; gap: .7rem; align-items: start; border: 1px solid var(--rule); border-radius: 14px; padding: .75rem .85rem; background: var(--slate); }
+  .tb-cast svg { width: 2.6rem; height: 2.6rem; }
+  .tb-cast b { font: 400 1.12rem var(--display); display: block; }
+  .tb-cast p { margin: .15rem 0 0; color: var(--dusk); font-size: var(--step--1); }
+  .tb-notes { list-style: none; padding: 0; margin: 0; display: grid; gap: .55rem; max-width: 70ch; }
+  .tb-notes li { padding-left: 1.1rem; position: relative; color: var(--dusk); }
+  .tb-notes li::before { content: ""; position: absolute; left: 0; top: .62em; width: .4rem; height: .4rem; border-radius: 50%; background: var(--mist); }
+  .tb-coda { margin-top: 2.5rem; max-width: 62ch; }
+
+  @media (max-width: 900px) {
+    .tb-below { grid-template-columns: 1fr; }
+    .tb-beats { display: flex; overflow-x: auto; max-height: none; padding: .4rem; scroll-snap-type: x mandatory; }
+    .tb-beats li { flex: 0 0 auto; scroll-snap-align: start; }
+    .tb-beats button { grid-template-columns: auto auto; white-space: nowrap; }
+  }
+  @media (max-width: 640px) {
+    .tb-stage { aspect-ratio: 4 / 5; }
+    .tb-deck { grid-template-columns: 1fr auto; }
+    .tb-scrub { grid-column: 1 / -1; grid-row: 1; }
+    .tb-time { min-width: 0; }
+    .tb-hud { gap: .7rem 1rem; padding: .65rem .8rem; }
+    .tb-plate { gap: .7rem; }
+    .tb-card { padding: 1rem 1.05rem .8rem; min-height: 0; }
+    .tb-bubble { max-width: 11rem; font-size: .72rem; }
+    .tb-stamp { display: none; }
+    .tb-deck { padding: .6rem .7rem; gap: .5rem; }
+    .tb-deck button { min-width: 2.2rem; height: 2.2rem; padding: 0 .5rem; }
+    .tb-deck button.play { width: 2.7rem; height: 2.7rem; }
+    .tb-opts { gap: .25rem; }
+    .tb-time { white-space: nowrap; font-size: .75rem; }
+    .tb-cast { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .4rem; scrollbar-width: thin; }
+    .tb-cast > div { flex: 0 0 82%; scroll-snap-align: start; }
+  }
+</style>
+</head>
+<body data-page="dispatch" data-horizon="wok:13" data-root="../../">
+<main class="wrap dispatch-page dx">
+  <header class="page-head">
+    <p class="eyebrow">Dispatch #004 · safe through <span class="stamp" id="safe"></span></p>
+    <h1>Ten Heartbeats<span class="subtitle">the hunt that came to the wrong plateau</span></h1>
+    <p class="lede">The chasmfiend fight from Chapter 13, replayed beat by beat on a hunt-master's map. Press play, or step through it. Tap anyone on the map to see what the page says about them.</p>
+  </header>
+
+  <section class="tb-shell" aria-label="Replay of the chasmfiend hunt">
+    <div class="tb-stage" id="stage">
+      <svg class="map" id="map" role="img" aria-label="Top-down map of the viewing plateau during the hunt"></svg>
+      <div class="tb-focus" id="focus"></div>
+      <div class="ov" id="ov"></div>
+      <div class="tb-chip" id="pov"><i></i><span></span></div>
+      <div class="tb-stamp" id="stamp"></div>
+      <div class="tb-heart" id="heart" aria-live="off"><b>1</b><span>heartbeats</span></div>
+      <div class="tb-cut" id="cut" aria-hidden="true"></div>
+      <div class="tb-pop" id="pop" hidden></div>
+      <button type="button" class="tb-start" id="start"><span><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3.8v16.4L20 12z"/></svg>Begin the hunt<small>about 2½ minutes · sound on</small></span></button>
+      <div class="tb-veil" id="veil"><div><strong>Past your bookmark</strong><p class="muted">This replay covers Chapter 13. Read that far, then come back.</p></div></div>
+    </div>
+    <div class="tb-hud" id="hud">
+      <div class="tb-legs" aria-label="Legs still standing">
+        <span class="k">Left</span><div class="pips" id="pipsL"></div>
+        <span class="k">Right</span><div class="pips" id="pipsR"></div>
+      </div>
+      <div class="tb-tally" id="tally"></div>
+      <div class="tb-plate" id="plate"></div>
+    </div>
+    <div class="tb-deck">
+      <div class="tb-btns">
+        <button type="button" id="prev" aria-label="Previous beat"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2.4v14H6zM20 5v14L9.5 12z"/></svg></button>
+        <button type="button" class="play" id="play" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15L19.5 12z"/></svg></button>
+        <button type="button" id="next" aria-label="Next beat"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.6 5H18v14h-2.4zM4 5v14l10.5-7z"/></svg></button>
+      </div>
+      <div class="tb-scrub"><div class="tb-ticks" id="ticks"></div><input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Scrub through the battle"></div>
+      <div class="tb-opts">
+        <span class="tb-time" id="time">0:00</span>
+        <button type="button" id="speed" aria-label="Playback speed">1×</button>
+        <button type="button" id="names" aria-pressed="true" aria-label="Show names">Aa</button>
+        <button type="button" id="sound" aria-pressed="true" aria-label="Sound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path class="w" d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <div class="tb-below">
+    <article class="tb-card" id="card" aria-live="polite"></article>
+    <ol class="tb-beats" id="beats" aria-label="Beats"></ol>
+  </div>
+
+  <section class="block">
+    <h2>Who's on the field</h2>
+    <p class="sub">Everyone is helmed for most of the fight, so the map draws Plate, not faces. Colours come from the page.</p>
+    <div class="tb-cast" id="cast"></div>
+  </section>
+
+  <section class="block">
+    <h2>How this was staged</h2>
+    <ul class="tb-notes" id="notes"></ul>
+    <div class="tb-coda" id="coda"></div>
+  </section>
+</main>
+<script src="../../data/palanaeum.js"></script>
+<script src="../../assets/palanaeum.js"></script>
+<script>
+(function () {
+  "use strict";
+  const U = (id) => P.unitById[id];
+  const cite = (c) => [].concat(c).map((id) => `<a class="cite" href="../../journal.html#${P.unitAnchor(id)}" title="${P.esc(U(id).full)}">${P.esc(U(id).short)}</a>`).join(" ");
+  document.getElementById("safe").innerHTML = cite("wok:13");
+  const HERE = U("wok:13");
+  const allowed = P.visible(HERE.h);
+
+  // ------------------------------------------------------------ small maths
+  const TAU = Math.PI * 2, D2R = Math.PI / 180;
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const EASE = {
+    io: (u) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2),
+    out: (u) => 1 - Math.pow(1 - u, 3),
+    in: (u) => u * u * u,
+    lin: (u) => u,
+    step: (u) => (u < 1 ? 0 : 1),
+  };
+  function rng(seed) { let s = seed >>> 0 || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+  const pt = (v) => (Array.isArray(v) ? { x: v[0], y: v[1] } : v);
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const f1 = (n) => Math.round(n * 10) / 10;
+
+  // ------------------------------------------------------------ tracks
+  // A track is a list of keys {t, v, e}. Values are numbers, points or strings (stepped).
+  // Everything on screen is a pure function of the clock, so scrubbing lands anywhere.
+  const TR = {};
+  function key(name, t, v, e = "io") {
+    if (Array.isArray(v)) v = { x: v[0], y: v[1], via: v[2] ? pt(v[2]) : undefined };
+    const ks = (TR[name] ||= []);
+    ks.push({ t, v, e });
+    ks.sort((a, b) => a.t - b.t);
+  }
+  function mix(a, b, u, via) {
+    if (typeof a === "number") return lerp(a, b, u);
+    if (a === null || b === null || typeof a === "string") return u < 1 ? a : b;
+    if (via) { const m = 1 - u; return { x: m * m * a.x + 2 * m * u * via.x + u * u * b.x, y: m * m * a.y + 2 * m * u * via.y + u * u * b.y }; }
+    const o = {};
+    for (const k of Object.keys(a)) if (k !== "via" && typeof a[k] === "number") o[k] = lerp(a[k], b[k] ?? a[k], u);
+    if ("l" in b && !("l" in a)) o.l = lerp(0, b.l, u);
+    return o;
+  }
+  function find(ks, t) {
+    let lo = 0, hi = ks.length - 1;
+    if (t <= ks[0].t) return -1;
+    if (t >= ks[hi].t) return hi;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (ks[m].t <= t) lo = m; else hi = m; }
+    return lo;
+  }
+  function val(name, t) {
+    const ks = TR[name];
+    if (!ks) return undefined;
+    const i = find(ks, t);
+    if (i < 0) return ks[0].v;
+    if (i === ks.length - 1) return ks[i].v;
+    const a = ks[i], b = ks[i + 1];
+    if (b.e === "step") return a.v;
+    const u = EASE[b.e]((t - a.t) / (b.t - a.t || 1));
+    return mix(a.v, b.v, u, b.v && b.v.via);
+  }
+
+  // ------------------------------------------------------------ events
+  const FX = [], SFX = [], SAY = [], LEGS = {}, CRACK = {}, COUNTS = [], MARKS = [], KILLS = [], FORM = [];
+  const fx = (type, t, o = {}) => FX.push({ type, t, ...o });
+  const sfx = (t, name, o) => SFX.push({ t, name, o });
+  const say = (who, t0, t1, text) => SAY.push({ who, t0, t1, text });
+  const legDie = (leg, t, kind = "cut") => (LEGS[leg] = { t, kind });
+  const crack = (who, t, where) => (CRACK[who] = { t, where });
+
+  // ------------------------------------------------------------ the beast
+  // Local frame: heading along +x, the beast's right side is +y (screen y runs down).
+  const LEGX = [70, 45, 20, -5, -30, -55, -80];
+  const CLAW_SH = [[96, -44], [80, -26], [80, 26], [96, 44]];
+  const CLAW_REST = [[168, -96], [158, -40], [158, 40], [168, 96]];
+  const pose = (t) => {
+    const p = val("fpos", t), h = val("fh", t), top = val("ftop", t) || 0;
+    return { x: p.x, y: p.y, h, top };
+  };
+  const toWorld = (P0, lx, ly) => {
+    const c = Math.cos(P0.h * D2R), s = Math.sin(P0.h * D2R);
+    ly += (P0.top || 0) * 46;
+    return { x: P0.x + lx * c - ly * s, y: P0.y + lx * s + ly * c };
+  };
+  const toLocal = (P0, w) => {
+    const c = Math.cos(P0.h * D2R), s = Math.sin(P0.h * D2R), dx = w.x - P0.x, dy = w.y - P0.y;
+    return { x: dx * c + dy * s, y: -dx * s + dy * c - (P0.top || 0) * 46 };
+  };
+  const bp = (t, lx, ly) => { const w = toWorld(pose(t), lx, ly); return [f1(w.x), f1(w.y)]; };
+  const restWorld = (i, t) => toWorld(pose(t), CLAW_REST[i][0], CLAW_REST[i][1]);
+  function clawAt(i, t) {
+    const ks = TR["c" + i];
+    const rw = restWorld(i, t);
+    if (!ks) return { ...rw, l: 0 };
+    const res = (v) => (v ? v : { ...rw, l: 0 });
+    const k = find(ks, t);
+    if (k < 0) return res(ks[0].v);
+    if (k === ks.length - 1) return res(ks[k].v);
+    const a = ks[k], b = ks[k + 1];
+    const u = EASE[b.e]((t - a.t) / (b.t - a.t || 1));
+    return mix(res(a.v), res(b.v), u);
+  }
+  const claw = (i, t, v, e = "io") => key("c" + i, t, v ? { x: v[0], y: v[1], l: v[2] ?? 0 } : null, e);
+  const mouthAt = (t) => toWorld(pose(t), 168, 0);
+
+  // ------------------------------------------------------------ the beats
+  const BEATS = [];
+  let T0 = 0;
+  function beat(def) {
+    def.t0 = T0; def.t1 = T0 + def.d; T0 = def.t1;
+    BEATS.push(def);
+    // hold everything where it is unless this beat moves it
+    for (const ks of Object.values(TR)) { const lk = ks[ks.length - 1]; if (lk.t < def.t0) ks.push({ t: def.t0, v: lk.v, e: "io" }); }
+    const at = (f) => def.t0 + f * def.d;
+    def.k(at);
+  }
+  const ride = (rider, horse, t, p, e) => { key(rider, t, p, e); key(horse, t, p, e); };
+  const pos = (name, t) => val(name, t);
+  const P2 = (p) => [f1(p.x), f1(p.y)];
+  const near = (p, dx, dy) => [f1(p.x + dx), f1(p.y + dy)];
+
+  // the props that the beats refer to
+  const BRIDGE = { a: { x: 168, y: 356 }, b: { x: 272, y: 372 } };
+  const SHELF = { x: 0, y: 0 }; // set in beat 14, where Dalinar leaps it
+  const CART = { x: 452, y: 432 };
+  let SNATCH = null, SECOND = null, GEM = null;
+
+  // groups of ordinary people: soldiers, archers, attendants. Positions are centroids.
+  const GROUPS = {
+    soldiers: { n: 26, r: 46, kind: "soldier", seed: 3 },
+    archers: { n: 18, r: 34, kind: "archer", seed: 7 },
+    batch: { n: 9, r: 22, kind: "archer", seed: 11 },
+    attendants: { n: 22, r: 60, kind: "attendant", seed: 17 },
+    crossing: { n: 9, r: 10, kind: "attendant", seed: 23, bridge: true },
+  };
+
+  // t = 0: who stands where
+  key("fpos", 0, [236, 196]); key("fh", 0, 58); key("frise", 0, 0); key("ftop", 0, 0); key("frage", 0, 0); key("fdead", 0, 0);
+  key("E", 0, [916, 600]); key("D", 0, [934, 626]); key("A", 0, [956, 584]);
+  key("R", 0, [1090, 600]); key("roan", 0, [1090, 600]);
+  key("S", 0, [1066, 700]);
+  key("gallant", 0, [1112, 556]); key("sureblood", 0, [1128, 596]); key("vengeance", 0, [1150, 652]);
+  key("hunt", 0, [1300, 22]);
+  key("soldiers", 0, [880, 600]); key("archers", 0, [905, 545]); key("batch", 0, [760, 690]); key("attendants", 0, [430, 470]);
+  key("cam", 0, { x: 880, y: 330, w: 1450 });
+  ["D", "A", "E"].forEach((w) => { key(w + "blade", 0, 0); key(w + "down", 0, 0); key(w + "air", 0, 1); });
+  key("pov", 0, "dalinar"); key("blur", 0, 0); key("focus", 0, 0); key("cut", 0, 0);
+
+  beat({ id: "bait", title: "The bait comes back empty", cite: "wok:12", d: 6500, q: [],
+    text: "Across the chasm, the chull that should be towing the bait wanders off, trailing a frayed rope. Then something enormous climbs out of the chasm. It comes up onto the viewing plateau, among the scribes, attendants and unready soldiers, not onto the hunting plateau.",
+    k(at) {
+      key("hunt", at(0.9), [1480, 4], "lin");
+      key("fpos", at(1), [296, 284]); key("frise", at(0.45), 0.25); key("frise", at(1), 0.8); key("fh", at(1), 52);
+      key("cam", at(0.35), { x: 860, y: 320, w: 1400 }); key("cam", at(1), { x: 620, y: 400, w: 1250 });
+      sfx(at(0.18), "bleat"); sfx(at(0.5), "grind"); sfx(at(0.85), "grind");
+    } });
+
+  beat({ id: "ten", title: "Ten heartbeats.", quote: true, cite: "wok:13", d: 11000, q: ["Q-030"],
+    text: "A Shardblade takes ten heartbeats to summon, and the chapter counts every one. Dalinar pulls on his helm and runs after the king while the beast smashes a bridge crowded with people, heaves itself up and snatches a cart chull. On the tenth beat, Oathbringer forms in his hand.",
+    k(at) {
+      COUNTS.push({ t0: at(0.02), t1: at(0.92), who: "D" });
+      key("fpos", at(0.3), [326, 312]); key("frise", at(0.3), 1); key("fpos", at(0.62), [470, 402]); key("fh", at(0.62), 36);
+      key("fpos", at(1), [592, 466]); key("fh", at(1), 24);
+      claw(3, at(0.08), [226, 380, 1]); claw(3, at(0.2), [222, 366, 0], "in"); claw(3, at(0.38), null);
+      fx("impact", at(0.2), { x: 222, y: 366, r: 44 }); MARKS.push({ type: "bridge", t: at(0.2) });
+      KILLS.push({ t: at(0.2), x: 222, y: 366, r: 70, groups: ["crossing"] });
+      sfx(at(0.2), "smash"); sfx(at(0.24), "screams");
+      SNATCH = { t0: at(0.47), t1: at(0.56) };
+      claw(2, at(0.38), [CART.x, CART.y, 0.8]); claw(2, at(0.47), [CART.x, CART.y, 0], "in"); claw(2, at(0.6), null);
+      sfx(at(0.47), "thud"); sfx(at(0.57), "crunch");
+      key("attendants", at(0.3), [540, 590]); key("attendants", at(1), [850, 800]);
+      key("soldiers", at(1), [792, 612]);
+      key("E", at(1), [830, 560]); key("D", at(1), [862, 586]);
+      key("A", at(0.32), [1124, 598]); key("sureblood", at(0.32), [1124, 598]);
+      ride("A", "sureblood", at(1), [930, 520]);
+      key("vengeance", at(1), [1170, 560]); key("R", at(1), [1096, 662]); key("roan", at(1), [1096, 662]);
+      say("E", at(0.55), at(0.75), "Archers! Loose!");
+      say("D", at(0.66), at(0.88), "Draw it off the unarmed!");
+      sfx(at(0.8), "trumpet");
+      key("Dblade", at(0.93), 1, "step"); FORM.push({ who: "D", t: at(0.93) }); sfx(at(0.91), "shimmer");
+      key("cam", at(0.3), { x: 520, y: 420, w: 1000 }); key("cam", at(1), { x: 720, y: 520, w: 1050 });
+    } });
+
+  beat({ id: "unarmed", title: "Draw it off the unarmed", cite: "wok:13", d: 8500, q: ["Q-028"],
+    text: "Elhokar's Blade, Sunraiser, springs into his hand, and he wants the beast kept here; Dalinar would rather buy time for everyone to get clear. A claw comes down among the soldiers. A hundred arrows fly, and only a few find the soft gaps in the chitin. Sadeas calls for his grandbow, Adolin gallops past on Sureblood, and Gallant trots up so Dalinar can vault into the saddle.",
+    k(at) {
+      key("Eblade", at(0.04), 1, "step"); FORM.push({ who: "E", t: at(0.04) }); sfx(at(0.03), "shimmer");
+      say("E", at(0.05), at(0.28), "Rile it! Don't let it escape!");
+      claw(2, at(0.12), [792, 606, 1]); claw(2, at(0.24), [792, 612, 0], "in"); claw(2, at(0.45), null);
+      fx("impact", at(0.24), { x: 792, y: 612, r: 40 }); KILLS.push({ t: at(0.24), x: 792, y: 612, r: 24, groups: ["soldiers"] });
+      sfx(at(0.24), "smash"); sfx(at(0.26), "crunch"); sfx(at(0.3), "trumpet");
+      fx("volley", at(0.4), { from: "archers", seed: 1 }); sfx(at(0.4), "volley");
+      say("S", at(0.5), at(0.7), "Bring my grandbow!");
+      ride("A", "sureblood", at(0.6), [760, 372, [860, 430]]);
+      key("Ablade", at(0.5), 1, "step"); FORM.push({ who: "A", t: at(0.5) });
+      key("gallant", at(0.3), [1112, 556]); key("gallant", at(0.62), [872, 590]);
+      key("D", at(0.62), [872, 596]); key("D", at(0.7), [872, 590]); key("gallant", at(0.7), [872, 590]);
+      sfx(at(0.7), "mount");
+      ride("D", "gallant", at(1), [806, 644]);
+      say("D", at(0.74), at(0.97), "Hold back! Let us weaken it.");
+      key("E", at(1), [852, 574]);
+      key("attendants", at(1), [930, 832]); key("soldiers", at(1), [780, 640]);
+      key("cam", at(1), { x: 700, y: 500, w: 920 });
+    } });
+
+  beat({ id: "flanks", title: "Left and right", cite: "wok:13", d: 8500, q: [],
+    text: "The beast crushes a knot of archers. Adolin calls the left side, so Dalinar cuts right. He rides under a lifted claw and draws his Blade through a leg. A Shardblade doesn't cut living flesh, but the leg dies and drags all the same. Across the body, Adolin takes another. Two down.",
+    k(at) {
+      key("fh", at(1), 30);
+      claw(3, at(0.04), [760, 690, 1]); claw(3, at(0.15), [760, 692, 0], "in"); claw(3, at(0.3), null);
+      fx("impact", at(0.15), { x: 760, y: 692, r: 38 }); KILLS.push({ t: at(0.15), x: 760, y: 692, r: 30, groups: ["batch"] });
+      sfx(at(0.15), "smash"); sfx(at(0.17), "crunch");
+      key("batch", at(0.45), [850, 724]);
+      ride("A", "sureblood", at(0.15), [786, 344]);
+      say("A", at(0.18), at(0.4), "Left's mine!");
+      ride("A", "sureblood", at(0.8), bp(at(0.8), 30, -126).concat([bp(at(0.5), 140, -190)]));
+      legDie("L2", at(0.8)); sfx(at(0.8), "slice");
+      ride("A", "sureblood", at(1), bp(at(1), -100, -168));
+      claw(3, at(0.42), null); claw(3, at(0.52), [...bp(at(0.52), 210, 150), 1]); claw(3, at(0.7), null);
+      ride("D", "gallant", at(0.4), bp(at(0.4), 190, 170));
+      ride("D", "gallant", at(0.62), bp(at(0.62), 30, 126));
+      legDie("R2", at(0.62)); sfx(at(0.62), "slice"); sfx(at(0.67), "trumpet");
+      ride("D", "gallant", at(0.84), bp(at(0.84), -70, 160));
+      ride("D", "gallant", at(1), bp(at(1), -165, 172));
+      key("E", at(1), [866, 590]); key("vengeance", at(1), [930, 596]);
+      key("cam", at(0.5), { x: 640, y: 500, w: 880 }); key("cam", at(1), { x: 600, y: 470, w: 900 });
+    } });
+
+  beat({ id: "swap", title: "Trading sides", cite: "wok:13", d: 8500, q: [],
+    text: "The beast turns toward Dalinar. Father and son pass each other in wide arcs and switch sides. Elhokar has his horse, Vengeance, under control and charges straight at the chest instead of the legs. He ducks a claw at the last moment, and it cracks the stone.",
+    k(at) {
+      key("fh", at(0.5), 36); key("fh", at(1), 30);
+      ride("D", "gallant", at(0.5), bp(at(0.5), -340, 30).concat([bp(at(0.25), -300, 190)]));
+      ride("D", "gallant", at(1), bp(at(1), -150, -172).concat([bp(at(0.75), -300, -150)]));
+      ride("A", "sureblood", at(0.5), bp(at(0.5), -380, -60).concat([bp(at(0.25), -330, -200)]));
+      ride("A", "sureblood", at(1), bp(at(1), -140, 178).concat([bp(at(0.75), -340, 160)]));
+      key("E", at(0.25), [906, 612]); key("vengeance", at(0.25), [906, 612]);
+      sfx(at(0.25), "mount");
+      say("E", at(0.27), at(0.5), "Come and face me, beast!");
+      ride("E", "vengeance", at(0.56), bp(at(0.56), 156, 46));
+      say("D", at(0.44), at(0.62), "Go for the legs!");
+      claw(2, at(0.5), [...bp(at(0.5), 160, 60), 1]); claw(2, at(0.62), [...bp(at(0.62), 150, 52), 0], "in"); claw(2, at(0.8), null);
+      fx("impact", at(0.62), { x: bp(at(0.62), 150, 52)[0], y: bp(at(0.62), 150, 52)[1], r: 34 }); sfx(at(0.62), "smash");
+      ride("E", "vengeance", at(0.72), bp(at(0.72), 70, 190));
+      ride("E", "vengeance", at(1), bp(at(1), -80, 250));
+      sfx(at(0.68), "trumpet");
+      key("cam", at(1), { x: 600, y: 470, w: 980 });
+    } });
+
+  beat({ id: "five", title: "Five down", cite: "wok:13", d: 9500, q: ["Q-027"],
+    text: "Dalinar calls that Gallant is faster and he should be the distraction; the king ignores him and rides on. So the Kholins keep cutting while the beast twists between them. Dalinar signals the foot soldiers back toward the pavilion. Five legs are dead, and he wonders if it's time to let the beast limp away.",
+    k(at) {
+      key("fh", at(0.45), 18); key("fh", at(0.82), 28);
+      ride("E", "vengeance", at(0.2), bp(at(0.2), -300, -110).concat([bp(at(0.1), -360, 130)]));
+      ride("E", "vengeance", at(0.4), bp(at(0.4), -60, -265));
+      ride("E", "vengeance", at(0.7), bp(at(0.7), 160, -225));
+      ride("E", "vengeance", at(1), bp(at(1), 262, -84));
+      say("E", at(0.18), at(0.36), "Leave the drawing off to me! Go on!");
+      say("D", at(0.3), at(0.48), "Gallant's faster, let me!");
+      ride("D", "gallant", at(0.4), bp(at(0.4), 5, -126));
+      legDie("L3", at(0.4)); sfx(at(0.4), "slice"); sfx(at(0.43), "trumpet");
+      ride("A", "sureblood", at(0.55), bp(at(0.55), 5, 126));
+      legDie("R3", at(0.55)); sfx(at(0.55), "slice");
+      ride("D", "gallant", at(0.62), bp(at(0.62), -60, -225));
+      fx("signal", at(0.62), { who: "D" });
+      key("soldiers", at(0.62), [780, 640]); key("soldiers", at(1), [968, 704]);
+      key("batch", at(0.62), [850, 724]); key("batch", at(1), [1000, 760]);
+      fx("volley", at(0.68), { from: "archers", seed: 2 }); sfx(at(0.68), "volley");
+      ride("D", "gallant", at(0.85), bp(at(0.85), -20, -126));
+      legDie("L4", at(0.85)); sfx(at(0.85), "slice");
+      ride("D", "gallant", at(1), bp(at(1), -120, -212));
+      ride("A", "sureblood", at(1), bp(at(1), 120, 192));
+      key("cam", at(1), { x: 620, y: 440, w: 960 });
+    } });
+
+  beat({ id: "girth", title: "The girth snaps", cite: "wok:13", d: 7000, q: [],
+    text: "Elhokar wheels Vengeance hard toward Dalinar, and the saddle girth gives way under the weight of a man in Plate. King and saddle go tumbling, and his dropped Blade turns to mist. His Plate has cracked at the shoulder and leaks Stormlight. Then a claw rises over him.",
+    k(at) {
+      ride("E", "vengeance", at(0.36), bp(at(0.36), 160, -205).concat([bp(at(0.2), 270, -190)]));
+      sfx(at(0.36), "snap");
+      key("Eair", at(0.36), 1); key("Eair", at(0.46), 1.55, "out"); key("Eair", at(0.56), 1, "in");
+      key("E", at(0.56), bp(at(0.56), 60, -246)); key("Edown", at(0.56), 1, "step");
+      key("E", at(0.66), bp(at(0.66), 34, -256));
+      key("vengeance", at(1), [1010, 300]);
+      fx("saddle", at(0.36), { from: bp(at(0.36), 160, -205), to: bp(at(0.6), 110, -290) });
+      MARKS.push({ type: "saddle", t: at(0.6), x: bp(at(0.6), 110, -290)[0], y: bp(at(0.6), 110, -290)[1] });
+      sfx(at(0.56), "thud");
+      key("Eblade", at(0.5), 0, "step"); fx("mist", at(0.5), { who: "E" }); sfx(at(0.5), "mist");
+      crack("E", at(0.58), "shoulder");
+      say("D", at(0.5), at(0.72), "Elhokar!");
+      ride("D", "gallant", at(0.45), bp(at(0.45), -100, -204));
+      ride("D", "gallant", at(1), bp(at(1), -40, -228));
+      claw(1, at(0.6), null); claw(1, at(0.86), [...bp(at(0.86), 40, -250), 1]);
+      ride("A", "sureblood", at(1), bp(at(1), 40, 204));
+      key("S", at(1), [1022, 662]);
+      key("cam", at(0.3), { x: 720, y: 360, w: 760 }); key("cam", at(1), { x: 700, y: 330, w: 720 });
+    } });
+
+  beat({ id: "grandbow", title: "The grandbow", cite: "wok:13", d: 7500, q: [],
+    text: "A huge arrow cracks into the beast's head, and violet gore sprays. Sadeas, in his red Plate, takes another from an attendant and puts it into the shoulder. Dalinar salutes him with Oathbringer, and Sadeas lifts his bow back. They aren't friends, but they will both protect the king.",
+    k(at) {
+      const head = bp(at(0.14), 150, 0), sh = bp(at(0.44), 92, -46);
+      fx("bolt", at(0.12), { from: "S", to: { x: head[0], y: head[1] } }); sfx(at(0.1), "bow");
+      fx("gore", at(0.16), { x: head[0], y: head[1] }); sfx(at(0.17), "gore"); sfx(at(0.2), "agony");
+      claw(1, at(0.1), [...bp(at(0.1), 40, -250), 1]); claw(1, at(0.3), null);
+      fx("bolt", at(0.42), { from: "S", to: { x: sh[0], y: sh[1] } }); sfx(at(0.4), "bow");
+      fx("gore", at(0.46), { x: sh[0], y: sh[1] }); sfx(at(0.47), "gore");
+      fx("glint", at(0.58), { who: "D" }); fx("glint", at(0.64), { who: "S" }); sfx(at(0.58), "ring");
+      ride("D", "gallant", at(0.7), bp(at(0.7), 70, -262));
+      say("D", at(0.7), at(0.9), "Get clear!");
+      ride("D", "gallant", at(1), bp(at(1), 168, -170));
+      key("Edown", at(0.84), 0, "step"); key("E", at(0.84), bp(at(0.84), 34, -256)); key("E", at(1), bp(at(1), 20, -290));
+      key("frage", at(1), 0.35);
+      key("cam", at(0.25), { x: 780, y: 470, w: 1150 }); key("cam", at(1), { x: 700, y: 430, w: 1000 });
+    } });
+
+  beat({ id: "rage", title: "No retreat now", cite: "wok:13", d: 7500, q: [],
+    text: "The arrows stop slowing it. The beast turns wild, and Dalinar knows it will follow them now until one side is dead. A claw smashes down beside Gallant. Two more legs fall, making seven of fourteen: half of them.",
+    k(at) {
+      key("frage", at(0.3), 1); sfx(at(0.22), "trumpet");
+      fx("volley", at(0.12), { from: "archers", seed: 3 }); sfx(at(0.12), "volley");
+      ride("D", "gallant", at(0.34), bp(at(0.34), 40, -158));
+      claw(0, at(0.24), [...bp(at(0.24), 60, -200), 1]); claw(0, at(0.36), [...bp(at(0.36), 64, -196), 0], "in"); claw(0, at(0.55), null);
+      fx("impact", at(0.36), { x: bp(at(0.36), 64, -196)[0], y: bp(at(0.36), 64, -196)[1], r: 30 }); sfx(at(0.36), "smash");
+      ride("D", "gallant", at(0.5), bp(at(0.5), 55, -126));
+      legDie("L1", at(0.5)); sfx(at(0.5), "slice");
+      ride("A", "sureblood", at(0.7), bp(at(0.7), 55, 126));
+      legDie("R1", at(0.7)); sfx(at(0.7), "slice");
+      ride("D", "gallant", at(1), bp(at(1), -80, -202));
+      ride("A", "sureblood", at(1), bp(at(1), -60, 214));
+      key("E", at(1), bp(at(1), 20, -296));
+      key("cam", at(1), { x: 610, y: 440, w: 920 });
+    } });
+
+  beat({ id: "defiance", title: "The king's challenge", cite: "wok:13", d: 9000, q: ["Q-029"],
+    text: "Elhokar hasn't fled. He strides at the beast shouting defiance, brings his Blade back, chops away chitin and drives the Blade into its chest, seeking the heart. It shakes him off and spins. The tail slams into Gallant and sends Dalinar rolling, and Oathbringer cuts a gash in the stone before it puffs away.",
+    k(at) {
+      say("E", at(0.04), at(0.3), "Your gods will fall, beast!");
+      key("E", at(0.36), bp(at(0.36), 126, -76));
+      key("Eblade", at(0.3), 1, "step"); FORM.push({ who: "E", t: at(0.3) }); sfx(at(0.28), "shimmer");
+      fx("chunk", at(0.45), { x: bp(at(0.45), 116, -50)[0], y: bp(at(0.45), 116, -50)[1] }); sfx(at(0.45), "slice");
+      key("E", at(0.55), bp(at(0.55), 112, -40)); sfx(at(0.55), "slice");
+      key("fh", at(0.6), 28); key("fpos", at(0.6), [592, 466]);
+      sfx(at(0.62), "agony");
+      key("E", at(0.7), bp(at(0.6), 150, -128), "out");
+      key("fh", at(0.8), 86, "in");
+      ride("D", "gallant", at(0.3), bp(at(0.3), -100, -208));
+      ride("D", "gallant", at(0.78), [592, 268]);
+      sfx(at(0.74), "swoosh"); sfx(at(0.79), "thud"); sfx(at(0.81), "crunch");
+      key("Dair", at(0.78), 1); key("Dair", at(0.84), 1.35, "out"); key("Dair", at(0.9), 1, "in");
+      key("Ddown", at(0.79), 1, "step");
+      key("D", at(0.92), [690, 292], "out"); key("gallant", at(0.92), [654, 334], "out");
+      key("Dblade", at(0.86), 0, "step"); fx("mist", at(0.86), { who: "D" }); sfx(at(0.86), "mist");
+      MARKS.push({ type: "gash", t: at(0.82), x1: 612, y1: 270, x2: 668, y2: 288 });
+      say("A", at(0.86), at(1), "Father!");
+      ride("A", "sureblood", at(1), bp(at(0.6), -10, 240));
+      key("cam", at(0.5), { x: 620, y: 420, w: 900 }); key("cam", at(1), { x: 640, y: 380, w: 960 });
+    } });
+
+  beat({ id: "tail", title: "The tail, again", cite: "wok:13", d: 9000, q: [],
+    text: "Gallant is scraped and favouring one leg, but nothing is broken, and a single command word sends him to safety. Dalinar gets up, and the tail hits him square in the chest. He turns the slide into a landing and starts summoning his Blade again: ten more heartbeats. Adolin has cut an eighth leg.",
+    k(at) {
+      key("gallant", at(0.15), [654, 334]); key("gallant", at(0.4), [700, 360]); key("gallant", at(1), [1090, 520]);
+      key("Ddown", at(0.22), 0, "step"); key("D", at(0.22), [690, 292]);
+      key("fh", at(0.3), 92); key("fh", at(0.46), 114, "in");
+      key("D", at(0.42), [690, 292]);
+      sfx(at(0.41), "swoosh"); sfx(at(0.46), "thud");
+      key("Dair", at(0.46), 1); key("Dair", at(0.52), 1.25, "out"); key("Dair", at(0.6), 1, "in");
+      key("Ddown", at(0.47), 1, "step"); key("D", at(0.6), [800, 336], "out"); key("Ddown", at(0.62), 0, "step");
+      ride("A", "sureblood", at(0.5), bp(at(0.5), -20, 126));
+      legDie("R4", at(0.5)); sfx(at(0.5), "slice"); sfx(at(0.54), "trumpet");
+      fx("volley", at(0.3), { from: "archers", seed: 4 }); sfx(at(0.3), "volley");
+      SECOND = at(0.66);
+      key("E", at(0.5), bp(at(0.5), 104, -76)); key("E", at(1), bp(at(1), 106, -80));
+      key("D", at(1), [810, 420]);
+      ride("A", "sureblood", at(1), bp(at(1), 40, 150));
+      key("cam", at(0.4), { x: 680, y: 380, w: 860 }); key("cam", at(1), { x: 720, y: 450, w: 920 });
+    } });
+
+  beat({ id: "renarin", title: "Renarin", cite: "wok:13", d: 7500, q: [],
+    text: "Renarin rides up in his stiff blue uniform, unarmoured and unarmed, asking if he can help. Dalinar roars at him to get back, and he goes. Oathbringer returns on the tenth beat. Elhokar is still hacking at the lower torso, and the flesh blackens wherever his Blade lands.",
+    k(at) {
+      COUNTS.push({ t0: SECOND, t1: at(0.88), who: "D" });
+      ride("R", "roan", at(0.3), [880, 470]);
+      say("R", at(0.27), at(0.45), "Father! Are you hurt? Can I help?");
+      say("D", at(0.42), at(0.6), "No armour, no Blade. Get back!");
+      say("D", at(0.6), at(0.74), "Go!");
+      ride("R", "roan", at(0.55), [872, 476]);
+      ride("R", "roan", at(1), [1120, 700]);
+      key("D", at(0.6), [790, 470]); key("D", at(1), [776, 540]);
+      key("Dblade", at(0.9), 1, "step"); FORM.push({ who: "D", t: at(0.9) }); sfx(at(0.88), "shimmer");
+      [0.2, 0.45, 0.7].forEach((f, i) => { MARKS.push({ type: "burn", t: at(f), lx: 70 - i * 12, ly: 18 + i * 6 }); sfx(at(f), "slice"); });
+      ride("A", "sureblood", at(0.6), bp(at(0.6), 150, -124).concat([bp(at(0.3), 270, 40)]));
+      key("A", at(0.75), bp(at(0.75), 132, -112)); key("sureblood", at(1), [860, 760]);
+      key("cam", at(1), { x: 620, y: 500, w: 820 });
+    } });
+
+  beat({ id: "thrown", title: "Adolin is thrown", cite: "wok:13", d: 7000, q: ["Q-031"],
+    text: "Adolin has dismounted beside the king and is striking at the claws as they fall, but there are four claws and one Adolin. He slices a chunk from one and never sees the other sweeping at his back. It throws him, and his breastplate and side crack and leak white smoke. He's alive.",
+    k(at) {
+      const a0 = pos("A", at(0));
+      key("Ablade", at(0), 1, "step");
+      claw(1, at(0.08), [a0.x - 24, a0.y + 20, 1]); claw(1, at(0.2), [a0.x - 20, a0.y + 18, 0], "in"); claw(1, at(0.36), null);
+      fx("chunk", at(0.2), { x: a0.x - 20, y: a0.y + 18 }); sfx(at(0.2), "slice");
+      claw(0, at(0.22), [a0.x + 50, a0.y - 40, 1]); claw(0, at(0.38), [a0.x + 30, a0.y - 26, 0.4]); claw(0, at(0.55), null);
+      claw(2, at(0.2), [a0.x - 90, a0.y + 70, 0.6]); claw(2, at(0.44), [a0.x - 6, a0.y + 4, 0.2], "in"); claw(2, at(0.6), null);
+      say("D", at(0.38), at(0.52), "Adolin!");
+      sfx(at(0.44), "clang");
+      key("A", at(0.44), [a0.x, a0.y]); key("Aair", at(0.44), 1); key("Aair", at(0.54), 1.7, "out"); key("Aair", at(0.66), 1, "in");
+      key("A", at(0.66), bp(at(0.66), -10, 176).concat([bp(at(0.55), 60, 20)]), "lin"); key("Adown", at(0.66), 1, "step");
+      key("Ablade", at(0.5), 0, "step"); fx("mist", at(0.52), { who: "A" });
+      crack("A", at(0.5), "breastplate and side"); sfx(at(0.66), "thud");
+      key("A", at(1), bp(at(1), -10, 182));
+      key("D", at(1), [764, 612]);
+      key("cam", at(0.4), { x: 590, y: 520, w: 820 }); key("cam", at(1), { x: 600, y: 530, w: 840 });
+    } });
+
+  beat({ id: "alone", title: "Elhokar alone", cite: "wok:13", d: 7000, q: [],
+    text: "A blow beside the king knocks him flat on his face, and his Blade vanishes. Something in Dalinar changes. He once lay drunk while his brother Gavilar fought for his life. All that's left of Gavilar for him to protect is the kingdom and the son, and right now nothing else matters.",
+    k(at) {
+      const e0 = pos("E", at(0));
+      claw(0, at(0.08), [e0.x + 30, e0.y - 26, 1]); claw(0, at(0.22), [e0.x + 26, e0.y - 22, 0], "in"); claw(0, at(0.4), null);
+      fx("impact", at(0.22), { x: e0.x + 26, y: e0.y - 22, r: 36 }); sfx(at(0.22), "smash"); sfx(at(0.26), "thud");
+      key("Edown", at(0.25), 1, "step"); key("E", at(0.25), [e0.x, e0.y]); key("E", at(0.33), [e0.x - 8, e0.y - 6]);
+      key("Eblade", at(0.27), 0, "step"); fx("mist", at(0.28), { who: "E" }); sfx(at(0.28), "mist");
+      key("focus", at(0.36), 1); key("focus", at(0.92), 1); key("focus", at(1), 0.4);
+      key("D", at(1), [752, 652]);
+      key("cam", at(1), { x: 650, y: 600, w: 700 });
+      sfx(at(0.4), "heartslow");
+    } });
+
+  beat({ id: "eyes", title: "Through Adolin's eyes", cite: "wok:13", d: 9500, q: [],
+    text: "The chapter switches to Adolin's eyes. He shoves up his visor and gasps for air; he can smell greatshell blood. A claw is rising over the fallen king. Then he sees his father vault a rock shelf, skid beneath one claw and leap a second, which smashes the shelf behind him, letting his Blade fall as he goes.",
+    k(at) {
+      key("pov", at(0), "adolin", "step");
+      key("focus", at(0.05), 0);
+      key("blur", at(0), 1, "step"); key("blur", at(0.36), 0, "out");
+      key("Adown", at(0.25), 0, "step"); key("A", at(0.5), bp(at(0.5), 0, 176)); key("A", at(1), bp(at(1), 10, 170));
+      const e = pos("E", at(0));
+      const d0 = pos("D", at(0));
+      SHELF.x = f1(lerp(d0.x, e.x, 0.42)); SHELF.y = f1(lerp(d0.y, e.y, 0.42)) + 6;
+      claw(1, at(0.15), [e.x + 6, e.y + 10, 1]);
+      key("D", at(0.36), [lerp(d0.x, SHELF.x, 0.85), lerp(d0.y, SHELF.y, 0.85)]);
+      key("Dair", at(0.36), 1); key("Dair", at(0.42), 1.3, "out"); key("Dair", at(0.48), 1, "in");
+      const s1 = { x: lerp(SHELF.x, e.x, 0.45), y: lerp(SHELF.y, e.y, 0.45) };
+      key("D", at(0.56), [s1.x, s1.y]);
+      claw(2, at(0.44), [s1.x - 40, s1.y + 40, 0.9]); claw(2, at(0.58), [s1.x + 30, s1.y - 10, 0.55], "lin"); claw(2, at(0.7), null);
+      sfx(at(0.56), "swoosh");
+      key("Dair", at(0.64), 1); key("Dair", at(0.7), 1.35, "out"); key("Dair", at(0.76), 1, "in");
+      claw(0, at(0.6), [SHELF.x - 10, SHELF.y - 12, 1]); claw(0, at(0.72), [SHELF.x, SHELF.y, 0], "in"); claw(0, at(0.86), null);
+      fx("impact", at(0.72), { x: SHELF.x, y: SHELF.y, r: 34 }); MARKS.push({ type: "shelfgone", t: at(0.72) });
+      sfx(at(0.72), "smash"); sfx(at(0.74), "crunch");
+      key("D", at(0.84), [lerp(s1.x, e.x, 0.6), lerp(s1.y, e.y, 0.6)]);
+      key("Dblade", at(0.86), 0, "step"); fx("mist", at(0.86), { who: "D" }); sfx(at(0.86), "mist");
+      key("D", at(1), [e.x + 2, e.y - 16]);
+      key("cam", at(0), { x: 650, y: 600, w: 700 }); key("cam", at(0.3), { x: lerp(d0.x, e.x, 0.5), y: lerp(d0.y, e.y, 0.5) + 30, w: 560 }, "io");
+      key("cam", at(1), { x: e.x + 10, y: e.y + 20, w: 520 });
+    } });
+
+  beat({ id: "caught", title: "But he caught it.", quote: true, cite: "wok:13", d: 10000, q: [],
+    text: "The third claw falls toward the king, and Dalinar takes it on his raised hands, down on one knee over Elhokar. Archers freeze, and Sadeas lowers his grandbow. Webs of light run down Dalinar's gauntlets and shoulders as the Plate cracks, and he yells defiance back at the beast. Adolin knows who he's looking at: the Blackthorn.",
+    k(at) {
+      const d = pos("D", at(0));
+      claw(1, at(0.06), [d.x + 4, d.y + 6, 0], "in"); claw(1, at(0.9), [d.x + 4, d.y + 6, 0]);
+      sfx(at(0.06), "clang"); fx("shake", at(0.06), { a: 10 }); fx("impact", at(0.06), { x: d.x, y: d.y, r: 26 });
+      key("cut", at(0.08), 0); key("cut", at(0.2), 1, "out"); key("cut", at(0.88), 1); key("cut", at(1), 0);
+      crack("D", at(0.4), "gauntlets and shoulders"); sfx(at(0.4), "crackle");
+      sfx(at(0.5), "trumpet"); sfx(at(0.56), "roar");
+      key("cam", at(1), { x: d.x + 10, y: d.y + 20, w: 520 });
+    } });
+
+  beat({ id: "fall", title: "The fall", cite: "wok:13", d: 7500, q: [],
+    text: "Adolin's Blade forms. He shears the nearest leg, and the beast has too few left for the weight it's pressing down on Dalinar: the legs remaining on its right side snap, and it topples. Dalinar tosses aside the limp claw, Stormlight steaming from his cracks. Only seconds have passed since the king fell.",
+    k(at) {
+      key("Ablade", at(0.1), 1, "step"); FORM.push({ who: "A", t: at(0.1) }); sfx(at(0.08), "shimmer");
+      const a = bp(at(0.3), -45, 126);
+      key("A", at(0.3), a);
+      legDie("R5", at(0.32)); sfx(at(0.32), "slice");
+      legDie("R0", at(0.45), "snap"); legDie("R6", at(0.46), "snap"); sfx(at(0.45), "crunch"); sfx(at(0.47), "snap");
+      fx("gore", at(0.46), { x: bp(at(0.45), 70, 70)[0], y: bp(at(0.45), 70, 70)[1] });
+      key("ftop", at(0.45), 0); key("ftop", at(0.68), 1, "in");
+      sfx(at(0.5), "agony"); sfx(at(0.62), "rumble"); fx("shake", at(0.66), { a: 18 });
+      fx("dust", at(0.66), {});
+      const d = pos("D", at(0));
+      claw(1, at(0.66), [d.x + 4, d.y + 6, 0]); claw(1, at(0.8), [d.x + 70, d.y + 40, 0], "out");
+      key("D", at(0.8), [d.x, d.y]); key("D", at(0.95), [d.x + 26, d.y - 4]);
+      key("Edown", at(0.86), 0, "step");
+      key("A", at(1), [a[0] + 30, a[1] - 30]);
+      key("cam", at(0), { x: d.x + 10, y: d.y + 20, w: 560 }); key("cam", at(1), { x: 620, y: 540, w: 780 });
+    } });
+
+  beat({ id: "gemheart", title: "The gemheart", cite: "wok:13", d: 11000, q: [],
+    text: "At Dalinar's sharp gesture, Elhokar drives his Blade into what passes for the neck, and the green eyes blacken and shrivel. Now that the beast is dead, the Blade cuts its flesh. The king reaches into the chest and rips out the gemheart, an uncut emerald as big as a man's head. Gloryspren gather around him while the soldiers cheer.",
+    k(at) {
+      fx("signal", at(0.04), { who: "D" });
+      const n = bp(at(0.2), 128, -102);
+      key("E", at(0.06), P2(pos("E", at(0))));
+      key("E", at(0.2), n);
+      key("Eblade", at(0.14), 1, "step"); FORM.push({ who: "E", t: at(0.14) }); sfx(at(0.12), "shimmer");
+      sfx(at(0.26), "slice"); key("fdead", at(0.26), 0); key("fdead", at(0.44), 1); fx("smoke", at(0.3), {}); sfx(at(0.3), "dying");
+      const c = bp(at(0.5), 84, -104);
+      key("E", at(0.48), c);
+      sfx(at(0.52), "slice"); fx("gore", at(0.54), { x: bp(at(0.54), 84, -60)[0], y: bp(at(0.54), 84, -60)[1] }); sfx(at(0.55), "gore");
+      key("Eblade", at(0.62), 0, "step"); fx("mist", at(0.62), { who: "E" });
+      GEM = { t: at(0.74) };
+      sfx(at(0.74), "gem"); sfx(at(0.82), "cheer");
+      key("A", at(0.35), P2(pos("A", at(0)))); key("A", at(0.75), near(pos("D", at(0)), 54, 20));
+      key("soldiers", at(0.6), [968, 704]); key("soldiers", at(1), [800, 640]);
+      key("archers", at(0.6), [905, 545]); key("archers", at(1), [850, 580]);
+      key("batch", at(1), [880, 690]);
+      key("cam", at(0.3), { x: n[0], y: n[1], w: 640 }); key("cam", at(1), { x: c[0], y: c[1] - 10, w: 560 });
+    } });
+
+  const TOTAL = T0;
+
+  // Who gets crushed, and where they fall. Deterministic, worked out once.
+  const DOTS = [];
+  Object.entries(GROUPS).forEach(([g, G]) => {
+    const r = rng(G.seed);
+    for (let i = 0; i < G.n; i++) {
+      let ox, oy;
+      if (G.bridge) { const u = (i + 0.5) / G.n; ox = lerp(BRIDGE.a.x, BRIDGE.b.x, u) + (r() - 0.5) * 6; oy = lerp(BRIDGE.a.y, BRIDGE.b.y, u) + (r() - 0.5) * 10; }
+      else { const a = r() * TAU, d = Math.sqrt(r()) * G.r; ox = Math.cos(a) * d; oy = Math.sin(a) * d * 0.8; }
+      DOTS.push({ g, kind: G.kind, ox, oy, ph: r() * TAU, fell: null, bridge: !!G.bridge });
+    }
+  });
+  const dotPos = (d, t) => {
+    if (d.bridge) return { x: d.ox, y: d.oy };
+    const c = val(d.g, t);
+    return { x: c.x + d.ox, y: c.y + d.oy };
+  };
+  KILLS.sort((a, b) => a.t - b.t).forEach((k) => DOTS.forEach((d) => {
+    if (d.fell || !k.groups.includes(d.g)) return;
+    const p = dotPos(d, k.t);
+    if (Math.hypot(p.x - k.x, p.y - k.y) < k.r) d.fell = { t: k.t, ...p };
+  }));
+  SFX.sort((a, b) => a.t - b.t);
+  FX.sort((a, b) => a.t - b.t);
+
+  // ------------------------------------------------------------ cast
+  const CAST = {
+    D: { n: "Dalinar Kholin", c: "#8f98a3", horse: "gallant", facts: [["Shardplate left its natural slate grey, unpainted", "wok:12"], ["Blade: Oathbringer, six feet long and hooked at the tip", "wok:13"]] },
+    A: { n: "Adolin",
+      c: "#3f82dc",
+      horse: "sureblood",
+      facts: [["Plate painted blue, with extra ornaments added to look more dangerous", "wok:12"], ["His mount, Sureblood, is a white Ryshadium", "wok:13"]] },
+    E: { n: "Elhokar, the king", c: "#e1b444", cape: "#3b6fd0", horse: "vengeance", facts: [["Golden Shardplate and a long blue cape", "wok:12"], ["Blade: Sunraiser, long and thin, etched with the ten fundamental glyphs", "wok:13"]] },
+    S: { n: "Sadeas", c: "#c94a40", facts: [["Red Shardplate, but no Blade", "wok:12"], ["Fires a grandbow, a steel bow only a Shardbearer can draw", "wok:12"]] },
+    R: { n: "Renarin",
+      c: "#5c7fb8",
+      small: true,
+      horse: "roan",
+      facts: [["Wears spectacles; rides with perfect posture", "wok:12"], ["In a stiff blue uniform with no armour and no weapon, on a roan", "wok:13"]] },
+    fiend: { n: "The chasmfiend", c: "#7a5aa8", facts: [["Thirty feet tall, with a carapace the colour of dark violet ink and an arrowhead face full of barbed mandibles", "wok:13"], ["Four foreclaws, each the size of a horse; long and narrow like a crayfish, with a flattened tail", "wok:13"]] },
+    gallant: { n: "Gallant", c: "#15161a", horseOnly: true, facts: [["Dalinar's massive black Ryshadium, two hands taller than an ordinary horse", "wok:12"]] },
+    sureblood: { n: "Sureblood", c: "#eef0f2", horseOnly: true, facts: [["Adolin's white Ryshadium; he holds steady when the other horses panic", "wok:13"]] },
+    vengeance: { n: "Vengeance", c: "none", horseOnly: true, facts: [["The king's horse, of the best Shin stock but not a Ryshadium. The page doesn't give his colour, so he's drawn plain.", "wok:13"]] },
+    roan: { n: "Renarin's horse", c: "#8a5a4a", horseOnly: true, facts: [["A roan", "wok:13"]] },
+  };
+  const HORSE = { gallant: "#15161a", sureblood: "#eef0f2", vengeance: "none", roan: "#8a5a4a" };
+  const RIDERS = ["S", "R", "E", "A", "D"];
+
+  // ------------------------------------------------------------ static ground
+  const svg = document.getElementById("map");
+  const NS = "http://www.w3.org/2000/svg";
+  const poly = (pts) => pts.map((p) => p.join(",")).join(" ");
+  const VIEW = [[280, 318], [400, 222], [560, 150], [760, 128], [1050, 120], [1330, 210], [1440, 500], [1400, 760], [1190, 905], [860, 950], [520, 905], [300, 790], [232, 560], [262, 372]];
+  const WEST = [[0, 170], [140, 186], [172, 330], [158, 520], [0, 560]];
+  const HUNT = [[1150, -70], [1700, -90], [1700, 90], [1430, 100], [1200, 58]];
+  const SOUTHP = [[0, 900], [220, 1000], [0, 1100]];
+  const shelves = [];
+  (function () {
+    const r = rng(41);
+    const spots = [[520, 330], [880, 330], [1180, 380], [1300, 640], [1100, 820], [700, 820], [420, 640], [380, 470], [980, 470], [1240, 520], [600, 720], [800, 360], [1120, 660], [480, 800]];
+    spots.forEach(([x, y]) => {
+      const n = 6 + Math.floor(r() * 3), R = 22 + r() * 30, pts = [];
+      for (let i = 0; i < n; i++) { const a = (i / n) * TAU + r() * 0.4, rr = R * (0.7 + r() * 0.5); pts.push([f1(x + Math.cos(a) * rr * 1.5), f1(y + Math.sin(a) * rr * 0.8)]); }
+      shelves.push(pts);
+    });
+  })();
+  const ground = `
+    <defs>
+      <radialGradient id="g-abyss" cx="50%" cy="50%" r="70%"><stop offset="0" stop-color="#0b1018"/><stop offset="1" stop-color="#05070b"/></radialGradient>
+      <linearGradient id="g-plat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b3442"/><stop offset="1" stop-color="#232b37"/></linearGradient>
+      <filter id="f-rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="4"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .18 0"/><feComposite in2="SourceGraphic" operator="in"/><feBlend in="SourceGraphic" mode="multiply"/></filter>
+      <filter id="f-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="f-soft"><feGaussianBlur stdDeviation="6"/></filter>
+      <radialGradient id="g-gem"><stop offset="0" stop-color="#b9ffd2"/><stop offset=".45" stop-color="#2fd17a"/><stop offset="1" stop-color="#0b6a3a"/></radialGradient>
+      <radialGradient id="g-gemglow"><stop offset="0" stop-color="rgba(80,240,150,.55)"/><stop offset="1" stop-color="rgba(80,240,150,0)"/></radialGradient>
+      <radialGradient id="g-focus" cx="50%" cy="50%" r="60%"><stop offset=".35" stop-color="rgba(0,0,0,0)"/><stop offset="1" stop-color="rgba(0,0,0,.85)"/></radialGradient>
+    </defs>
+    <rect x="-1000" y="-1000" width="3600" height="3000" fill="url(#g-abyss)"/>
+    <g filter="url(#f-rough)">
+      ${[WEST, VIEW, HUNT, SOUTHP].map((p) => `<polygon points="${poly(p)}" fill="url(#g-plat)" stroke="#3a4657" stroke-width="3" stroke-linejoin="round"/>`).join("")}
+    </g>
+    ${[WEST, VIEW, HUNT].map((p) => `<polygon points="${poly(p)}" fill="none" stroke="#06080c" stroke-width="16" stroke-opacity=".55" transform="translate(6,10)" style="mix-blend-mode:multiply"/>`).join("")}
+    <g id="shelves">${shelves.map((s, i) => `<polygon points="${poly(s)}" fill="#1c232e" stroke="#384456" stroke-width="2" opacity=".85"/>`).join("")}</g>
+    <g class="pavilion" transform="translate(1004,642)">
+      <rect x="-62" y="-40" width="124" height="80" rx="6" fill="#d9ccb0" opacity=".9"/>
+      <path d="M-62 0H62M0 -40V40" stroke="#a8977a" stroke-width="2"/>
+      <path d="M-62 -40L0 0L62 -40M-62 40L0 0L62 40" stroke="#b8a888" stroke-width="1.2" fill="none"/>
+      <line x1="0" y1="0" x2="0" y2="-74" stroke="#5a5040" stroke-width="3"/>
+      <path d="M0 -74 L34 -66 L0 -56Z" fill="#d8ecff" opacity=".85"/>
+    </g>
+    <g transform="translate(1080,724)">${[0, 1, 2, 3].map((i) => `<path d="M${i * 12 - 18} -14 q8 14 0 28" stroke="#7d8899" stroke-width="2.4" fill="none"/>`).join("")}<rect x="-24" y="-16" width="50" height="32" rx="3" fill="none" stroke="#475366" stroke-width="1.5"/></g>
+    <text x="1004" y="712" text-anchor="middle" class="gl">the pavilion</text>
+    <text x="1470" y="60" text-anchor="middle" class="gl">the hunting plateau</text>
+    <text x="80" y="640" text-anchor="middle" class="gl">the way back</text>
+    <text x="1060" y="480" text-anchor="middle" class="gl big">the viewing plateau</text>
+    <path id="rope" fill="none" stroke="#b8a888" stroke-width="2" stroke-dasharray="5 3"/>`;
+  svg.innerHTML = `<style>.gl{font:italic 18px var(--display);fill:#6f7b8c;letter-spacing:.04em}.gl.big{font-size:24px;fill:#59657a}</style>
+    ${ground}<g id="marks"></g><g id="people"></g><g id="fiend"></g><g id="horses"></g><g id="tokens"></g><g id="fxl"></g>
+`;
+  const L = (id) => svg.querySelector("#" + id);
+  const gMarks = L("marks"), gPeople = L("people"), gFiend = L("fiend"), gHorses = L("horses"), gTokens = L("tokens"), gFx = L("fxl"), focusR = document.getElementById("focus"), rope = L("rope");
+  const shelfNodes = [...svg.querySelectorAll("#shelves polygon")];
+
+  // ------------------------------------------------------------ drawing helpers
+  function facing(name, t) {
+    const a = val(name, t - 90), b = val(name, t + 90);
+    if (a && b && Math.hypot(b.x - a.x, b.y - a.y) > 1.2) return Math.atan2(b.y - a.y, b.x - a.x);
+    const p = val(name, t), f = val("fpos", t);
+    return Math.atan2(f.y - p.y, f.x - p.x);
+  }
+  function horseSvg(name, t) {
+    const p = val(name, t);
+    if (!p) return "";
+    const a = facing(name, t) / D2R, col = HORSE[name];
+    const fill = col === "none" ? "#3a4252" : col, stroke = col === "none" ? "#c9d1dc" : "#05070a";
+    const gallop = Math.sin(t / 70) * 1.2;
+    return `<g transform="translate(${f1(p.x)},${f1(p.y)}) rotate(${f1(a)})" data-who="${name}" class="hit">
+      <ellipse cx="2" cy="4" rx="24" ry="10" fill="#000" opacity=".35"/>
+      <ellipse cx="0" cy="0" rx="${22 + gallop}" ry="9" fill="${fill}" stroke="${stroke}" stroke-width="1.6"/>
+      <ellipse cx="24" cy="0" rx="8" ry="5" fill="${fill}" stroke="${stroke}" stroke-width="1.4"/>
+      <path d="M-22 0 q-9 ${f1(gallop * 3)} -14 ${f1(4 + gallop)}" stroke="${stroke === "#05070a" ? fill : stroke}" stroke-width="3" fill="none" stroke-linecap="round"/></g>`;
+  }
+  function wisps(p, t, t0, n = 3, spread = 10) {
+    if (t < t0) return "";
+    let s = "";
+    for (let i = 0; i < n; i++) {
+      const ph = (((t - t0) / 1100) + i / n) % 1;
+      const x = p.x + Math.sin(i * 2.3 + t / 520) * spread * 0.7 + (i - 1) * 4, y = p.y - 6 - ph * 30;
+      s += `<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(2.2 + ph * 3.5)}" fill="#f2f8ff" opacity="${f1((1 - ph) * 0.75)}"/>`;
+    }
+    return s;
+  }
+  function tokenSvg(who, t) {
+    const p = val(who, t);
+    if (!p) return "";
+    const C = CAST[who], down = val(who + "down", t) >= 1, air = val(who + "air", t) || 1;
+    const a = facing(who, t), ad = a / D2R, r = (C.small ? 9 : 13) * air;
+    const sh = (air - 1) * 26;
+    let s = `<g data-who="${who}" class="hit">`;
+    s += `<ellipse cx="${f1(p.x + 3 + sh)}" cy="${f1(p.y + 5 + sh)}" rx="${f1(r * 1.05)}" ry="${f1(r * 0.75)}" fill="#000" opacity="${f1(0.4 / air)}"/>`;
+    s += `<g transform="translate(${f1(p.x)},${f1(p.y)}) rotate(${f1(ad)})">`;
+    if (C.cape) s += `<path d="M${f1(-r * 0.4)} ${f1(-r * 0.75)} Q${f1(-r * 2.6)} 0 ${f1(-r * 0.4)} ${f1(r * 0.75)}Z" fill="${C.cape}" stroke="#13254a" stroke-width="1"/>`;
+    if (down) s += `<ellipse rx="${f1(r * 1.35)}" ry="${f1(r * 0.62)}" fill="${C.c}" stroke="#05070a" stroke-width="2"/><rect x="${f1(r * 0.6)}" y="-3" width="${f1(r * 0.5)}" height="6" rx="2" fill="#0a0d12"/>`;
+    else if (C.small) s += `<circle r="${f1(r)}" fill="${C.c}" stroke="#05070a" stroke-width="2"/><circle cx="${f1(r * 0.45)}" cy="-3.2" r="2.4" fill="none" stroke="#e6edf5" stroke-width="1.1"/><circle cx="${f1(r * 0.45)}" cy="3.2" r="2.4" fill="none" stroke="#e6edf5" stroke-width="1.1"/>`;
+    else s += `<circle r="${f1(r)}" fill="${C.c}" stroke="#05070a" stroke-width="2"/><circle r="${f1(r * 0.62)}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1.2"/><rect x="${f1(r * 0.35)}" y="-2.2" width="${f1(r * 0.6)}" height="4.4" rx="1.6" fill="#0a0d12"/>`;
+    s += `</g>`;
+    // the Blade, held out to the side
+    const bl = val(who + "blade", t);
+    if (bl >= 1 && !down) {
+      const f = val("fpos", t), toF = Math.atan2(f.y - p.y, f.x - p.x);
+      const ba = lerp(a, toF, 0.55) + Math.sin(t / 260 + who.length) * 0.15;
+      const L0 = r + 2, L1 = r + (who === "D" ? 34 : 30);
+      s += `<line x1="${f1(p.x + Math.cos(ba) * L0)}" y1="${f1(p.y + Math.sin(ba) * L0)}" x2="${f1(p.x + Math.cos(ba) * L1)}" y2="${f1(p.y + Math.sin(ba) * L1)}" stroke="#e8f2ff" stroke-width="${who === "D" ? 4 : 3}" stroke-linecap="round" filter="url(#f-glow)"/>`;
+    }
+    // cracked Plate leaks Stormlight
+    const ck = CRACK[who];
+    if (ck && t >= ck.t) {
+      s += `<path d="M${f1(p.x - 4)} ${f1(p.y - 7)} l3 4 -3 3 4 4" stroke="#f2f8ff" stroke-width="1.6" fill="none" filter="url(#f-glow)"/>`;
+      s += wisps(p, t, ck.t, who === "D" ? 5 : 3, who === "D" ? 16 : 10);
+    }
+    return s + `</g>`;
+  }
+  function personSvg(d, t) {
+    const fallen = d.fell && t >= d.fell.t;
+    if (d.bridge) {
+      if (fallen) { const u = clamp((t - d.fell.t) / 900); if (u >= 1) return ""; return `<circle cx="${f1(d.ox)}" cy="${f1(d.oy + u * 30)}" r="${f1(3 * (1 - u))}" fill="#ece4d2" opacity="${f1(1 - u)}"/>`; }
+    }
+    if (fallen) return `<path d="M${f1(d.fell.x - 3)} ${f1(d.fell.y - 3)}l6 6m0 -6l-6 6" stroke="#6e6878" stroke-width="1.6"/>`;
+    const p = dotPos(d, t);
+    const jx = Math.sin(t / 300 + d.ph) * 1.4, jy = Math.cos(t / 340 + d.ph) * 1.4;
+    const x = f1(p.x + jx), y = f1(p.y + jy);
+    if (d.kind === "archer") return `<path d="M${x} ${f1(y - 4)}l3.6 7h-7.2z" fill="#c9b98f"/>`;
+    if (d.kind === "attendant") return `<circle cx="${x}" cy="${y}" r="3" fill="#ece4d2" opacity=".75"/>`;
+    return `<circle cx="${x}" cy="${y}" r="3.6" fill="#b8a888"/><line x1="${x}" y1="${y}" x2="${f1(p.x + 7 + jx)}" y2="${f1(p.y - 6 + jy)}" stroke="#8b7f66" stroke-width="1.2"/>`;
+  }
+
+  // the chasmfiend, drawn in its own frame
+  function fiendSvg(t) {
+    const P0 = pose(t), rise = val("frise", t), rage = val("frage", t), dead = val("fdead", t), top = P0.top;
+    const sc = 0.72 + 0.28 * rise, op = clamp(rise * 1.6);
+    const wig = (i) => (dead >= 1 ? 0 : Math.sin(t / (180 - rage * 70) + i * 1.7) * (3 + rage * 4));
+    const ink = "#3b2a5a", edge = "#6d50a0", rim = "#9a7fd0", deadL = "#4e4a5c";
+    let legs = "", claws = "", s = "";
+    // legs
+    ["L", "R"].forEach((side) => {
+      const sg = side === "L" ? -1 : 1;
+      LEGX.forEach((ax, i) => {
+        const id = side + i, st = LEGS[id], gone = st && t >= st.t;
+        const spl = ax * 0.55;
+        let fx_ = ax + spl + wig(i + (sg > 0 ? 7 : 0)), fy = sg * 118, kx = ax + spl * 0.35, ky = sg * 86, col = "#5b438a", w = 6;
+        if (gone && st.kind === "snap") { fx_ = ax - 6; fy = sg * (96 + top * 26); kx = ax + 18; ky = sg * 64; col = "#6a3d6e"; }
+        else if (gone) { const u = clamp((t - st.t) / 500); fx_ = lerp(fx_, ax - 40, u); fy = lerp(fy, sg * 72, u); kx = lerp(kx, ax - 14, u); ky = lerp(ky, sg * 58, u); col = deadL; w = 6; }
+        if (side === "R" && top > 0 && !(gone && st.kind !== "snap")) { fy = sg * (112 + top * 30); }
+        legs += `<path d="M${ax} ${sg * 30} L${f1(kx)} ${f1(ky)} L${f1(fx_)} ${f1(fy)}" stroke="#1a1028" stroke-width="${w + 3}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M${ax} ${sg * 30} L${f1(kx)} ${f1(ky)} L${f1(fx_)} ${f1(fy)}" stroke="${col}" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>${gone ? "" : `<circle cx="${f1(kx)}" cy="${f1(ky)}" r="3.2" fill="${rim}" opacity=".7"/>`}`;
+        if (gone && st.kind === "snap") legs += `<circle cx="${f1(kx)}" cy="${f1(ky)}" r="5" fill="#a35ad1" opacity=".8"/>`;
+        if (gone && st.kind === "cut") legs += `<circle cx="${f1(fx_)}" cy="${f1(fy)}" r="3" fill="#2a2633"/>`;
+      });
+    });
+    // foreclaws: two-segment arms reaching for a target point
+    for (let i = 0; i < 4; i++) {
+      const c = clawAt(i, t), loc = toLocal(P0, c), [sx, sy] = CLAW_SH[i], sg = i < 2 ? -1 : 1;
+      const lift = c.l || 0;
+      const dx = loc.x - sx, dy = loc.y - sy, D = Math.min(Math.hypot(dx, dy), 176) || 1;
+      const ux = dx / D, uy = dy / D, l1 = 89, h = Math.sqrt(Math.max(0, l1 * l1 - (D / 2) * (D / 2)));
+      const mx = sx + ux * D / 2, my = sy + uy * D / 2;
+      const ex = mx - uy * h * sg, ey = my + ux * h * sg;
+      const tx = sx + ux * D, ty = sy + uy * D;
+      const ang = Math.atan2(ty - ey, tx - ex) / D2R, k = 1 + lift * 0.3;
+      if (lift > 0.05) claws += `<ellipse cx="${f1(loc.x)}" cy="${f1(loc.y)}" rx="${f1(30 * lift)}" ry="${f1(18 * lift)}" fill="#000" opacity="${f1(0.35 * lift)}"/>`;
+      claws += `<path d="M${sx} ${sy} L${f1(ex)} ${f1(ey)} L${f1(tx)} ${f1(ty)}" stroke="${ink}" stroke-width="${f1(17 * k)}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M${sx} ${sy} L${f1(ex)} ${f1(ey)} L${f1(tx)} ${f1(ty)}" stroke="${edge}" stroke-width="${f1(3 * k)}" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
+        <g transform="translate(${f1(tx)},${f1(ty)}) rotate(${f1(ang)}) scale(${f1(k)})"><path d="M-8 -12 C 14 -20, 34 -12, 40 4 C 30 -2, 18 -2, 10 2 C 22 6, 30 14, 30 22 C 18 12, 2 10, -8 12Z" fill="${ink}" stroke="${rim}" stroke-width="1.6" transform="scale(1,${sg})"/></g>`;
+    }
+    // body: tail fan, segmented carapace, arrowhead head
+    const segs = [];
+    for (let i = 0; i < 9; i++) { const x = 104 - i * 26, w = Math.max(44 - Math.abs(i - 2) * 3, 22); segs.push(`<path d="M${x - 15} ${f1(-w)} Q${x + 22} 0 ${x - 15} ${f1(w)} Q${x - 4} 0 ${x - 15} ${f1(-w)}Z" fill="${i % 2 ? "#33244f" : ink}" stroke="${edge}" stroke-width="2"/>`); }
+    const spine = `<path d="M-120 0 L112 0" stroke="${rim}" stroke-width="1.4" opacity=".35" stroke-dasharray="3 9"/>`;
+    const eye = dead >= 1 ? "#0b0b0d" : "#6fe08a", ew = 1 - dead * 0.55;
+    const burns = MARKS.filter((m) => m.type === "burn" && t >= m.t).map((m) => `<ellipse cx="${m.lx}" cy="${m.ly}" rx="9" ry="6" fill="#0c0a10" opacity=".85"/>`).join("");
+    s += `<path d="M-130 0 C -150 -40, -205 -58, -224 -36 C -206 -14, -206 14, -224 36 C -205 58, -150 40, -130 0Z" fill="${ink}" stroke="${edge}" stroke-width="2.5"/>
+      <path d="M-140 0 L-214 0 M-150 -14 L-210 -30 M-150 14 L-210 30" stroke="${edge}" stroke-width="1.4" opacity=".7"/>
+      <path d="M-128 -30 C -60 -52, 60 -56, 122 -38 L122 38 C 60 56, -60 52, -128 30Z" fill="${ink}" stroke="${edge}" stroke-width="2.5"/>
+      ${segs.join("")}${spine}${burns}
+      <path d="M118 -40 L178 -8 L188 0 L178 8 L118 40 C 128 14, 128 -14, 118 -40Z" fill="${ink}" stroke="${rim}" stroke-width="2.4"/>
+      <path d="M178 -8 q12 -10 22 -4 M178 8 q12 10 22 4 M182 -3 q10 -3 16 0 M182 3 q10 3 16 0" stroke="${rim}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <ellipse cx="146" cy="-15" rx="${f1(6 * ew)}" ry="${f1(3.4 * ew)}" fill="${eye}" ${dead < 1 ? 'filter="url(#f-glow)"' : ""}/>
+      <ellipse cx="146" cy="15" rx="${f1(6 * ew)}" ry="${f1(3.4 * ew)}" fill="${eye}" ${dead < 1 ? 'filter="url(#f-glow)"' : ""}/>`;
+    const tremble = rage > 0.5 && dead < 1 ? Math.sin(t / 37) * rage * 1.6 : 0;
+    const tilt = top * 14;
+    const transform = `translate(${f1(P0.x + tremble)},${f1(P0.y)}) rotate(${f1(P0.h)}) scale(${f1(sc)}) translate(0,${f1(top * 46)}) rotate(${f1(tilt * 0.2)}) scale(1,${f1(1 - top * 0.22)})`;
+    return `<g transform="${transform}" opacity="${f1(op)}" data-who="fiend" class="hit">
+      <ellipse cx="-10" cy="${f1(14 + top * 20)}" rx="250" ry="${f1(90 + top * 30)}" fill="#000" opacity=".38" filter="url(#f-soft)"/>
+      ${legs}${claws}${s}</g>`;
+  }
+
+  // ------------------------------------------------------------ transient effects
+  function fxSvg(t) {
+    let s = "";
+    for (const e of FX) {
+      if (e.t > t) break;
+      const age = t - e.t;
+      if (e.type === "impact" && age < 700) {
+        const u = age / 700, r = rng(Math.floor(e.t));
+        s += `<circle cx="${e.x}" cy="${e.y}" r="${f1(e.r * (0.4 + u * 1.3))}" fill="none" stroke="#c8bfae" stroke-width="${f1(4 * (1 - u))}" opacity="${f1(1 - u)}"/>`;
+        for (let i = 0; i < 10; i++) { const a = r() * TAU, d = (0.3 + r()) * e.r * 1.4 * EASE.out(u); s += `<rect x="${f1(e.x + Math.cos(a) * d)}" y="${f1(e.y + Math.sin(a) * d)}" width="4" height="3" fill="#8a8f99" opacity="${f1(1 - u)}"/>`; }
+      } else if (e.type === "volley" && age < 1500) {
+        const r = rng(e.seed * 97), head = mouthAt(e.t + 500);
+        for (let i = 0; i < 26; i++) {
+          const d = val(e.from, e.t), sx = d.x + (r() - 0.5) * 60, sy = d.y + (r() - 0.5) * 40;
+          const tx = head.x + (r() - 0.5) * 90 - 20, ty = head.y + (r() - 0.5) * 90;
+          const delay = r() * 260, u = (age - delay) / 650, bounce = r() > 0.25;
+          if (u < 0 || u > 1.7) continue;
+          if (u <= 1) {
+            const lift = Math.sin(Math.PI * u) * 36, x = lerp(sx, tx, u), y = lerp(sy, ty, u) - lift;
+            const u2 = Math.max(0, u - 0.07), x2 = lerp(sx, tx, u2), y2 = lerp(sy, ty, u2) - Math.sin(Math.PI * u2) * 36;
+            s += `<line x1="${f1(x2)}" y1="${f1(y2)}" x2="${f1(x)}" y2="${f1(y)}" stroke="#e8dcc0" stroke-width="1.4" opacity=".9"/>`;
+          } else if (bounce) {
+            const v = (u - 1) / 0.7, a = r() * TAU, x = tx + Math.cos(a) * 40 * v, y = ty + Math.sin(a) * 40 * v;
+            s += `<line x1="${f1(x)}" y1="${f1(y)}" x2="${f1(x + Math.cos(a) * 6)}" y2="${f1(y + Math.sin(a) * 6)}" stroke="#b8ad95" stroke-width="1.2" opacity="${f1(1 - v)}"/>`;
+          }
+        }
+      } else if (e.type === "bolt" && age < 600) {
+        const a = val(e.from, e.t), u = clamp(age / 220), x = lerp(a.x, e.to.x, u), y = lerp(a.y, e.to.y, u);
+        const x2 = lerp(a.x, e.to.x, Math.max(0, u - 0.25)), y2 = lerp(a.y, e.to.y, Math.max(0, u - 0.25));
+        if (u < 1) s += `<line x1="${f1(x2)}" y1="${f1(y2)}" x2="${f1(x)}" y2="${f1(y)}" stroke="#f0e6cf" stroke-width="4.5" stroke-linecap="round"/>`;
+        else s += `<line x1="${f1(e.to.x - (e.to.x - a.x) * 0.04)}" y1="${f1(e.to.y - (e.to.y - a.y) * 0.04)}" x2="${e.to.x}" y2="${e.to.y}" stroke="#3a3328" stroke-width="5" stroke-linecap="round"/>`;
+      } else if (e.type === "gore" && age < 900) {
+        const u = age / 900, r = rng(Math.floor(e.t) + 5);
+        for (let i = 0; i < 12; i++) { const a = r() * TAU, d = (0.3 + r()) * 46 * EASE.out(u); s += `<circle cx="${f1(e.x + Math.cos(a) * d)}" cy="${f1(e.y + Math.sin(a) * d)}" r="${f1(2 + r() * 4)}" fill="#a35ad1" opacity="${f1(1 - u)}"/>`; }
+      } else if (e.type === "chunk" && age < 800) {
+        const u = age / 800, r = rng(Math.floor(e.t) + 9);
+        for (let i = 0; i < 5; i++) { const a = r() * TAU, d = (0.4 + r()) * 34 * EASE.out(u); s += `<rect x="${f1(e.x + Math.cos(a) * d)}" y="${f1(e.y + Math.sin(a) * d)}" width="7" height="5" fill="#4a3570" stroke="#7f62b5" opacity="${f1(1 - u)}" transform="rotate(${f1(a * 60)} ${f1(e.x)} ${f1(e.y)})"/>`; }
+      } else if (e.type === "mist" && age < 800) {
+        const p = val(e.who, e.t), u = age / 800;
+        for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU, d = 10 + u * 26; s += `<circle cx="${f1(p.x + Math.cos(a) * d)}" cy="${f1(p.y + Math.sin(a) * d)}" r="${f1(4 + u * 5)}" fill="#dfe9f5" opacity="${f1(0.5 * (1 - u))}"/>`; }
+      } else if (e.type === "saddle" && age < 500) {
+        const u = age / 500, x = lerp(e.from[0], e.to[0], u), y = lerp(e.from[1], e.to[1], u) - Math.sin(Math.PI * u) * 30;
+        s += `<rect x="${f1(x - 7)}" y="${f1(y - 5)}" width="14" height="10" rx="3" fill="#7a5532" transform="rotate(${f1(u * 400)} ${f1(x)} ${f1(y)})"/>`;
+      } else if (e.type === "glint" && age < 900) {
+        const p = val(e.who, e.t), u = age / 900;
+        s += `<path d="M${f1(p.x)} ${f1(p.y - 30)}l3 -12 3 12 12 3 -12 3 -3 12 -3 -12 -12 -3z" fill="#f6fbff" opacity="${f1(Math.sin(Math.PI * u))}" filter="url(#f-glow)"/>`;
+      } else if (e.type === "signal" && age < 1100) {
+        const p = val(e.who, e.t), u = age / 1100;
+        s += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="${f1(16 + u * 60)}" fill="none" stroke="#3f82dc" stroke-width="2" stroke-dasharray="4 5" opacity="${f1(1 - u)}"/>`;
+      } else if (e.type === "dust" && age < 1600) {
+        const P0 = pose(e.t), u = age / 1600;
+        s += `<ellipse cx="${f1(P0.x)}" cy="${f1(P0.y)}" rx="${f1(200 + u * 140)}" ry="${f1(120 + u * 90)}" transform="rotate(${f1(P0.h)} ${f1(P0.x)} ${f1(P0.y)})" fill="none" stroke="#b8ad95" stroke-width="${f1(10 * (1 - u))}" opacity="${f1(0.5 * (1 - u))}" filter="url(#f-soft)"/>`;
+      } else if (e.type === "smoke" && age < 2600) {
+        const P0 = pose(e.t), u = age / 2600;
+        [-15, 15].forEach((ly, j) => { const w = toWorld(P0, 146, ly); for (let i = 0; i < 3; i++) { const v = (u * 1.4 + i / 3) % 1; s += `<circle cx="${f1(w.x + Math.sin(i + j + u * 6) * 5)}" cy="${f1(w.y - v * 36)}" r="${f1(3 + v * 7)}" fill="#8b8f98" opacity="${f1(0.55 * (1 - v) * (1 - u))}"/>`; } });
+      }
+    }
+    // a Blade coalescing from mist
+    for (const b of FORM) {
+      const age = t - b.t;
+      if (age < -650 || age > 260) continue;
+      const p = val(b.who, Math.min(t, b.t)), u = clamp((age + 650) / 650);
+      if (age < 0) for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU + u * 2, d = 34 * (1 - u) + 6; s += `<circle cx="${f1(p.x + Math.cos(a) * d)}" cy="${f1(p.y + Math.sin(a) * d)}" r="3" fill="#e8f2ff" opacity="${f1(0.25 + u * 0.6)}"/>`; }
+      else s += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="${f1(16 + age / 8)}" fill="none" stroke="#e8f2ff" stroke-width="2" opacity="${f1(1 - age / 260)}"/>`;
+    }
+    // the gemheart and the gloryspren
+    if (GEM && t >= GEM.t) {
+      const p = val("E", t), u = clamp((t - GEM.t) / 900), y = p.y - 18 - u * 22;
+      s += `<circle cx="${f1(p.x)}" cy="${f1(y)}" r="${f1(30 + u * 40)}" fill="url(#g-gemglow)"/>
+        <path d="M${f1(p.x - 10)} ${f1(y - 3)} l6 -9 9 1 6 8 -3 10 -10 4 -9 -5z" fill="url(#g-gem)" stroke="#b9ffd2" stroke-width="1.2"/>`;
+      for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * TAU + (t - GEM.t) / 1700, d = 30 + Math.sin(t / 400 + i) * 8, v = clamp((t - GEM.t - 300 - i * 90) / 600);
+        s += `<circle cx="${f1(p.x + Math.cos(a) * d)}" cy="${f1(y + Math.sin(a) * d * 0.7)}" r="${f1(3.4 + Math.sin(t / 300 + i) * 0.8)}" fill="rgba(255,214,110,.55)" stroke="rgba(255,236,170,.9)" stroke-width=".8" opacity="${f1(v)}" filter="url(#f-glow)"/>`;
+      }
+    }
+    return s;
+  }
+  function marksSvg(t) {
+    let s = "";
+    const broken = MARKS.find((m) => m.type === "bridge");
+    const ok = !broken || t < broken.t;
+    const ax = BRIDGE.a.x, ay = BRIDGE.a.y, bx = BRIDGE.b.x, by = BRIDGE.b.y, mx = (ax + bx) / 2, my = (ay + by) / 2;
+    const plank = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#6b5a44" stroke-width="22" stroke-linecap="butt"/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#8a7458" stroke-width="22" stroke-dasharray="2 6"/>`;
+    s += ok ? plank(ax, ay, bx, by) : plank(ax, ay, f1(lerp(ax, mx, 0.6)), f1(lerp(ay, my, 0.6))) + plank(f1(lerp(bx, mx, 0.45)), f1(lerp(by, my, 0.45)), bx, by);
+    for (const m of MARKS) {
+      if (t < m.t) continue;
+      if (m.type === "saddle") s += `<rect x="${m.x - 7}" y="${m.y - 5}" width="14" height="10" rx="3" fill="#7a5532" transform="rotate(30 ${m.x} ${m.y})"/>`;
+      if (m.type === "gash") s += `<line x1="${m.x1}" y1="${m.y1}" x2="${m.x2}" y2="${m.y2}" stroke="#0c1016" stroke-width="3.2" stroke-linecap="round"/>`;
+      if (m.type === "shelfgone") { const r = rng(5); for (let i = 0; i < 14; i++) s += `<rect x="${f1(SHELF.x + (r() - 0.5) * 70)}" y="${f1(SHELF.y + (r() - 0.5) * 40)}" width="${f1(4 + r() * 7)}" height="${f1(3 + r() * 5)}" fill="#1c232e" stroke="#384456"/>`; }
+    }
+    // a shelf for Dalinar to vault, placed where the beat needs it
+    if (SHELF.x) {
+      const gone = MARKS.find((m) => m.type === "shelfgone");
+      if (!gone || t < gone.t) s += `<path d="M${SHELF.x - 34} ${SHELF.y - 8} l14 -12 30 2 20 10 -6 16 -36 4z" fill="#1c232e" stroke="#4a586c" stroke-width="2"/>`;
+    }
+    return s;
+  }
+
+  // ------------------------------------------------------------ HTML overlays
+  const stage = document.getElementById("stage"), ov = document.getElementById("ov");
+  const LABELS = { D: "Dalinar", A: "Adolin", E: "Elhokar", S: "Sadeas", R: "Renarin" };
+  let VB = { x: 0, y: 0, w: 1600, h: 900 };
+  const proj = (p) => ({ x: ((p.x - VB.x) / VB.w) * stage.clientWidth, y: ((p.y - VB.y) / VB.h) * stage.clientHeight });
+  function overlays(t) {
+    let s = "";
+    RIDERS.forEach((w) => {
+      const p = val(w, t); if (!p) return;
+      const q = proj(p), r = (CAST[w].small ? 9 : 13) / VB.w * stage.clientWidth;
+      s += `<span class="tb-label" style="left:${f1(q.x)}px;top:${f1(q.y + r + 4)}px">${LABELS[w]}</span>`;
+    });
+    if (val("frise", t) > 0.4) { const q = proj(toWorld(pose(t), -60, 0)); s += `<span class="tb-label dim" style="left:${f1(q.x)}px;top:${f1(q.y)}px">the chasmfiend</span>`; }
+    SAY.forEach((b) => {
+      if (t < b.t0 || t > b.t1) return;
+      const p = val(b.who, t), q = proj(p), c = CAST[b.who].c;
+      s += `<span class="tb-bubble" style="--c:${c === "#15161a" ? "#8f98a3" : c};left:${f1(q.x)}px;top:${f1(q.y - 22)}px"><small>${LABELS[b.who]}</small>${P.esc(b.text)}</span>`;
+    });
+    ov.innerHTML = s;
+  }
+
+  // ------------------------------------------------------------ the catch, close up
+  const cutEl = document.getElementById("cut");
+  cutEl.innerHTML = `<svg viewBox="0 0 600 400" aria-hidden="true">
+    <defs>
+      <linearGradient id="cg-claw" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1d42"/><stop offset="1" stop-color="#4a3472"/></linearGradient>
+      <linearGradient id="cg-plate" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9aa3ad"/><stop offset="1" stop-color="#555d68"/></linearGradient>
+      <filter id="cg-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <ellipse cx="300" cy="358" rx="330" ry="24" fill="#141a22"/>
+    <path d="M60 356 L150 352 M210 360 L262 355 M392 358 L480 353" stroke="#283241" stroke-width="2"/>
+    <g class="king">
+      <path d="M118 340 C 150 322, 230 324, 280 340 L 286 354 L 110 354Z" fill="#3b6fd0" opacity=".9"/>
+      <rect x="132" y="328" width="150" height="26" rx="13" fill="#c99b37" stroke="#5a4214" stroke-width="2"/>
+      <circle cx="118" cy="340" r="14" fill="#d8ac45" stroke="#5a4214" stroke-width="2"/>
+    </g>
+    <g class="claw">
+      <path d="M760 -170 C 690 -90, 560 -40, 430 -26 C 340 -16, 262 2, 214 50 C 262 42, 318 50, 362 54 C 440 60, 540 74, 620 40 C 690 10, 760 -40, 800 -90Z" fill="url(#cg-claw)" stroke="#9a7fd0" stroke-width="3"/>
+      <path d="M690 -96 C 660 -50, 650 0, 640 34 M580 -52 C 560 -10, 556 30, 552 62 M480 -30 C 470 0, 466 30, 462 58" stroke="#7f62b5" stroke-width="2.2" fill="none" opacity=".8"/>
+      <path d="M214 50 C 236 36, 262 26, 290 22" stroke="#c4b0ee" stroke-width="2" fill="none" opacity=".7"/>
+      <path d="M402 56 l-10 16 22 -12 M480 62 l-8 18 22 -14" fill="#3a2a5c" stroke="#9a7fd0" stroke-width="1.6"/>
+    </g>
+    <g class="dalinar">
+      <path d="M296 262 L 262 334 L 200 346" stroke="url(#cg-plate)" stroke-width="34" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M326 262 L 380 296 L 388 350" stroke="url(#cg-plate)" stroke-width="32" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M262 150 L 340 150 L 350 262 L 252 262Z" fill="url(#cg-plate)" stroke="#2c3138" stroke-width="2.5"/>
+      <path d="M262 168 L 340 168 M258 210 L 344 210" stroke="#3f4650" stroke-width="2"/>
+      <path d="M252 150 L 236 104 L 268 74" stroke="url(#cg-plate)" stroke-width="26" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M350 150 L 362 104 L 330 72" stroke="url(#cg-plate)" stroke-width="26" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <ellipse cx="250" cy="150" rx="32" ry="22" fill="url(#cg-plate)" stroke="#2c3138" stroke-width="2.5"/>
+      <ellipse cx="352" cy="150" rx="32" ry="22" fill="url(#cg-plate)" stroke="#2c3138" stroke-width="2.5"/>
+      <rect x="252" y="58" width="34" height="28" rx="9" fill="#8a929c" stroke="#2c3138" stroke-width="2.5"/>
+      <rect x="314" y="56" width="34" height="28" rx="9" fill="#8a929c" stroke="#2c3138" stroke-width="2.5"/>
+      <path d="M276 112 C 276 94, 326 94, 326 112 L 324 140 L 278 140Z" fill="url(#cg-plate)" stroke="#2c3138" stroke-width="2.5"/>
+      <rect x="284" y="116" width="34" height="5" rx="2" fill="#0a0d12"/>
+    </g>
+    <g class="cracks" stroke="#eef7ff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#cg-glow)">
+      <path pathLength="1" d="M258 62 l8 10 -6 8 9 6"/><path pathLength="1" d="M330 60 l-6 9 8 7 -4 9"/>
+      <path pathLength="1" d="M236 140 l12 6 -4 10 14 4 -6 10"/><path pathLength="1" d="M366 138 l-12 8 6 9 -14 5 4 10"/>
+      <path pathLength="1" d="M244 100 l6 12 -8 8"/><path pathLength="1" d="M358 100 l-6 12 8 8"/>
+    </g>
+    <g class="steam"></g>
+  </svg><p class="q">But he caught it.${cite("wok:13")}</p>`;
+  const crackPaths = [...cutEl.querySelectorAll(".cracks path")], steam = cutEl.querySelector(".steam");
+  function cutaway(t) {
+    const c = val("cut", t);
+    cutEl.style.opacity = f1(c * 100) / 100;
+    cutEl.setAttribute("aria-hidden", c > 0.5 ? "false" : "true");
+    if (c <= 0) return;
+    const b = BEATS.find((x) => x.id === "caught");
+    const u = clamp((t - b.t0 - 0.35 * b.d) / (0.4 * b.d));
+    crackPaths.forEach((p, i) => { const v = clamp(u * 1.6 - i * 0.12); p.style.strokeDasharray = "1 1"; p.style.strokeDashoffset = String(1 - v); });
+    let s = "";
+    if (u > 0) for (let i = 0; i < 8; i++) { const ph = ((t / 1300) + i / 8) % 1, x = [262, 330, 240, 362, 250, 352, 300, 290][i] + Math.sin(t / 400 + i) * 6; s += `<circle cx="${f1(x)}" cy="${f1(70 + (i % 3) * 40 - ph * 70)}" r="${f1(3 + ph * 6)}" fill="#f2f8ff" opacity="${f1(0.6 * (1 - ph) * u)}"/>`; }
+    steam.innerHTML = s;
+    const shake = Math.max(0, 1 - (t - b.t0 - 0.06 * b.d) / 600);
+    cutEl.querySelector("svg").style.transform = `translate(${f1(Math.sin(t / 22) * 6 * shake)}px, ${f1(Math.cos(t / 19) * 4 * shake)}px)`;
+  }
+
+  // ------------------------------------------------------------ HUD
+  const pipsL = document.getElementById("pipsL"), pipsR = document.getElementById("pipsR"), tally = document.getElementById("tally"), plate = document.getElementById("plate");
+  pipsL.innerHTML = pipsR.innerHTML = "<i></i>".repeat(7);
+  const helm = (c, cracked) => `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="${c}" stroke="#05070a" stroke-width="1.5"/><rect x="13" y="10.6" width="6" height="2.8" rx="1" fill="#0a0d12"/>${cracked ? '<path d="M7 6l2.5 4-2 2 3 4" stroke="#f2f8ff" stroke-width="1.4" fill="none" filter="url(#f-glow)"/>' : ""}</svg>`;
+  let hudKey = "";
+  function hud(t) {
+    let up = 14, snapped = 0;
+    const st = (id) => { const s = LEGS[id]; return s && t >= s.t ? s.kind : ""; };
+    [[pipsL, "L"], [pipsR, "R"]].forEach(([el, side]) => [...el.children].forEach((i, n) => {
+      const k = st(side + n);
+      if (k) { up--; if (k === "snap") snapped++; }
+      i.className = k === "snap" ? "snap" : k ? "dead" : "";
+    }));
+    const keyNow = up + ":" + ((val("ftop", t) || 0) > 0.5) + ":" + ["D", "A", "E"].map((w) => (CRACK[w] && t >= CRACK[w].t ? 1 : 0)).join("");
+    if (keyNow === hudKey) return;
+    hudKey = keyNow;
+    const fallen = (val("ftop", t) || 0) > 0.5;
+    tally.innerHTML = fallen ? `It falls<small>its right side gives way</small>` : `${up} of 14<small>legs still standing</small>`;
+    plate.innerHTML = ["D", "A", "E"].map((w) => {
+      const ck = CRACK[w] && t >= CRACK[w].t;
+      return `<div>${helm(CAST[w].c, ck)}<p style="margin:0"><b>${LABELS[w]}</b><span class="${ck ? "hurt" : ""}">${ck ? `cracked: ${CRACK[w].where}` : "Plate whole"}</span></p></div>`;
+    }).join("");
+  }
+
+  // ------------------------------------------------------------ heartbeats
+  const heart = document.getElementById("heart"), heartB = heart.querySelector("b");
+  let lastCount = -1;
+  function heartbeat(t) {
+    const c = COUNTS.find((c) => t >= c.t0 - 200 && t <= c.t1 + 900);
+    if (!c) { heart.classList.remove("on"); lastCount = -1; return; }
+    const span = (c.t1 - c.t0) / 9, n = clamp(Math.floor((t - c.t0) / span) + 1, 1, 10), fr = ((t - c.t0) / span) % 1;
+    heart.classList.add("on");
+    if (n !== lastCount) { heartB.textContent = n; lastCount = n; }
+    heartB.style.setProperty("--s", String(Math.round((1 + 0.22 * Math.exp(-Math.max(0, fr) * 6)) * 100) / 100));
+    heart.querySelector("span").textContent = n >= 10 && t >= c.t1 ? "the Blade forms" : "heartbeats";
+  }
+
+  // ------------------------------------------------------------ sound, synthesized in the browser
+  const SND = (() => {
+    let ctx = null, master = null, noise = null, on = true;
+    function init() {
+      if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ctx = new AC();
+      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
+      master = ctx.createGain(); master.gain.value = on ? 0.75 : 0;
+      master.connect(comp); comp.connect(ctx.destination);
+      noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const now = () => ctx.currentTime + 0.01;
+    function gainEnv(t, a, peak, dcy, dest = master) {
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dcy); g.connect(dest); return g;
+    }
+    function tone(type, f0, f1_, t, a, peak, dcy, dest) {
+      const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); if (f1_) o.frequency.exponentialRampToValueAtTime(f1_, t + a + dcy);
+      o.connect(gainEnv(t, a, peak, dcy, dest)); o.start(t); o.stop(t + a + dcy + 0.05); return o;
+    }
+    function hiss(t, dur, type, f0, f1_, q, peak, a = 0.005, dest) {
+      const s = ctx.createBufferSource(); s.buffer = noise; const f = ctx.createBiquadFilter(); f.type = type; f.Q.value = q;
+      f.frequency.setValueAtTime(f0, t); if (f1_) f.frequency.exponentialRampToValueAtTime(f1_, t + dur);
+      s.connect(f); f.connect(gainEnv(t, a, peak, dur, dest)); s.start(t, Math.random()); s.stop(t + a + dur + 0.05);
+    }
+    function voices(base, dur, peak, bend) {
+      // four voices, overlapping, as the page describes the beast's cry
+      const t = now(), lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1100; lp.Q.value = 3; lp.connect(master);
+      [1, 1.26, 1.5, 1.89].forEach((m, i) => {
+        const st = t + i * 0.09, o = ctx.createOscillator(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+        o.type = "sawtooth"; o.frequency.setValueAtTime(base * m * 0.9, st); o.frequency.exponentialRampToValueAtTime(base * m * bend, st + dur * 0.35); o.frequency.exponentialRampToValueAtTime(base * m * 0.82, st + dur);
+        lfo.frequency.value = 5 + i * 0.7; lg.gain.value = base * m * 0.025; lfo.connect(lg); lg.connect(o.frequency);
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, st); g.gain.exponentialRampToValueAtTime(peak, st + 0.12); g.gain.setValueAtTime(peak, st + dur * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, st + dur);
+        o.connect(g); g.connect(lp); o.start(st); lfo.start(st); o.stop(st + dur + 0.05); lfo.stop(st + dur + 0.05);
+      });
+      hiss(t, dur * 0.8, "bandpass", 900, 600, 1.2, peak * 0.6, 0.1);
+    }
+    const S = {
+      heart() { const t = now(); tone("sine", 70, 38, t, 0.008, 0.9, 0.16); tone("sine", 60, 34, t + 0.17, 0.008, 0.6, 0.14); },
+      heartslow() { const t = now(); tone("sine", 62, 34, t, 0.01, 0.7, 0.22); tone("sine", 54, 30, t + 0.24, 0.01, 0.45, 0.2); },
+      trumpet() { voices(92, 1.6, 0.11, 1.18); },
+      agony() { voices(130, 1.2, 0.1, 1.35); },
+      dying() { voices(70, 2.2, 0.08, 0.9); },
+      roar() { const t = now(), lp = ctx.createBiquadFilter(); lp.type = "bandpass"; lp.frequency.value = 700; lp.Q.value = 1.4; lp.connect(master); const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.setValueAtTime(110, t); o.frequency.linearRampToValueAtTime(140, t + 0.3); o.frequency.linearRampToValueAtTime(100, t + 1); o.connect(gainEnv(t, 0.06, 0.22, 1, lp)); o.start(t); o.stop(t + 1.2); hiss(t, 0.9, "bandpass", 1200, 800, 2, 0.08, 0.05); },
+      smash() { const t = now(); tone("sine", 90, 32, t, 0.004, 1, 0.5); hiss(t, 0.5, "lowpass", 1600, 200, 0.7, 0.8); hiss(t + 0.05, 0.35, "bandpass", 2400, 900, 1.5, 0.25); },
+      thud() { const t = now(); tone("sine", 120, 45, t, 0.003, 0.8, 0.22); hiss(t, 0.2, "lowpass", 900, 200, 0.7, 0.4); },
+      crunch() { const t = now(); for (let i = 0; i < 6; i++) hiss(t + i * 0.045 + Math.random() * 0.02, 0.05, "bandpass", 1800 + Math.random() * 1600, 0, 3, 0.35); },
+      snap() { const t = now(); hiss(t, 0.04, "highpass", 3000, 0, 0.7, 0.6); tone("square", 1400, 600, t, 0.001, 0.12, 0.05); },
+      volley() { const t = now(); hiss(t, 0.2, "bandpass", 300, 120, 1, 0.25); for (let i = 0; i < 16; i++) hiss(t + 0.1 + Math.random() * 0.5, 0.12, "bandpass", 5000 + Math.random() * 2000, 2500, 6, 0.09); },
+      shimmer() { const t = now(); hiss(t, 0.7, "bandpass", 600, 4200, 8, 0.25, 0.25); tone("sine", 520, 1560, t, 0.3, 0.06, 0.5); tone("triangle", 1046, 0, t + 0.6, 0.005, 0.12, 0.6); },
+      mist() { const t = now(); hiss(t, 0.5, "bandpass", 3000, 1200, 2, 0.12, 0.03); },
+      slice() { const t = now(); hiss(t, 0.22, "bandpass", 5200, 700, 4, 0.5, 0.01); tone("sine", 2200, 900, t, 0.002, 0.05, 0.12); },
+      swoosh() { const t = now(); hiss(t, 0.45, "bandpass", 300, 1400, 2, 0.5, 0.18); },
+      bow() { const t = now(); tone("sawtooth", 98, 70, t, 0.002, 0.35, 0.45); hiss(t, 0.08, "highpass", 2500, 0, 0.7, 0.5); hiss(t + 0.02, 0.3, "bandpass", 1600, 400, 3, 0.25, 0.02); },
+      gore() { const t = now(); hiss(t, 0.25, "lowpass", 700, 150, 3, 0.45); },
+      ring() { const t = now(); [880, 1320, 2093].forEach((f, i) => tone("sine", f, 0, t + i * 0.01, 0.003, 0.08 / (i + 1), 1.2)); },
+      clang() { const t = now(); [312, 731, 1163, 1688, 2410, 3120].forEach((f, i) => tone("sine", f, f * 0.99, t, 0.002, 0.32 / (i + 1.2), 1.8 - i * 0.2)); tone("sine", 70, 40, t, 0.003, 1, 0.4); hiss(t, 0.15, "highpass", 2000, 0, 0.7, 0.5); },
+      crackle() { const t = now(); for (let i = 0; i < 14; i++) hiss(t + i * 0.07 + Math.random() * 0.04, 0.03, "highpass", 4000, 0, 1, 0.22); tone("sine", 1800, 2600, t, 0.4, 0.04, 0.8); },
+      rumble() { const t = now(); hiss(t, 2.4, "lowpass", 380, 70, 0.8, 0.9, 0.08); tone("sine", 44, 30, t, 0.05, 0.9, 1.6); },
+      grind() { const t = now(); hiss(t, 0.9, "bandpass", 420, 260, 6, 0.3, 0.2); hiss(t + 0.3, 0.6, "bandpass", 700, 300, 5, 0.18, 0.2); },
+      bleat() { const t = now(); tone("sawtooth", 240, 200, t, 0.05, 0.08, 0.5); tone("sawtooth", 236, 190, t + 0.02, 0.05, 0.05, 0.5); },
+      screams() { const t = now(); for (let i = 0; i < 5; i++) { const st = t + i * 0.13; const o = ctx.createOscillator(); o.type = "triangle"; o.frequency.setValueAtTime(600 + Math.random() * 300, st); o.frequency.exponentialRampToValueAtTime(380 + Math.random() * 120, st + 0.6); const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1200; f.Q.value = 2; o.connect(f); f.connect(gainEnv(st, 0.04, 0.035, 0.6)); o.start(st); o.stop(st + 0.7); } },
+      mount() { const t = now(); for (let i = 0; i < 4; i++) tone("sine", 140, 70, t + i * 0.14, 0.002, 0.25, 0.08); },
+      gem() { const t = now(); [523, 784, 1046, 1568].forEach((f, i) => tone("sine", f, 0, t + i * 0.12, 0.01, 0.1, 1.8)); },
+      cheer() { const t = now(); for (let i = 0; i < 4; i++) hiss(t + i * 0.12, 2.6 - i * 0.3, "bandpass", 700 + i * 380, 900 + i * 300, 1.4, 0.16, 0.25); for (let i = 0; i < 10; i++) { const st = t + 0.1 + Math.random() * 1.6; tone("triangle", 300 + Math.random() * 300, 380 + Math.random() * 200, st, 0.05, 0.02, 0.4); } },
+    };
+    return {
+      init,
+      play(name) { if (!ctx || !on || !S[name]) return; try { S[name](); } catch (e) { /* audio is a nicety */ } },
+      get on() { return on; },
+      set on(v) { on = v; if (master) master.gain.setTargetAtTime(v ? 0.75 : 0, ctx.currentTime, 0.05); },
+    };
+  })();
+
+  // ------------------------------------------------------------ narration, beat list, cast
+  const card = document.getElementById("card"), beatsEl = document.getElementById("beats");
+  const POVC = { dalinar: P.povColor("dalinar"), adolin: P.povColor("adolin") };
+  const POVN = { dalinar: "Through Dalinar's eyes", adolin: "Through Adolin's eyes" };
+  const QS = Object.fromEntries((P.data.questions || []).filter((q) => P.visible(q.h)).map((q) => [q.id, q]));
+  beatsEl.innerHTML = BEATS.map((b, i) => `<li><button type="button" data-i="${i}"><span>${String(i + 1).padStart(2, "0")}</span>${P.esc(b.title)}</button></li>`).join("");
+  let shownBeat = -1;
+  const beatAt = (t) => { for (let i = BEATS.length - 1; i >= 0; i--) if (t >= BEATS[i].t0) return i; return 0; };
+  function narrate(i, t) {
+    if (i === shownBeat) return;
+    shownBeat = i;
+    const b = BEATS[i], pv = val("pov", b.t0 + 1);
+    const qs = (b.q || []).map((id) => QS[id]).filter(Boolean);
+    card.style.setProperty("--c", POVC[pv]);
+    card.innerHTML = `<p class="eb"><span>Beat ${i + 1} of ${BEATS.length}</span><span><i></i> ${POVN[pv]}</span>${cite(b.cite)}</p>
+      <h3 class="${b.quote ? "quote" : ""}">${P.esc(b.title)}</h3>
+      <p>${P.esc(b.text)} ${cite(b.cite)}</p>
+      ${qs.map((q) => `<p class="asked">You asked this at ${P.esc(U(q.asked_at).short)} · <a href="../../ledger.html#questions">${P.esc(q.id)}</a></p><blockquote class="wade bare">${P.esc(q.question)}</blockquote>`).join("")}`;
+    [...beatsEl.querySelectorAll("button")].forEach((x, j) => x.setAttribute("aria-current", String(j === i)));
+    const cur = beatsEl.querySelector(`button[data-i="${i}"]`);
+    if (cur && playing) { const li = cur.parentElement; beatsEl.scrollTo({ top: li.offsetTop - beatsEl.clientHeight / 2, left: li.offsetLeft - beatsEl.clientWidth / 2, behavior: P.reducedMotion ? "auto" : "smooth" }); }
+  }
+  const chip = document.getElementById("pov");
+  let povShown = "";
+  function povChip(t) {
+    const pv = val("pov", t);
+    if (pv === povShown) return;
+    povShown = pv;
+    chip.style.setProperty("--c", POVC[pv]);
+    chip.querySelector("span").textContent = POVN[pv];
+  }
+  document.getElementById("stamp").textContent = `${HERE.short} · ${HERE.title}`;
+
+  const castSw = (k) => {
+    const C = CAST[k];
+    if (k === "fiend") return `<svg viewBox="0 0 40 40"><path d="M6 20 C 6 12, 30 10, 34 20 C 30 30, 6 28, 6 20Z" fill="#3b2a5a" stroke="#9a7fd0" stroke-width="1.5"/><circle cx="29" cy="17" r="1.6" fill="#6fe08a"/><circle cx="29" cy="23" r="1.6" fill="#6fe08a"/></svg>`;
+    if (C.horseOnly) return `<svg viewBox="0 0 40 40"><ellipse cx="18" cy="20" rx="13" ry="6" fill="${C.c === "none" ? "#3a4252" : C.c}" stroke="${C.c === "none" ? "#c9d1dc" : "#05070a"}" stroke-width="1.5"/><ellipse cx="32" cy="20" rx="5" ry="3.4" fill="${C.c === "none" ? "#3a4252" : C.c}" stroke="${C.c === "none" ? "#c9d1dc" : "#05070a"}" stroke-width="1.3"/></svg>`;
+    return `<svg viewBox="0 0 40 40">${C.cape ? `<path d="M16 11 Q-2 20 16 29Z" fill="${C.cape}"/>` : ""}<circle cx="20" cy="20" r="${C.small ? 9 : 12}" fill="${C.c}" stroke="#05070a" stroke-width="2"/><rect x="24" y="18" width="7" height="4" rx="1.5" fill="#0a0d12"/></svg>`;
+  };
+  document.getElementById("cast").innerHTML = ["D", "A", "E", "S", "R", "fiend", "gallant", "sureblood", "vengeance", "roan"].map((k) => `<div>${castSw(k)}<div><b>${CAST[k].n}</b>${CAST[k].facts.map(([f, c]) => `<p>${P.esc(f)} ${cite(c)}</p>`).join("")}</div></div>`).join("");
+  document.getElementById("notes").innerHTML = [
+    `The order of events is the page's. Where everyone stands is my staging: the chapter gives sides, distances and moments, not a map. ${cite("wok:13")}`,
+    `The legs follow the page's own count. It first mentions “a dozen smaller legs”, then counts fourteen, so the map draws fourteen, plus the four foreclaws. ${cite("wok:13")}`,
+    `The plateaus come from Chapter 12: a viewing plateau with the king's pavilion and the grandbow rack, a smaller hunting plateau across a chasm, and a large permanent bridge behind. ${cite("wok:12")}`,
+    `The shouts are in my words. Only two lines on this page are the book's: the two beat titles in italics. ${cite("wok:13")}`,
+    `The soldiers', archers' and attendants' colours aren't given, and neither are Vengeance's, so they're drawn plain.`,
+    `The sound is made live in your browser. The beast's cry is four voices overlapping, because that's how the page describes it. ${cite("wok:13")}`,
+  ].map((n) => `<li>${n}</li>`).join("");
+  const wadeLine = (() => {
+    const u = U("wok:13"), sec = (u.sections || []).find((s) => s.title === "Wade");
+    const html = sec && sec.items[0] && sec.items[0].html;
+    if (!html) return "";
+    const tmp = document.createElement("div"); tmp.innerHTML = html;
+    const q = tmp.querySelector("blockquote.wade"); if (!q) return "";
+    const txt = (q.querySelector("p") || q).textContent.trim();
+    const m = txt.match(/^(.+?[.!?])\s+(.+?[.!?])(\s|$)/);
+    return m ? `${m[1]} ${m[2]}` : txt.split(/(?<=[.!?])\s/)[0];
+  })();
+  if (wadeLine) document.getElementById("coda").innerHTML = `<blockquote class="wade">${P.esc(wadeLine)}</blockquote><p>Wade, on finishing ${cite("wok:13")}</p>`;
+
+  // ------------------------------------------------------------ the clock
+  let t = 0, playing = false, last = 0, speed = 1, dirty = true, scrubbing = false;
+  const SPEEDS = [1, 1.5, 0.5];
+  const scrub = document.getElementById("scrub"), timeEl = document.getElementById("time"), playBtn = document.getElementById("play");
+  scrub.max = String(Math.round(TOTAL));
+  document.getElementById("ticks").innerHTML = BEATS.slice(1).map((b) => `<i style="left:${f1((b.t0 / TOTAL) * 100)}%"></i>`).join("");
+  const mmss = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15L19.5 12z"/></svg>';
+  const PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg>';
+  const REPLAY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4.5 12a7.5 7.5 0 107.5-7.5H8"/><path d="M10.5 1.8L7.6 4.6l2.9 2.8"/></svg>';
+  const startBtn = document.getElementById("start");
+  function setPlaying(v) {
+    playing = v;
+    if (v) { SND.init(); startBtn.hidden = true; if (t >= TOTAL - 1) t = 0; }
+    playBtn.innerHTML = v ? PAUSE : t >= TOTAL - 1 ? REPLAY : PLAY;
+    playBtn.setAttribute("aria-label", v ? "Pause" : t >= TOTAL - 1 ? "Replay" : "Play");
+    last = performance.now();
+    dirty = true;
+  }
+  function seek(ms, fromScrub) { t = clamp(ms, 0, TOTAL); dirty = true; startBtn.hidden = true; if (!fromScrub) scrub.value = String(Math.round(t)); }
+  const rmT = (x) => (P.reducedMotion ? Math.min(TOTAL, BEATS[beatAt(x)].t1 - 1) : x);
+
+  function render() {
+    const T = rmT(t);
+    // camera
+    const cam = val("cam", T), portrait = stage.clientHeight > stage.clientWidth;
+    const aspect = stage.clientWidth / Math.max(1, stage.clientHeight);
+    const w = cam.w * (portrait ? 0.74 : 1), h = w / aspect;
+    let sx = 0, sy = 0;
+    if (!P.reducedMotion) for (const e of FX) { if (e.type !== "shake") continue; const age = T - e.t; if (age >= 0 && age < 700) { const k = e.a * Math.exp(-age / 180); sx += Math.sin(age / 18) * k; sy += Math.cos(age / 15) * k; } }
+    VB = { x: cam.x - w / 2 + sx, y: cam.y - h / 2 + sy, w, h };
+    svg.setAttribute("viewBox", `${f1(VB.x)} ${f1(VB.y)} ${f1(VB.w)} ${f1(VB.h)}`);
+    // layers
+    gMarks.innerHTML = marksSvg(T);
+    gPeople.innerHTML = DOTS.map((d) => personSvg(d, T)).join("");
+    // the hunting plateau's chull and its frayed rope
+    const hp = val("hunt", T);
+    rope.setAttribute("d", `M${f1(hp.x - 18)} ${f1(hp.y + 6)} Q ${f1(hp.x - 70)} ${f1(hp.y + 40)} 1206 62`);
+    let props = `<g transform="translate(${f1(hp.x)},${f1(hp.y)})"><ellipse rx="20" ry="14" fill="#6f6252" stroke="#2c241a" stroke-width="2"/><path d="M-6 -14 l4 -6 M6 -14 l-4 -6" stroke="#2c241a" stroke-width="2"/></g>`;
+    if (!SNATCH || T < SNATCH.t1 + 120) {
+      let cp = CART;
+      if (SNATCH && T > SNATCH.t0) { const m = mouthAt(T), u = clamp((T - SNATCH.t0) / (SNATCH.t1 - SNATCH.t0)); cp = { x: lerp(CART.x, m.x, EASE.io(u)), y: lerp(CART.y, m.y, EASE.io(u)) }; }
+      props += `<g transform="translate(${f1(cp.x)},${f1(cp.y)})"><ellipse rx="17" ry="12" fill="#6f6252" stroke="#2c241a" stroke-width="2"/></g>`;
+      if (!SNATCH || T < SNATCH.t0) props += `<rect x="${CART.x - 50}" y="${CART.y - 10}" width="28" height="20" rx="3" fill="#4d3c2a" stroke="#2c241a"/>`;
+    } else if (T < SNATCH.t1 + 900) {
+      const m = mouthAt(SNATCH.t1), u = (T - SNATCH.t1) / 900, r = rng(77);
+      for (let i = 0; i < 7; i++) { const a = r() * TAU, d = 10 + u * 40; props += `<rect x="${f1(m.x + Math.cos(a) * d)}" y="${f1(m.y + Math.sin(a) * d)}" width="8" height="6" fill="#6f6252" opacity="${f1(1 - u)}"/>`; }
+    }
+    if (SNATCH && T >= SNATCH.t0) props += `<rect x="${CART.x - 50}" y="${CART.y - 10}" width="28" height="20" rx="3" fill="#4d3c2a" stroke="#2c241a" transform="rotate(24 ${CART.x - 36} ${CART.y})"/>`;
+    gFiend.innerHTML = props + fiendSvg(T);
+    const ridden = new Set(RIDERS.filter((w) => CAST[w].horse && val(CAST[w].horse, T) && dist(val(w, T), val(CAST[w].horse, T)) < 3).map((w) => CAST[w].horse));
+    gHorses.innerHTML = ["gallant", "sureblood", "vengeance", "roan"].map((hn) => (ridden.has(hn) ? "" : horseSvg(hn, T))).join("");
+    gTokens.innerHTML = RIDERS.map((w) => (CAST[w].horse && ridden.has(CAST[w].horse) ? horseSvg(CAST[w].horse, T) : "") + tokenSvg(w, T)).join("");
+    gFx.innerHTML = P.reducedMotion ? "" : fxSvg(T);
+    focusR.style.opacity = f1(val("focus", T) * 0.9);
+    const bl = val("blur", T);
+    stage.classList.toggle("tb-blur", bl > 0.01);
+    stage.style.setProperty("--blur", `${f1(bl * 5)}px`); stage.style.setProperty("--sat", String(f1(1 - bl * 0.6)));
+    overlays(T); cutaway(T); hud(T); heartbeat(T); povChip(T); narrate(beatAt(T), T);
+    timeEl.textContent = `${mmss(t)} / ${mmss(TOTAL)}`;
+    if (!scrubbing) scrub.value = String(Math.round(t));
+  }
+
+  let lastBeatCount = -1;
+  function loop(now) {
+    if (playing) {
+      const dt = Math.min(100, now - last) * speed, prev = t;
+      last = now;
+      t = Math.min(TOTAL, t + dt);
+      for (const s of SFX) { if (s.t > t) break; if (s.t > prev) SND.play(s.name); }
+      // the heartbeat counter's own thumps
+      const c = COUNTS.find((c) => t >= c.t0 && t <= c.t1 + 50);
+      if (c) { const n = Math.floor((t - c.t0) / ((c.t1 - c.t0) / 9)); if (n !== lastBeatCount && n < 10) { lastBeatCount = n; SND.play("heart"); } }
+      else lastBeatCount = -1;
+      if (t >= TOTAL) setPlaying(false);
+      dirty = true;
+    }
+    if (dirty) { render(); dirty = false; }
+    requestAnimationFrame(loop);
+  }
+
+  // ------------------------------------------------------------ controls
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+  startBtn.addEventListener("click", () => setPlaying(true));
+  const stepBeat = (d) => { const i = clamp(beatAt(t) + d, 0, BEATS.length - 1); seek(d < 0 && t - BEATS[beatAt(t)].t0 > 1200 ? BEATS[beatAt(t)].t0 : BEATS[i].t0); };
+  document.getElementById("prev").addEventListener("click", () => stepBeat(-1));
+  document.getElementById("next").addEventListener("click", () => stepBeat(1));
+  beatsEl.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) seek(BEATS[+b.dataset.i].t0); });
+  scrub.addEventListener("input", () => { scrubbing = true; seek(+scrub.value, true); });
+  scrub.addEventListener("change", () => { scrubbing = false; });
+  const speedBtn = document.getElementById("speed");
+  speedBtn.addEventListener("click", () => { speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]; speedBtn.textContent = `${speed}×`; });
+  const namesBtn = document.getElementById("names");
+  namesBtn.addEventListener("click", () => { const on = namesBtn.getAttribute("aria-pressed") !== "true"; namesBtn.setAttribute("aria-pressed", String(on)); stage.classList.toggle("tb-names-off", !on); });
+  const soundBtn = document.getElementById("sound");
+  soundBtn.addEventListener("click", () => { SND.init(); SND.on = !SND.on; soundBtn.setAttribute("aria-pressed", String(SND.on)); soundBtn.querySelector(".w").style.opacity = SND.on ? 1 : 0.15; startBtn.querySelector("small").textContent = `about 2½ minutes · sound ${SND.on ? "on" : "off"}`; });
+  document.addEventListener("keydown", (e) => {
+    if (e.target.closest("input, select, textarea") && e.target !== scrub) return;
+    if (e.key === " " && !e.target.closest("button")) { e.preventDefault(); setPlaying(!playing); }
+    if (e.key === "ArrowRight" && e.target !== scrub) stepBeat(1);
+    if (e.key === "ArrowLeft" && e.target !== scrub) stepBeat(-1);
+  });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && playing) setPlaying(false); });
+  new ResizeObserver(() => (dirty = true)).observe(stage);
+
+  // tap anyone on the map
+  const pop = document.getElementById("pop");
+  svg.addEventListener("pointerdown", (e) => {
+    const g = e.target.closest("[data-who]");
+    if (!g) { pop.hidden = true; return; }
+    const k = g.dataset.who, C = CAST[k];
+    if (!C) return;
+    const r = stage.getBoundingClientRect();
+    pop.innerHTML = `<button type="button" aria-label="Close">×</button><h4 style="--c:${C.c === "none" ? "#c9d1dc" : C.c}"><i></i>${C.n}</h4>${C.facts.map(([f, c]) => `<p>${P.esc(f)} ${cite(c)}</p>`).join("")}`;
+    pop.hidden = false;
+    const x = clamp(e.clientX - r.left + 12, 8, r.width - pop.offsetWidth - 8), y = clamp(e.clientY - r.top + 12, 8, r.height - pop.offsetHeight - 8);
+    pop.style.left = `${x}px`; pop.style.top = `${y}px`;
+    pop.querySelector("button").addEventListener("click", () => (pop.hidden = true));
+  });
+  svg.style.cursor = "default";
+  svg.addEventListener("pointermove", (e) => { svg.style.cursor = e.target.closest("[data-who]") ? "pointer" : "default"; });
+
+  // a link can start at a beat: ?beat=15, or a moment: ?at=120 (seconds)
+  const qp = new URLSearchParams(location.search);
+  if (qp.has("beat")) seek(BEATS[clamp(+qp.get("beat") - 1, 0, BEATS.length - 1)].t0 + (+qp.get("u") || 0) * BEATS[clamp(+qp.get("beat") - 1, 0, BEATS.length - 1)].d);
+  else if (qp.has("at")) seek(+qp.get("at") * 1000);
+  if (qp.has("beat") || qp.has("at")) startBtn.hidden = true;
+
+  if (!allowed) { document.getElementById("veil").classList.add("on"); card.innerHTML = ""; beatsEl.innerHTML = ""; document.getElementById("coda").innerHTML = ""; return; }
+  requestAnimationFrame(loop);
+  window.__tb = { BEATS, TOTAL, val, TR, SND, SFX, seek: (ms) => seek(ms), get t() { return t; } };
+})();
+</script>
+</body>
+</html>
