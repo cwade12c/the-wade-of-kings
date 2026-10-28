@@ -39,7 +39,7 @@
   .anatomy { display: grid; grid-template-columns: minmax(260px, 380px) 1fr; gap: 2.5rem; align-items: center; }
   .anatomy .stage { position: relative; }
   .anatomy .stage svg.sph { width: 100%; height: auto; transition: filter 1.2s ease; }
-  .anatomy .stage.dun svg.sph { filter: saturate(.25) brightness(.55); }
+  .anatomy .stage.is-dun svg.sph { filter: saturate(.25) brightness(.55); }
   .callouts { position: absolute; inset: 0; pointer-events: none; }
   .callouts text { font: 400 12px var(--text); fill: var(--dusk); }
   .callouts line, .callouts path { stroke: var(--mist); stroke-width: 1; fill: none; }
@@ -266,7 +266,7 @@
   document.getElementById("anat-facts").innerHTML = ANAT.map((f) => li(f, ART.GEMS.sapphire.glow)).join("");
   document.querySelectorAll(".switch button").forEach((b) => b.addEventListener("click", () => {
     document.querySelectorAll(".switch button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-    stage.classList.toggle("dun", b.dataset.s === "dun");
+    stage.classList.toggle("is-dun", b.dataset.s === "dun");
   }));
 
   // ------------------------------------------------------------ ladder
