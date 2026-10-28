@@ -127,4 +127,4 @@
 <circle r="46" fill="url(#scglass)" stroke="rgba(220,236,255,.45)" stroke-width="1"/>
 <ellipse cx="-14" cy="-20" rx="20" ry="11" transform="rotate(-28 -14 -20)" fill="url(#scspec)"/>
 <path d="M 30 26 A 40 40 0 0 1 8 42" stroke="rgba(255,255,255,.28)" stroke-width="2" fill="none" stroke-linecap="round"/>
-</g><text x="34" y="52" fill="#ece4d2" font-family="Palatino, Georgia, serif" font-size="34">Spherelight</text><text x="34" y="78" fill="#a9b3c1" font-family="system-ui, sans-serif" font-size="14">Living dispatch · gems, spheres and prices</text></svg>
+</g><text x="34" y="52" fill="#ece4d2" font-family="Palatino, Georgia, serif" font-size="34">Spherelight</text><text x="34" y="78" fill="#a9b3c1" font-family="system-ui, sans-serif" font-size="14">Living dispatch · gems, spheres and prices</text><text id="checkpoint-note" x="34" y="418" fill="#a9b3c1" font-family="system-ui, sans-serif" font-size="14">Ch 13 · an emerald gemheart as big as a man’s head [wok:13]</text></svg>
