@@ -98,6 +98,14 @@
   const summaryOf = (e, h = limit()) => (e.sh === undefined || e.sh <= h ? e.summary : "");
   const visible = (h) => h === null || h === undefined || h <= limit();
   const visibleAt = (h, at) => h === null || h === undefined || h <= at;
+  // How often the text names an entry, summed over the chapters up to h (the build ships one
+  // [chapter, count] pair per chapter that names it), and whether the chapter at h names it.
+  const mentionsAt = (e, h = limit()) => (e.m || []).reduce((a, [uh, n]) => (uh <= h ? a + n : a), 0);
+  const onPage = (e, h = limit()) => (e.m || []).some(([uh]) => uh === h);
+  // The Unfolding's layers, from the codex folder: people and groups are The Cast; the rest
+  // can be switched on.
+  const LAYER_OF = { people: "cast", peoples: "groups", things: "things", places: "places", fieldguide: "fieldguide", systems: "lore", lore: "lore" };
+  const layerOf = (e) => LAYER_OF[e.folder] || "lore";
 
   // "New since last visit": anything stamped after the horizon the visitor last saw.
   const lastSeen = (() => { const v = localStorage.getItem(SEEN_KEY); return v === null ? null : Number(v); })();
@@ -483,7 +491,7 @@
     friendH, limit, visible, visibleAt, isNew, isPov, summaryOf, unitLabel, unitTitle, unitNumeral, unitAnchor,
     entName, entLink, renderSections, sectionCount, markNew, lightbox, sheet, gauge,
     povColor, unitColor, entColor, sigil, egoWeb, presence, profile, openProfile, tiesOf,
-    BASES, STYLES, basisNote, stated, reducedMotion,
+    BASES, STYLES, basisNote, stated, reducedMotion, mentionsAt, onPage, layerOf,
   };
 
   if (!DATA) {
