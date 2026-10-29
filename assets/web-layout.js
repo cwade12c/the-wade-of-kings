@@ -2,12 +2,14 @@
    ties and returns Map id -> [x, y]; none of them touches the renderer's own nodes, so the
    renderer can keep several and glide between them.
 
-   - compact: the original layout, run over everyone. It's what Everyone and the home teaser
-     have always shown, and The Cast's Compact spacing reuses it.
-   - spacious: The Cast's own map of people and groups, roomier, with every name's box (sphere
-     plus name) kept clear of its neighbours' so each name has a place to sit.
+   - compact: the original layout, run over everyone. It's what Everyone opens on and the home
+     teaser has always shown; The Cast can use it too.
+   - spacious: both views' roomier map. People and groups are laid out with every name's box
+     (sphere plus name) kept clear of its neighbours', each with room for the larger sphere
+     either view draws, so the same map serves The Cast and Everyone.
    - satellites: things, places, field guide and lore, each set beside whoever it's most tied to
-     on the spacious map, with the people held still. Switching a layer on never moves a person. */
+     on the spacious map and kept clear of every sphere at its largest, with the people held
+     still. Switching a layer on never moves a person. */
 (function () {
   "use strict";
   const CIRCLE_ORDER = ["heralds", "szeth", "kholin", "shattered-plains", "amaram-army", "kaladin-family",
@@ -147,11 +149,16 @@
         const dist = (rOf.get(nb) || 6) + 40;
         pos.set(s.id, [nx + Math.cos(a) * dist, ny + Math.sin(a) * dist]);
       }
-      // nudge the satellites clear of every name's box, people held still
+      // nudge the satellites clear of every name's box and every sphere at its largest, people held still
       const ns = fixedItems.map((d) => ({ id: d.id, r: d.r, lw: d.lw, x: pos.get(d.id)[0], y: pos.get(d.id)[1], fx: pos.get(d.id)[0], fy: pos.get(d.id)[1] }))
         .concat(sats.map((d) => ({ id: d.id, r: d.r, lw: d.lw, x: pos.get(d.id)[0], y: pos.get(d.id)[1] })));
-      const sim = d3.forceSimulation(ns).force("box", boxCollide(7, 0.5)).velocityDecay(0.5).stop();
-      for (let i = 0; i < 120; i++) sim.tick();
+      const sim = d3.forceSimulation(ns)
+        .force("collide", d3.forceCollide((d) => d.r * BOOST_MAX + 12).iterations(4))
+        .force("box", boxCollide(7, 0.5)).velocityDecay(0.5).stop();
+      for (let i = 0; i < 240; i++) sim.tick();
+      // a last pass of collisions alone, as the other two maps end: no sphere touches another, even zoomed far out
+      const settle = d3.forceSimulation(ns).force("collide", d3.forceCollide((d) => d.r * BOOST_MAX + 12).iterations(3)).velocityDecay(0.5).stop();
+      for (let i = 0; i < 90; i++) settle.tick();
       return positions(ns);
     },
   };

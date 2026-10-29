@@ -41,12 +41,12 @@
           <div class="uf-seg sm" id="rankby" role="radiogroup" aria-labelledby="rank-h">
             <button type="button" role="radio" data-v="named" aria-checked="true">how often named</button><button type="button" role="radio" data-v="ties" aria-checked="false">ties</button></div></div>
       </div>
+      <h2 id="spacing-h">Spacing</h2>
+      <div class="uf-seg" id="spacing" role="radiogroup" aria-labelledby="spacing-h">
+        <button type="button" role="radio" data-v="spacious" aria-checked="true">Spacious</button><button type="button" role="radio" data-v="compact" aria-checked="false">Compact</button></div>
       <div class="uf-cast-only" id="cast-only">
         <h2>Layers</h2>
         <div class="uf-types uf-layers" id="layers" role="group" aria-label="Add a layer to The Cast"></div>
-        <h2 id="spacing-h">Spacing</h2>
-        <div class="uf-seg" id="spacing" role="radiogroup" aria-labelledby="spacing-h">
-          <button type="button" role="radio" data-v="spacious" aria-checked="true">Spacious</button><button type="button" role="radio" data-v="compact" aria-checked="false">Compact</button></div>
       </div>
       <h2>Kinds of tie</h2>
       <div class="uf-types" id="legend" role="group" aria-label="Show or hide each kind of tie"></div>
@@ -103,10 +103,13 @@
   // a friend's banner takes room too: the map and dock still fit the screen
   const banner = document.querySelector(".friend-banner");
   if (banner) stage.style.setProperty("--banner-h", `${banner.offsetHeight}px`);
-  // The Cast opens by default; ?view=everyone opens Everyone. Nothing is remembered between visits.
-  const VIEW0 = new URLSearchParams(location.search).get("view") === "everyone" ? "everyone" : "cast";
+  // The Cast opens by default; ?view=everyone opens Everyone. ?spacing=spacious|compact sets the
+  // spacing of the view it opens on (the renderer ignores anything else). Nothing is remembered
+  // between visits.
+  const query = new URLSearchParams(location.search);
+  const VIEW0 = query.get("view") === "everyone" ? "everyone" : "cast";
   const web = P.web($("web"), {
-    view: VIEW0, labels: "all", interactive: true, zoom: true, focusMode: true, implied: true, tip: $("tip"),
+    view: VIEW0, spacing: query.get("spacing"), labels: "all", interactive: true, zoom: true, focusMode: true, implied: true, tip: $("tip"),
     // names keep clear of the tool column and the readout (on a phone both fade while someone is picked)
     avoid: () => (narrow() && stage.classList.contains("focusing") ? [] : [...stage.querySelectorAll(".uf-tools, .uf-readout")].map((el) => el.getBoundingClientRect())),
     pad: narrow() ? { top: 92, right: 12, bottom: 16, left: 12 } : { top: 110, right: 80, bottom: 30, left: 40 },
@@ -240,12 +243,14 @@
     });
     return set;
   }
-  const setViewSw = seg($("view"), (v) => { web.setView(v); $("cast-only").hidden = v !== "cast"; readout(); });
+  // each view keeps its own spacing; the switch always shows the spacing of the view on screen
+  const setSpacingSw = seg($("spacing"), (v) => web.setSpacing(v));
+  setSpacingSw(web.spacing());
+  const setViewSw = seg($("view"), (v) => { web.setView(v); setSpacingSw(web.spacing()); $("cast-only").hidden = v !== "cast"; readout(); });
   setViewSw(VIEW0);
   $("cast-only").hidden = VIEW0 !== "cast";
   seg($("show"), (v) => { web.setShow(v); readout(); });
   seg($("rankby"), (v) => { web.setRankBy(v); readout(); });
-  seg($("spacing"), (v) => web.setSpacing(v));
   const LAYERS = [["things", "Things", "things"], ["places", "Places", "places"], ["fieldguide", "Field guide", "fieldguide"], ["lore", "Systems & lore", "systems"]];
   const layers = $("layers");
   layers.innerHTML = LAYERS.map(([k, label, folder]) => `<label>

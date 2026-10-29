@@ -3,13 +3,14 @@
    drawn in, so scrubbing through chapters only lights, sizes and dims nodes in place. New nodes
    "infuse" into view, in step with the storm that sweeps each chapter in.
 
-   Two views (opts.view):
+   Two views (opts.view) decide what is drawn and how:
    - "everyone" (the default, and all the home teaser knows): every name and every tie, one line
      per tie, spheres sized by ties. Called without a view, the web draws exactly as it always has.
    - "cast": people and groups, with things, places, field guide and lore as layers to switch on.
      A group's members share a territory instead of lines to its square; each pair gets one
      line, quiet until someone is picked; spheres grow with how often the book names someone;
      names come and go with the zoom, like towns on a map.
+   Spacing (Spacious or Compact) decides where everyone sits; each view keeps its own.
 
    Reading it at any size:
    - Zoom spreads the web apart. Spheres, lines and names keep a steady size on screen, so
@@ -80,8 +81,10 @@
     // ------------------------------------------------------------ state
     const state = {
       h: lim, types: new Set(Object.keys(P.TYPES)), styles: new Set(Object.keys(P.STYLES)), selected: null,
-      view: opts.view || "everyone", layers: new Set(), tier: "all", rankBy: "named", spacing: "spacious",
+      view: opts.view || "everyone", layers: new Set(), tier: "all", rankBy: "named",
+      spacing: { cast: "spacious", everyone: "compact" },   // each view keeps its own, for the visit
     };
+    if (opts.spacing === "spacious" || opts.spacing === "compact") state.spacing[state.view] = opts.spacing;
     const cast = () => state.view === "cast";
     const styleOf = (l) => (P.BASES[l.basis] || P.BASES.seen).style;
     const shown = (l) => l.on <= state.h && state.types.has(l.type) && state.styles.has(styleOf(l));
@@ -102,7 +105,8 @@
           stated.map((l) => ({ source: l.from, target: l.to, type: l.type })), W, HGT);
       } else {
         const people = nodes.filter((n) => ALWAYS.has(n.layer)), inside = new Set(people.map((n) => n.id));
-        const items = (ns) => ns.map((n) => ({ id: n.id, r: n.rMax, lw: n.lw, circle: n.circle }));
+        // room for the larger sphere either view draws here
+        const items = (ns) => ns.map((n) => ({ id: n.id, r: Math.max(n.rE, n.rMax), lw: n.lw, circle: n.circle }));
         const fixed = P.webLayout.spacious(items(people),
           stated.filter((l) => inside.has(l.from) && inside.has(l.to)).map((l) => ({ source: l.from, target: l.to, type: l.type, member: !!l.member })), W, HGT);
         const sats = nodes.filter((n) => !inside.has(n.id));
@@ -111,7 +115,7 @@
       }
       return layouts[name];
     }
-    const layoutName = () => (cast() && state.spacing === "spacious" ? "spacious" : "compact");
+    const layoutName = () => (page && state.spacing[state.view] === "spacious" ? "spacious" : "compact");
     let current = layoutName();
     function setBase(name) {
       const pos = layout(name);
@@ -792,7 +796,8 @@
         if (focus) enterFocus(focus, GLIDE_MS);
         else moveTo(new Map(), GLIDE_MS);
       }
-      if (o.refit && !focus && zoom) setT(userMoved ? T : startTransform(), GLIDE_MS);
+      // the camera follows only if the reader hasn't moved it and nobody is picked
+      if (o.refit && !focus && zoom && !userMoved) setT(startTransform(), GLIDE_MS);
     }
     const api = {
       nodes, links,
@@ -815,7 +820,8 @@
       setLayers(set) { state.layers = new Set([...set].filter((x) => !ALWAYS.has(x))); apply(); if (focus) enterFocus(focus, 400); },
       setShow(tier) { state.tier = tier; apply(); },
       setRankBy(by) { state.rankBy = by; apply(); },
-      setSpacing(sp) { state.spacing = sp; reshape(); },
+      setSpacing(sp) { state.spacing[state.view] = sp; reshape({ refit: true }); },
+      spacing: () => state.spacing[state.view],
       select(id) {
         const n = id ? byId[id] : null;
         state.selected = n && n.h <= state.h ? n : null;
@@ -846,7 +852,7 @@
       },
       inView: (id) => !!byId[id] && inView(byId[id]),
       fit() { userMoved = false; setT(fitTransform(), 500); },
-      zoomBy(f) { if (zoom) svg.transition("cam").duration(P.reducedMotion ? 0 : 300).call(zoom.scaleBy, f); },
+      zoomBy(f) { if (zoom) { userMoved = true; svg.transition("cam").duration(P.reducedMotion ? 0 : 300).call(zoom.scaleBy, f); } },
       reframe() { if (focus) enterFocus(focus, 450); },
       has: (id) => !!byId[id],
     };
