@@ -1,7 +1,15 @@
 /* The Unfolding: who is connected to whom, drawn from codex/relations.toml.
-   The layout is computed once for everything visible, sized to the box it's drawn in, so
-   scrubbing through chapters only lights and dims nodes in place. New nodes "infuse" into
-   view, in step with the storm that sweeps each chapter in.
+   Layouts (web-layout.js) are computed once for everything visible, sized to the box they're
+   drawn in, so scrubbing through chapters only lights, sizes and dims nodes in place. New nodes
+   "infuse" into view, in step with the storm that sweeps each chapter in.
+
+   Two views (opts.view):
+   - "everyone" (the default, and all the home teaser knows): every name and every tie, one line
+     per tie, spheres sized by ties. Called without a view, the web draws exactly as it always has.
+   - "cast": people and groups, with things, places, field guide and lore as layers to switch on.
+     A group's members share a territory instead of lines to its square; each pair gets one
+     line, quiet until someone is picked; spheres grow with how often the book names someone;
+     names come and go with the zoom, like towns on a map.
 
    Reading it at any size:
    - Zoom spreads the web apart. Spheres, lines and names keep a steady size on screen, so
@@ -13,24 +21,31 @@
      roughly the direction they sat in, each labelled with what the tie is. Whatever else
      stood in the way drifts aside. Let go and everything glides home.
    - Ties that follow from the family lines (opts.implied) are drawn thin and faint. They join
-     focus rings, but have no say in a sphere's size, its name's priority, or the layout. */
+     focus rings, but have no say in a sphere's size, its name's priority, or the layout.
+
+   Salience is mechanical: sizes, tiers and which names show come from counts of the text so far,
+   chapter viewpoints and cited ties, by formulas applied to everyone alike, recomputed for
+   whichever chapter is on screen. */
 (function () {
   "use strict";
-  const CIRCLE_ORDER = ["heralds", "szeth", "kholin", "shattered-plains", "amaram-army", "kaladin-family",
-    "caravan", "purelake", "davar", "kharbranth"];
   const LABEL_PX = 12.5;      // on-screen name size
   const SUB_PX = 10.5;        // on-screen size of a tie's label under a name, in focus
+  const TERR_PX = 9.5;        // on-screen size of a territory's name
   const AREA = 760000;        // layout room, the density that reads well on a desktop
   const BOOST_AT = 0.9;       // zoomed out past this, spheres and lines stop shrinking…
   const BOOST_MAX = 1.8;      // …until they're this much larger than drawn
   const CAP = 1.4;            // zoomed in past this, they stop growing: zoom only spreads
-  const FOCUS_MS = 700;
+  const FOCUS_MS = 700, GLIDE_MS = 700, GROW_MS = 300;
   // lighter tints of the tie colours, for text on the dark sky
   const TINT = { family: "#e3ad4c", command: "#74afff", support: "#4fd1a0", hostile: "#f58e9b", other: "#b3bccb" };
+  // which tie colours a pair's single line in The Cast
+  const PRIORITY = ["family", "hostile", "command", "support", "other"];
+  const ALWAYS = new Set(["cast", "groups"]);   // The Cast's layers that can't be switched off
 
   P.web = function (svgEl, opts = {}) {
     const lim = opts.limit ?? P.limit();
     const ent = P.entityById;
+    const page = opts.view !== undefined;   // the Unfolding page; the teaser stays as it was
     const faint = (r) => !!(P.BASES[r.basis] || {}).faint;
     const rels = P.data.relations.concat(opts.implied ? P.data.implied || [] : [])
       .filter((r) => r.h <= lim && ent[r.from] && ent[r.to] && ent[r.from].h <= lim && ent[r.to].h <= lim);
@@ -39,60 +54,72 @@
     const nodes = [...ids].map((id) => ({ id, e: ent[id], degree: 0 }));
     const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
     rels.forEach((r) => { if (!faint(r)) { byId[r.from].degree++; byId[r.to].degree++; } });
+    const castR = (n, h) => Math.min(20, 4 + 0.55 * Math.sqrt(P.mentionsAt(n.e, h)));
     nodes.forEach((n) => {
       n.h = n.e.h;
-      n.r = 5 + Math.sqrt(n.degree) * 2.6;
+      n.rE = 5 + Math.sqrt(n.degree) * 2.6;   // Everyone: by ties
+      n.rMax = castR(n, lim);                  // The Cast: by mentions, at its largest
+      n.r = n.rE;
       n.square = ["group", "people"].includes(n.e.kind);
       n.circle = n.e.circle || "";
+      n.layer = P.layerOf ? P.layerOf(n.e) : "cast";
+      n.lw = n.e.name.replace(/^The /, "").length * 6.9;   // name width in layout px, before the fonts load
     });
 
     const pairs = {};
     const links = rels.map((r) => {
       const key = [r.from, r.to].sort().join("|");
       pairs[key] = (pairs[key] ?? -1) + 1;
-      return { ...r, source: r.from, target: r.to, idx: pairs[key], key };
+      return { ...r, source: byId[r.from], target: byId[r.to], idx: pairs[key], key };
     });
     links.forEach((l) => { l.total = pairs[l.key] + 1; });
+    // a tie goes on the map once it's cited and both its ends have been met
+    links.forEach((l) => { l.on = Math.max(l.h, l.source.h, l.target.h); });
+    const width = (l) => (faint(l) ? 1.1 : 2), flowWidth = (l) => (faint(l) ? 1.2 : 2.2);
 
-    // ------------------------------------------------------------ layout, shaped to the box
+    // ------------------------------------------------------------ state
+    const state = {
+      h: lim, types: new Set(Object.keys(P.TYPES)), styles: new Set(Object.keys(P.STYLES)), selected: null,
+      view: opts.view || "everyone", layers: new Set(), tier: "all", rankBy: "named", spacing: "spacious",
+    };
+    const cast = () => state.view === "cast";
+    const styleOf = (l) => (P.BASES[l.basis] || P.BASES.seen).style;
+    const shown = (l) => l.on <= state.h && state.types.has(l.type) && state.styles.has(styleOf(l));
+    // in the current view: The Cast holds people, groups and the layers switched on
+    const inView = (n) => !cast() || ALWAYS.has(n.layer) || state.layers.has(n.layer);
+
+    // ------------------------------------------------------------ layouts, shaped to the box
     // Every screen gets the same room per name, shaped to the box: tall on a phone, wide on a monitor.
     const box0 = svgEl.getBoundingClientRect();
     const aspect = Math.max(0.6, Math.min(1.9, (box0.width || 1000) / (box0.height || 680)));
     const W = Math.sqrt(AREA * aspect), HGT = Math.sqrt(AREA / aspect);
-    // clusters ("circles") sit on an ellipse, in an order that keeps related ones adjacent
-    const circles = [...new Set(nodes.map((n) => n.circle))]
-      .sort((a, b) => ((CIRCLE_ORDER.indexOf(a) + 1) || 99) - ((CIRCLE_ORDER.indexOf(b) + 1) || 99));
-    const ring = circles.filter((c) => c);
-    const anchor = { "": [W / 2, HGT / 2] };
-    ring.forEach((c, i) => {
-      const a = (i / ring.length) * Math.PI * 2 - Math.PI / 2;
-      anchor[c] = [W / 2 + Math.cos(a) * W * 0.33, HGT / 2 + Math.sin(a) * HGT * 0.32];
-    });
-    nodes.forEach((n, i) => {
-      const [ax, ay] = anchor[n.circle];
-      n.x = ax + Math.cos(i * 2.4) * 25;
-      n.y = ay + Math.sin(i * 2.4) * 25;
-    });
-    const sim = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links.filter((l) => !faint(l))).id((d) => d.id).distance((l) => (l.type === "family" ? 62 : 92)).strength(0.3))
-      .force("charge", d3.forceManyBody().strength(-260))
-      .force("collide", d3.forceCollide((d) => d.r + 22))
-      .force("x", d3.forceX((d) => anchor[d.circle][0]).strength(0.13))
-      .force("y", d3.forceY((d) => anchor[d.circle][1]).strength(0.13))
-      .stop();
-    for (let i = 0; i < 420; i++) sim.tick();
-    // a tie goes on the map once it's cited and both its ends have been met
-    links.forEach((l) => {
-      if (typeof l.source === "string") { l.source = byId[l.source]; l.target = byId[l.target]; }   // faint ties sat out the layout
-      l.on = Math.max(l.h, l.source.h, l.target.h);
-    });
-    const width = (l) => (faint(l) ? 1.1 : 2), flowWidth = (l) => (faint(l) ? 1.2 : 2.2);
-    // A last pass of collisions alone, wide enough that no two spheres touch even when drawn
-    // at their largest. (Nothing is clamped to the box afterwards: the view fits whatever
-    // shape the web takes, so spheres are never pushed back on top of each other.)
-    const settle = d3.forceSimulation(nodes).force("collide", d3.forceCollide((d) => d.r * BOOST_MAX + 12).iterations(3)).stop();
-    for (let i = 0; i < 90; i++) settle.tick();
-    nodes.forEach((n) => { n.bx = n.x; n.by = n.y; n.flip = n.bx > W * 0.64; });
+    const layouts = {};
+    function layout(name) {   // worked out the first time it's needed
+      if (layouts[name]) return layouts[name];
+      const stated = links.filter((l) => !faint(l));
+      if (name === "compact") {
+        layouts.compact = P.webLayout.compact(nodes.map((n) => ({ id: n.id, r: n.rE, circle: n.circle })),
+          stated.map((l) => ({ source: l.from, target: l.to, type: l.type })), W, HGT);
+      } else {
+        const people = nodes.filter((n) => ALWAYS.has(n.layer)), inside = new Set(people.map((n) => n.id));
+        const items = (ns) => ns.map((n) => ({ id: n.id, r: n.rMax, lw: n.lw, circle: n.circle }));
+        const fixed = P.webLayout.spacious(items(people),
+          stated.filter((l) => inside.has(l.from) && inside.has(l.to)).map((l) => ({ source: l.from, target: l.to, type: l.type, member: !!l.member })), W, HGT);
+        const sats = nodes.filter((n) => !inside.has(n.id));
+        layouts.spacious = sats.length ? P.webLayout.satellites(fixed, items(people), items(sats),
+          stated.map((l) => [l.from, l.to]), (id) => P.mentionsAt(byId[id].e, lim)) : fixed;
+      }
+      return layouts[name];
+    }
+    const layoutName = () => (cast() && state.spacing === "spacious" ? "spacious" : "compact");
+    let current = layoutName();
+    function setBase(name) {
+      const pos = layout(name);
+      current = name;
+      nodes.forEach((n) => { [n.bx, n.by] = pos.get(n.id); n.flip = name === "compact" && n.bx > W * 0.64; });
+    }
+    setBase(current);
+    nodes.forEach((n) => { n.x = n.bx; n.y = n.by; });
 
     // ------------------------------------------------------------ drawing
     const svg = d3.select(svgEl);
@@ -114,17 +141,21 @@
     const merge = glow.append("feMerge");
     merge.append("feMergeNode").attr("in", "b");
     merge.append("feMergeNode").attr("in", "SourceGraphic");
-    // end markers: a second cue beside colour (arrow = command, dot = support, bar = hostility)
+    // end markers: a second cue beside colour (arrow = command, dot = support, bar = hostility).
+    // On the page they're drawn larger: for red-green colour-blind readers the shape is the cue.
+    const markerSize = page ? 6.5 : 4.5;
     const marker = (id, color, draw) => {
       const m = defs.append("marker").attr("id", `${uid}-${id}`).attr("viewBox", "-6 -6 12 12").attr("refX", 0).attr("refY", 0)
-        .attr("markerWidth", 4.5).attr("markerHeight", 4.5).attr("orient", "auto").attr("markerUnits", "strokeWidth");
+        .attr("markerWidth", markerSize).attr("markerHeight", markerSize).attr("orient", "auto").attr("markerUnits", "strokeWidth");
       draw(m, color);
     };
     marker("command", P.TYPES.command.hex, (m, c) => m.append("path").attr("d", "M-4,-4L3,0L-4,4").attr("fill", "none").attr("stroke", c).attr("stroke-width", 2));
     marker("support", P.TYPES.support.hex, (m, c) => m.append("circle").attr("r", 3).attr("fill", c));
     marker("hostile", P.TYPES.hostile.hex, (m, c) => m.append("path").attr("d", "M0,-5L0,5").attr("stroke", c).attr("stroke-width", 2.5));
+    const markerOf = (l) => (["command", "support", "hostile"].includes(l.type) ? `url(#${uid}-${l.type})` : null);
 
     const view = svg.append("g").attr("class", "web-view");
+    const gTerr = page ? view.append("g").attr("class", "web-terrs") : null;
     const gLinks = view.append("g");
     const gNodes = view.append("g");
     const gLabels = view.append("g").attr("class", "web-labels");   // names above every sphere, never under one
@@ -142,28 +173,90 @@
       if (!off) return `M${sx},${sy}L${tx},${ty}`;
       return `M${sx},${sy}Q${(sx + tx) / 2 - uy * off},${(sy + ty) / 2 + ux * off} ${tx},${ty}`;
     }
+    function edges(g, data) {
+      const sel = g.selectAll("g").data(data).join("g").attr("class", "edge").style("color", (l) => P.TYPES[l.type].hex);
+      sel.append("path").attr("class", "edge-line").attr("fill", "none")
+        .attr("stroke", (l) => P.TYPES[l.type].hex).attr("stroke-width", width).attr("stroke-linecap", "round")
+        .attr("stroke-opacity", (l) => (faint(l) ? 0.5 : null))
+        .attr("stroke-dasharray", (l) => (P.BASES[l.basis] || {}).dash || null)
+        .attr("marker-end", markerOf);
+      sel.append("path").attr("class", "edge-flow").attr("stroke-width", flowWidth).attr("stroke-dasharray", "1 22").attr("stroke-opacity", 0.55);
+      sel.append("path").attr("class", "edge-hit").attr("fill", "none").attr("stroke", "transparent").attr("stroke-width", 14);
+      return sel;
+    }
+    // Everyone: one line per tie, parallel ties curving apart
+    const gEvery = gLinks.append("g");
+    const linkEvery = edges(gEvery, links);
 
-    const link = gLinks.selectAll("g").data(links).join("g").attr("class", "edge").style("color", (l) => P.TYPES[l.type].hex);
-    link.append("path").attr("class", "edge-line").attr("fill", "none")
-      .attr("stroke", (l) => P.TYPES[l.type].hex).attr("stroke-width", width).attr("stroke-linecap", "round")
-      .attr("stroke-opacity", (l) => (faint(l) ? 0.5 : null))
-      .attr("stroke-dasharray", (l) => (P.BASES[l.basis] || {}).dash || null)
-      .attr("marker-end", (l) => (["command", "support", "hostile"].includes(l.type) ? `url(#${uid}-${l.type})` : null));
-    link.append("path").attr("class", "edge-flow").attr("stroke-width", flowWidth).attr("stroke-dasharray", "1 22").attr("stroke-opacity", 0.55);
-    link.append("path").attr("class", "edge-hit").attr("fill", "none").attr("stroke", "transparent").attr("stroke-width", 14);
+    // The Cast: one line per pair. It takes the colour, direction and dash of the pair's
+    // highest-priority tie on show; family ties that only follow from others are drawn only
+    // where a pair has no stated tie at all. Member ties aren't drawn: the territory says it.
+    const castPairs = [];
+    if (page) {
+      const byKey = new Map();
+      links.forEach((l) => {
+        let p = byKey.get(l.key);
+        if (!p) {
+          const [a, b] = l.key.split("|");
+          byKey.set(l.key, p = { key: l.key, a, b, ties: [], idx: 0, total: 1, on: Infinity });
+          castPairs.push(p);
+        }
+        p.ties.push(l);
+      });
+      castPairs.forEach((p) => {
+        const best = p.ties.slice().sort((x, y) => (faint(x) - faint(y)) || PRIORITY.indexOf(x.type) - PRIORITY.indexOf(y.type))[0];
+        Object.assign(p, { type: best.type, basis: best.basis, from: best.from, to: best.to, label: best.label, source: best.source, target: best.target });
+      });
+    }
+    const gCast = page ? gLinks.append("g") : null;
+    const linkCast = page ? edges(gCast, castPairs) : d3.select(null);
+    let link = cast() ? linkCast : linkEvery;
+    // the tie a pair's line stands for right now, or null if the pair has no line
+    function pairTie(p) {
+      const on = p.ties.filter(shown);
+      const stated = on.filter((l) => !faint(l));
+      const pick = (ls) => ls.slice().sort((x, y) => PRIORITY.indexOf(x.type) - PRIORITY.indexOf(y.type))[0];
+      const drawn = stated.filter((l) => !l.member);
+      if (drawn.length) return pick(drawn);
+      const sel = state.selected;
+      if (stated.length && sel && (p.a === sel.id || p.b === sel.id)) return pick(stated);   // a picked member's ties
+      if (!p.ties.some((l) => !faint(l) && l.on <= state.h) && on.length) return on[0];      // implied, and nothing stated
+      return null;
+    }
+    function restyleCast() {
+      castPairs.forEach((p) => {
+        const t = pairTie(p);
+        p.tie = t;
+        p.on = Math.min(...p.ties.map((l) => l.on));
+        if (t) Object.assign(p, { type: t.type, basis: t.basis, from: t.from, to: t.to, label: t.label, source: t.source, target: t.target });
+      });
+      linkCast.style("color", (p) => P.TYPES[p.type].hex);
+      linkCast.select(".edge-line").attr("stroke", (p) => P.TYPES[p.type].hex)
+        .attr("stroke-opacity", (p) => (faint(p) ? 0.5 : null))
+        .attr("stroke-dasharray", (p) => (P.BASES[p.basis] || {}).dash || null)
+        .attr("marker-end", markerOf);
+      linkCast.select(".edge-line").attr("stroke-width", (p) => width(p) * S);
+      linkCast.select(".edge-flow").attr("stroke-width", (p) => flowWidth(p) * S);
+    }
 
     const node = gNodes.selectAll("g").data(nodes).join("g").attr("class", "node")
       .attr("tabindex", opts.interactive ? 0 : null)
       .attr("role", opts.interactive ? "button" : null).attr("aria-label", (n) => n.e.name);
     const scaled = node.append("g").attr("class", "node-scale");
-    scaled.append("circle").attr("class", "halo").attr("r", (n) => n.r * 2.6).attr("fill", `url(#${uid}-halo)`)
+    scaled.append("circle").attr("class", "halo").attr("fill", `url(#${uid}-halo)`)
       .style("--d", (n, i) => `${(-i * 0.37) % 4.6}s`);
-    scaled.append("circle").attr("class", "ring").attr("r", (n) => n.r + 6);
+    scaled.append("circle").attr("class", "ring");
     const body = scaled.append("g").attr("class", "node-body");
-    body.filter((n) => n.square).append("rect").attr("x", (n) => -n.r).attr("y", (n) => -n.r)
-      .attr("width", (n) => n.r * 2).attr("height", (n) => n.r * 2).attr("rx", 3);
-    body.filter((n) => !n.square).append("circle").attr("r", (n) => n.r);
+    body.filter((n) => n.square).append("rect").attr("rx", 3);
+    body.filter((n) => !n.square).append("circle");
     body.selectAll("rect,circle").attr("stroke-width", 1.5);
+    function paintR() {
+      node.select(".halo").attr("r", (n) => n.r * 2.6);
+      node.select(".ring").attr("r", (n) => n.r + 6);
+      body.select("rect").attr("x", (n) => -n.r).attr("y", (n) => -n.r).attr("width", (n) => n.r * 2).attr("height", (n) => n.r * 2);
+      body.select("circle").attr("r", (n) => n.r);
+    }
+    paintR();
     const major = (n) => P.isPov(n.id, lim) || n.degree >= 3;
     const labelG = opts.labels === "none" ? d3.select(null) : gLabels.selectAll("g").data(nodes).join("g");
     const label = opts.labels === "none" ? d3.select(null) : labelG.append("text")
@@ -171,42 +264,104 @@
       .attr("font-size", LABEL_PX);
     label.append("tspan").attr("class", "lm").text((n) => n.e.name.replace(/^The /, ""));
     const sub = label.append("tspan").attr("class", "web-sub");
-    // measure each name once at its on-screen size (and again when the web font arrives)
-    const measure = () => label.each(function (n) { const w = this.querySelector(".lm").getComputedTextLength(); if (w > 0) n.tw = w; });
+    // measure each name at its on-screen size (and again when the web font arrives)
+    let fontK = 1;   // the zoom the names' font size was last set for
+    const measure = () => label.each(function (n) { const w = this.querySelector(".lm").getComputedTextLength(); if (w > 0) n.tw = page ? w * fontK : w; });
     measure();
+
+    // ------------------------------------------------------------ territories (The Cast)
+    // A group (a house, a crew, an order; never a whole people) with two or more marked
+    // members on the map gets a soft region around them, drawn instead of their lines.
+    const terrs = !page ? [] : nodes.filter((n) => n.e.kind === "group").map((g) => ({
+      g, rows: links.filter((l) => l.member && l.target === g),
+    })).filter((t) => t.rows.length >= 2);
+    const terrPath = page ? gTerr.selectAll("path").data(terrs).join("path").attr("class", "web-terr") : d3.select(null);
+    const terrName = page ? gTerr.selectAll("text").data(terrs).join("text").attr("class", "web-terr-name")
+      .attr("font-size", TERR_PX).text((t) => t.g.e.name.replace(/^The /, "")) : d3.select(null);
+    terrName.each(function (t) { t.tw = this.getComputedTextLength(); });
+    const terrOf = new Set();   // groups whose territory is on the map right now
+    function terrMembers(t) {
+      return t.rows.filter((l) => l.on <= state.h).map((l) => l.source);
+    }
+    function renderTerrs() {
+      if (!page) return;
+      const k = T.k, pad = 13 / k;
+      terrs.forEach((t) => {
+        t.d = null;
+        if (!cast() || !terrOf.has(t.g.id)) return;
+        const ms = [t.g, ...terrMembers(t).filter((n) => drawn.has(n.id))];
+        const pts = [];
+        ms.forEach((n) => { const R = n.r * S + pad; for (let a = 0; a < 14; a++) pts.push([n.x + Math.cos(a * Math.PI / 7) * R, n.y + Math.sin(a * Math.PI / 7) * R]); });
+        t.hull = d3.polygonHull(pts);
+        t.d = t.hull && d3.line().curve(d3.curveCatmullRomClosed.alpha(0.7))(t.hull);
+        t.area = t.hull ? Math.abs(d3.polygonArea(t.hull)) : 0;
+      });
+      const order = terrs.slice().sort((a, b) => (b.area || 0) - (a.area || 0));   // the largest first, so small ones sit on top
+      terrPath.data(order, (t) => t.g.id).order().attr("d", (t) => t.d).style("display", (t) => (t.d ? null : "none"));
+      terrName.attr("font-size", TERR_PX / k).attr("stroke-width", 3 / k);
+    }
 
     function render() {
       node.attr("transform", (n) => `translate(${n.x},${n.y})`);
       labelG.attr("transform", (n) => `translate(${n.x},${n.y})`);
       link.selectAll("path").attr("d", linkPath);
+      renderTerrs();
     }
-    render();
 
     // ------------------------------------------------------------ name placement
     let T = d3.zoomIdentity, userMoved = false;
     const pad = { top: 24, right: 24, bottom: 24, left: 24, ...(opts.pad || {}) };
-    let curH = lim, pinned = new Set();
+    let curH = lim, pinned = new Set(), drawn = new Set(nodes.map((n) => n.id));
     const subs = new Map();   // in focus: id -> [text, colour] for the tie under a name
-    // Greedy, in rank order: whoever is picked and everyone tied to them, then tonight's
-    // viewpoints, then other viewpoints, then the best-tied.
+    // Greedy, in rank order. Everyone: whoever is picked and everyone tied to them, then
+    // tonight's viewpoints, then other viewpoints, then the best-tied. The Cast: whoever is picked
+    // and their ring, then viewpoints, then whoever is on the page in the chapter shown, then score.
     const nowPov = () => new Set((P.units[curH] || { pov: [] }).pov);
-    const rank = (n, now) => (pinned.has(n.id) ? 1e6 : 0) + (now.has(n.id) ? 1e5 : 0) + (P.isPov(n.id, curH) ? 1e4 : 0) + n.degree;
+    const rankEvery = (n, now) => (pinned.has(n.id) ? 1e6 : 0) + (now.has(n.id) ? 1e5 : 0) + (P.isPov(n.id, curH) ? 1e4 : 0) + n.degree;
+    const rankCast = (n) => (pinned.has(n.id) ? 1e6 : 0) + (P.isPov(n.id, curH) ? 1e5 : 0) + (P.onPage(n.e, curH) ? 1e4 : 0) - (n.srank ?? 9999);
     const boxHits = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
     const circleHits = (b, cx, cy, r) => {
       const dx = cx - Math.max(b[0], Math.min(cx, b[2])), dy = cy - Math.max(b[1], Math.min(cy, b[3]));
       return dx * dx + dy * dy < r * r;
     };
+    // Map-style names: a budget that grows with the zoom, filled in priority order
+    function budget(cw, ch) {
+      const kFit = fitTransform(true).k;
+      return Math.max(8, Math.round(((cw * ch) / 17000) * Math.pow(T.k / kFit, 2)));
+    }
+    // the page's own buttons and readout, as boxes in the map's screen space: names keep off them
+    function avoidBoxes() {
+      if (!opts.avoid) return [];
+      const b = svgEl.getBoundingClientRect();
+      return opts.avoid().map((r) => [r.left - b.left - 2, r.top - b.top - 2, r.right - b.left + 2, r.bottom - b.top + 2]);
+    }
     function layoutLabels() {
       if (opts.labels === "none") return;
-      const k = T.k, cw = svgEl.getBoundingClientRect().width || W;
-      const shownN = nodes.filter((n) => n.h <= curH);
+      const k = T.k, bb = svgEl.getBoundingClientRect(), cw = bb.width || W, ch = bb.height || HGT;
+      const shownN = nodes.filter((n) => n.h <= curH && drawn.has(n.id));
       const spheres = shownN.map((n) => [T.applyX(n.x), T.applyY(n.y), n.r * S * k + 3, n]);
-      const gap = 4, placed = [];
+      const gap = 4, placed = avoidBoxes();
+      const sphereCost = (b, self) => {
+        let hits = 0;
+        for (const [cx, cy, cr, m] of spheres) {
+          if (m === self || !circleHits(b, cx, cy, cr)) continue;
+          if (P.isPov(m.id, curH)) return Infinity;
+          hits += 1;
+        }
+        return hits;
+      };
+      placeTerrNames(placed, spheres, cw, k);
       nodes.forEach((n) => { n.lab = null; });
       const now = nowPov();
-      for (const n of shownN.slice().sort((a, b) => rank(b, now) - rank(a, now))) {
+      const castNow = cast();
+      const order = castNow ? shownN.slice().sort((a, b) => rankCast(b) - rankCast(a)) : shownN.slice().sort((a, b) => rankEvery(b, now) - rankEvery(a, now));
+      const B = castNow ? budget(cw, ch) : Infinity;
+      let count = 0;
+      for (const n of order) {
         const forced = pinned.has(n.id);
-        const want = forced || (opts.labels === "pov" ? P.isPov(n.id, curH) : opts.labels === "major" ? major(n) : true);
+        if (!forced && count >= B) break;
+        if (castNow && terrOf.has(n.id) && state.selected !== n) continue;   // the territory carries the group's name
+        const want = forced || castNow || (opts.labels === "pov" ? P.isPov(n.id, curH) : opts.labels === "major" ? major(n) : true);
         if (!want) continue;
         const sx = T.applyX(n.x), sy = T.applyY(n.y), r = n.r * S * k;
         const st = subs.get(n.id);
@@ -225,28 +380,23 @@
           bl: { k: "bl", x0: sx - d - 1 - w, y0: sy + d - 2 },
         };
         const base = n.flip ? ["l", "r", "tl", "tr", "b", "t", "bl", "br"] : ["r", "l", "tr", "tl", "b", "t", "br", "bl"];
-        const order = n.pref ? [n.pref, ...base.filter((x) => x !== n.pref)] : base;
+        const ord = n.pref ? [n.pref, ...base.filter((x) => x !== n.pref)] : base;
         // how many spheres a spot would cover (Infinity if it's off screen, over a name, or over a lit sphere)
         const cost = (c) => {
           const b = [c.x0 - 1, c.y0, c.x0 + w + 1, c.y0 + hh];
           if (b[0] < 2 || b[2] > cw - 2 || placed.some((p) => boxHits(b, p))) return Infinity;
-          let hits = 0;
-          for (const [cx, cy, cr, m] of spheres) {
-            if (m === n || !circleHits(b, cx, cy, cr)) continue;
-            if (P.isPov(m.id, curH)) return Infinity;
-            hits += 1;
-          }
-          return hits;
+          return sphereCost(b, n);
         };
-        const costs = order.map((o) => cost(cands[o]));
+        const costs = ord.map((o) => cost(cands[o]));
         const best = Math.min(...costs);
         // a clear spot if there is one; important names may sit over a sphere or two
         const important = forced || now.has(n.id) || P.isPov(n.id, curH) || n.degree >= 4;
-        let pick = best === 0 || (important && best <= 2) ? cands[order[costs.indexOf(best)]] : null;
-        if (!pick && forced) pick = cands[order[0]];
+        let pick = best === 0 || (important && best <= 2) ? cands[ord[costs.indexOf(best)]] : null;
+        if (!pick && forced) pick = cands[ord[0]];
         if (!pick) continue;
         n.lab = { ...pick, w, sx, sy };
         placed.push([pick.x0 - 2, pick.y0, pick.x0 + w + 2, pick.y0 + hh]);
+        count += 1;
       }
       label.each(function (n) {
         const p = n.lab;
@@ -270,6 +420,44 @@
         } else sp.style.display = "none";
       });
     }
+    // A territory's name tries above its region, then below, then left and right, a little
+    // further out each round, and takes the first spot that covers no sphere and no name.
+    function placeTerrNames(placed, spheres, cw, k) {
+      if (!page) return;
+      const hh = TERR_PX * 1.25;
+      const order = terrs.filter((t) => t.d).sort((a, b) => (a.area || 0) - (b.area || 0));
+      terrs.forEach((t) => { t.lab = null; });
+      for (const t of order) {
+        const sp = t.hull.map(([x, y]) => [T.applyX(x), T.applyY(y)]);
+        const xs = sp.map((p) => p[0]), ys = sp.map((p) => p[1]);
+        const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const top = sp[ys.indexOf(y0)], bot = sp[ys.indexOf(y1)];
+        const w = t.tw + 4;
+        let pick = null, fallback = null;
+        for (let step = 0; step < 4 && !pick; step++) {
+          const o = step * 10;
+          const cands = [
+            [top[0] - w / 2, y0 - hh - 2 - o], [bot[0] - w / 2, y1 + 2 + o],
+            [x0 - w - 4 - o, (y0 + y1) / 2 - hh / 2], [x1 + 4 + o, (y0 + y1) / 2 - hh / 2],
+          ];
+          for (const [bx, by] of cands) {
+            const b = [bx, by, bx + w, by + hh];
+            if (b[0] < 2 || b[2] > cw - 2 || placed.some((p) => boxHits(b, p))) continue;
+            let hits = 0;
+            for (const [cx, cy, cr] of spheres) if (circleHits(b, cx, cy, cr)) hits += 1;
+            if (!hits) { pick = b; break; }
+            if (!fallback || hits < fallback[1]) fallback = [b, hits];
+          }
+        }
+        if (!pick) continue;   // nowhere clear: better no name than one over a sphere
+        t.lab = pick;
+        placed.push(pick);
+      }
+      terrName.style("display", (t) => (t.lab ? null : "none"))
+        .attr("x", (t) => (t.lab ? T.invertX((t.lab[0] + t.lab[2]) / 2) : 0))
+        .attr("y", (t) => (t.lab ? T.invertY(t.lab[1] + TERR_PX * 0.95) : 0))
+        .attr("text-anchor", "middle");
+    }
 
     // ------------------------------------------------------------ zoom: spreads, never inflates
     const sizeFor = (k) => (k < BOOST_AT ? Math.min(BOOST_MAX, BOOST_AT / k) : k > CAP ? CAP / k : 1);
@@ -286,12 +474,18 @@
         link.select(".edge-hit").attr("stroke-width", 14 * S);
       }
       label.attr("font-size", LABEL_PX / t.k).attr("stroke-width", 4 / t.k);
+      fontK = t.k;
+      renderTerrs();
       layoutLabels();
     }
-    function fitTransform() {
+    // Fit everyone in the view: on Everyone, everyone; in The Cast, everyone its layers hold.
+    // { base: true } fits the resting map, ignoring a focus ring.
+    function fitTransform(base) {
       const box = svgEl.getBoundingClientRect();
       const cw = box.width || W, ch = box.height || HGT;
-      const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
+      const ns = page ? nodes.filter((n) => inView(n)) : nodes;
+      if (!ns.length) return d3.zoomIdentity;
+      const xs = ns.map((n) => (base ? n.bx : n.x)), ys = ns.map((n) => (base ? n.by : n.y));
       const x0 = Math.min(...xs) - 30, x1 = Math.max(...xs) + 30, y0 = Math.min(...ys) - 22, y1 = Math.max(...ys) + 22;
       const k = Math.min((cw - pad.left - pad.right) / (x1 - x0), (ch - pad.top - pad.bottom) / (y1 - y0), 2.2);
       const tx = pad.left + (cw - pad.left - pad.right - (x1 - x0) * k) / 2 - x0 * k;
@@ -315,16 +509,14 @@
     // On a small screen the whole web at once is too small to read, so it can open closer in,
     // centred on the names given (the chapter's viewpoints); the fit button shows everything.
     function startTransform() {
-      const fit = fitTransform(), ini = opts.initial;
+      const fit = fitTransform(true), ini = opts.initial;
       if (!ini || fit.k >= ini.k) return fit;
       const focusOnly = (ini.focus || []).map((id) => byId[id]).filter((n) => n && n.h <= lim);
       if (!focusOnly.length) return fit;
       const b = svgEl.getBoundingClientRect();
-      const fx = focusOnly.reduce((a, n) => a + n.x, 0) / focusOnly.length, fy = focusOnly.reduce((a, n) => a + n.y, 0) / focusOnly.length;
+      const fx = focusOnly.reduce((a, n) => a + n.bx, 0) / focusOnly.length, fy = focusOnly.reduce((a, n) => a + n.by, 0) / focusOnly.length;
       return d3.zoomIdentity.translate(b.width / 2 - fx * ini.k, (ini.cy || 0.5) * b.height - fy * ini.k).scale(ini.k);
     }
-    if (nodes.length) setT(startTransform());
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); layoutLabels(); });
 
     // ------------------------------------------------------------ moving spheres
     let mover = null;
@@ -343,6 +535,22 @@
         render();
         layoutLabels();
         if (t === 1) { mover.stop(); mover = null; }
+      });
+    }
+    // spheres grow and shrink with the chapter shown (The Cast) or switch to ties (Everyone)
+    let grower = null;
+    function resize(ms) {
+      if (!page) return;
+      if (grower) grower.stop();
+      const from = nodes.map((n) => n.r);
+      const to = nodes.map((n) => (cast() ? castR(n, state.h) : n.rE));
+      const done = () => { paintR(); render(); layoutLabels(); };
+      if (P.reducedMotion || !ms) { nodes.forEach((n, i) => { n.r = to[i]; }); done(); return; }
+      grower = d3.timer((el) => {
+        const t = Math.min(1, el / ms), e = d3.easeCubicOut(t);
+        nodes.forEach((n, i) => { n.r = from[i] + (to[i] - from[i]) * e; });
+        paintR();
+        if (t === 1) { grower.stop(); grower = null; done(); } else render();
       });
     }
 
@@ -398,10 +606,11 @@
       subs.clear();
       links.forEach((l) => {
         if (!shown(l) || (l.source.id !== n.id && l.target.id !== n.id)) return;
-        const o = l.source.id === n.id ? l.target.id : l.source.id;
-        const cur = subs.get(o);
+        const o = l.source.id === n.id ? l.target : l.source;
+        if (!inView(o)) return;
+        const cur = subs.get(o.id);
         const text = cur ? `${cur[0]} · ${l.label}` : l.label;
-        subs.set(o, [text.length > 34 ? `${text.slice(0, 33).trim()}…` : text, cur ? cur[1] : TINT[l.type]]);
+        subs.set(o.id, [text.length > 34 ? `${text.slice(0, 33).trim()}…` : text, cur ? cur[1] : TINT[l.type]]);
       });
     }
     function enterFocus(n, ms = FOCUS_MS) {
@@ -435,9 +644,14 @@
 
     // ------------------------------------------------------------ interaction
     const tip = opts.tip;
+    // everyone tied to n on the map shown: in the view, met by the chapter, through a tie on show
     const neighbours = (n) => {
       const set = new Set([n.id]);
-      links.forEach((l) => { if (!shown(l)) return; if (l.source.id === n.id) set.add(l.target.id); if (l.target.id === n.id) set.add(l.source.id); });
+      links.forEach((l) => {
+        if (!shown(l)) return;
+        if (l.source.id === n.id && inView(l.target)) set.add(l.target.id);
+        if (l.target.id === n.id && inView(l.source)) set.add(l.source.id);
+      });
       return set;
     };
     function focusOn(n) {
@@ -446,8 +660,12 @@
       layoutLabels();
       node.style("opacity", (d) => (!near || near.has(d.id) ? null : 0.14));
       labelG.style("opacity", (d) => (!near || near.has(d.id) ? null : 0.14));
-      link.style("opacity", (l) => (!n || l.source.id === n.id || l.target.id === n.id ? null : 0.05))
-        .classed("hot", (l) => !!n && (l.source.id === n.id || l.target.id === n.id));
+      const touches = (l) => !!n && (l.source.id === n.id || l.target.id === n.id);
+      // The Cast's lines are quiet until someone is picked
+      link.style("opacity", (l) => (!n ? (cast() ? "var(--uf-quiet, 0.55)" : null) : touches(l) ? null : 0.05))
+        .classed("hot", touches);
+      terrPath.style("opacity", (t) => (n && !near.has(t.g.id) ? 0.15 : null));
+      terrName.style("opacity", (t) => (n && !near.has(t.g.id) ? 0.15 : null));
     }
     function showTip(evt, html) {
       if (!tip) return;
@@ -459,6 +677,11 @@
       tip.classList.add("on");
     }
     const hideTip = () => tip && tip.classList.remove("on");
+    const tieLine = (l) => {
+      const u = P.unitById[l.cite], note = P.basisNote(l, { long: true });
+      const who = !note || faint(l) ? "" : l.basis === "said" ? `, ${note}` : ` (${note})`;
+      return `<strong>${P.esc(l.label)}</strong>${who}<br><span class="muted">${P.esc(P.TYPES[l.type].label)}, ${faint(l) ? note : P.esc(P.unitLabel(u, { short: true }))}</span>`;
+    };
     const hoverable = matchMedia("(hover: hover)").matches;
     if (opts.interactive) {
       if (hoverable) {
@@ -467,23 +690,75 @@
           const summary = P.summaryOf(n.e, state.h).replace(/<[^>]+>/g, "");
           showTip(evt, `<strong>${P.esc(n.e.name)}</strong>${summary ? `<br><span class="muted">${P.esc(summary)}</span>` : ""}`);
         }).on("mouseleave", () => { if (!focus) focusOn(state.selected); hideTip(); });
-        link.on("mouseenter", (evt, l) => {
-          const u = P.unitById[l.cite], note = P.basisNote(l, { long: true });
-          const who = !note || faint(l) ? "" : l.basis === "said" ? `, ${note}` : ` (${note})`;
-          showTip(evt, `${P.esc(l.source.e.name)} → ${P.esc(l.target.e.name)}<br><strong>${P.esc(l.label)}</strong>${who}<br><span class="muted">${P.esc(P.TYPES[l.type].label)}, ${faint(l) ? note : P.esc(P.unitLabel(u, { short: true }))}</span>`);
+        linkEvery.on("mouseenter", (evt, l) => showTip(evt, `${P.esc(l.source.e.name)} → ${P.esc(l.target.e.name)}<br>${tieLine(l)}`))
+          .on("mouseleave", hideTip);
+        // a pair's line lists every tie between them
+        linkCast.on("mouseenter", (evt, p) => {
+          const ties = p.ties.filter((l) => l.on <= state.h);
+          showTip(evt, `${P.esc(byId[p.a].e.name)} · ${P.esc(byId[p.b].e.name)}<br>${ties.map(tieLine).join("<br>")}`);
         }).on("mouseleave", hideTip);
       }
       node.on("click", (evt, n) => { evt.stopPropagation(); api.select(n.id); })
         .on("keydown", (evt, n) => { if (evt.key === "Enter" || evt.key === " ") { evt.preventDefault(); api.select(n.id); } });
+      // a tap inside a territory, off any sphere, picks the group
+      terrPath.on("click", (evt, t) => { evt.stopPropagation(); api.select(t.g.id); });
       svg.on("click", (evt) => { if (evt.target === svgEl) api.select(null); });
     }
 
-    // ------------------------------------------------------------ state
-    const state = { h: lim, types: new Set(Object.keys(P.TYPES)), styles: new Set(Object.keys(P.STYLES)), selected: null };
-    const styleOf = (l) => (P.BASES[l.basis] || P.BASES.seen).style;
-    const shown = (l) => l.on <= state.h && state.types.has(l.type) && state.styles.has(styleOf(l));
+    // ------------------------------------------------------------ Show and Rank by
+    // Score at the chapter shown: how often the book has named them (the default), or their
+    // stated ties in this view. Ranked by score, then who we met first, then name. The tiers
+    // are fixed shares of everyone on the map, the same for all.
+    let tierSet = null;
+    function tieScore(n) {
+      let s = 0;
+      links.forEach((l) => {
+        if (faint(l) || l.member || l.on > state.h) return;
+        if (l.source === n && inView(l.target)) s += 1;
+        else if (l.target === n && inView(l.source)) s += 1;
+      });
+      return s;
+    }
+    function rankAll() {
+      const list = nodes.filter((n) => n.h <= state.h && inView(n));
+      list.forEach((n) => { n.score = state.rankBy === "ties" ? tieScore(n) : P.mentionsAt(n.e, state.h); });
+      list.sort((a, b) => b.score - a.score || a.h - b.h || a.e.name.localeCompare(b.e.name));
+      nodes.forEach((n) => { n.srank = undefined; });
+      list.forEach((n, i) => { n.srank = i; });
+      if (state.tier === "all") { tierSet = null; return; }
+      const N = list.length;
+      const lead = Math.max(5, Math.ceil(N * 0.1));
+      const top = state.tier === "leading" ? lead : lead + Math.ceil(N * 0.3);
+      tierSet = new Set(list.slice(0, top).map((n) => n.id));
+      list.forEach((n) => { if (P.isPov(n.id, state.h)) tierSet.add(n.id); });
+    }
+
+    // ------------------------------------------------------------ what's drawn
+    // On the map: met by the chapter shown, in the view, in the tier on Show. Whoever is picked
+    // and everyone tied to them are always drawn, whatever the tier.
+    function refresh() {
+      const sel = state.selected;
+      const ring = sel ? neighbours(sel) : new Set();
+      drawn = new Set(nodes.filter((n) => (n.h <= state.h && inView(n) && (!tierSet || tierSet.has(n.id))) || ring.has(n.id)).map((n) => n.id));
+      const both = (l) => drawn.has(l.source.id) && drawn.has(l.target.id);
+      terrOf.clear();
+      if (page && cast()) {
+        terrs.forEach((t) => { if (t.g.h <= state.h && drawn.has(t.g.id) && terrMembers(t).length >= 2) terrOf.add(t.g.id); });
+      }
+      node.style("display", (n) => (drawn.has(n.id) ? null : "none"));
+      labelG.style("display", (n) => (drawn.has(n.id) ? null : "none"));
+      if (page) {
+        restyleCast();
+        gEvery.style("display", cast() ? "none" : null);
+        gCast.style("display", cast() ? null : "none");
+        linkCast.style("display", (p) => (p.tie && both(p) ? null : "none"));
+        linkEvery.style("display", (l) => (shown(l) && both(l) ? null : "none"));
+      } else linkEvery.style("display", (l) => (shown(l) ? null : "none"));
+      render();
+    }
     function apply(prevH, sweepMs) {
       curH = state.h;
+      rankAll();
       const lit = (n) => P.isPov(n.id, state.h);
       body.selectAll("rect,circle")
         .attr("fill", (n) => (lit(n) ? `url(#${uid}-lit)` : `url(#${uid}-dull)`))
@@ -491,9 +766,9 @@
         .attr("stroke-opacity", (n) => (lit(n) ? 1 : 0.8))
         .attr("filter", (n) => (lit(n) ? `url(#${uid}-glow)` : null));
       node.select(".halo").style("display", (n) => (lit(n) ? null : "none"));
-      node.style("display", (n) => (n.h <= state.h ? null : "none"));
-      labelG.style("display", (n) => (n.h <= state.h ? null : "none"));
-      link.style("display", (l) => (shown(l) ? null : "none"));
+      if (state.selected && state.selected.h > state.h) { state.selected = null; node.classed("selected", false); if (opts.onSelect) opts.onSelect(null); if (focus) leaveFocus(); }
+      refresh();
+      if (prevH !== undefined) resize(prevH === state.h ? 0 : GROW_MS);
       if (prevH !== undefined && prevH < state.h && !P.reducedMotion) {
         const cw = svgEl.getBoundingClientRect().width || W;
         const delay = (n) => (sweepMs ? Math.max(0, Math.min(1, T.applyX(n.x) / cw)) * sweepMs * 0.9 : 0);
@@ -506,21 +781,46 @@
             void this.getBoundingClientRect();
           }).classed("drawing", true);
       }
-      if (state.selected && state.selected.h > state.h) api.select(null);
-      else {
-        if (focus && opts.focusMode) enterFocus(focus, 400);   // the ring follows the chapter
-        focusOn(state.selected);
+      if (focus && opts.focusMode) enterFocus(focus, 400);   // the ring follows the chapter
+      focusOn(state.selected);
+    }
+    // a new view or spacing: everyone glides to their place on the map it uses
+    function reshape(o = {}) {
+      const name = layoutName();
+      if (name !== current) {
+        setBase(name);
+        if (focus) enterFocus(focus, GLIDE_MS);
+        else moveTo(new Map(), GLIDE_MS);
       }
+      if (o.refit && !focus && zoom) setT(userMoved ? T : startTransform(), GLIDE_MS);
     }
     const api = {
       nodes, links,
       setHorizon(h, o = {}) { const prev = state.h; state.h = h; apply(prev, o.sweepMs); },
       setTypes(types) { state.types = new Set(types); apply(); },
       setStyles(styles) { state.styles = new Set(styles); apply(); },
+      setView(v) {
+        if (!page || v === state.view) return;
+        state.view = v;
+        link = cast() ? linkCast : linkEvery;
+        link.selectAll("path").attr("d", linkPath);
+        link.select(".edge-line").attr("stroke-width", (l) => width(l) * S);
+        link.select(".edge-flow").attr("stroke-width", (l) => flowWidth(l) * S);
+        link.select(".edge-hit").attr("stroke-width", 14 * S);
+        if (state.selected && !inView(state.selected)) api.select(null);
+        apply();
+        resize(GROW_MS);
+        reshape({ refit: true });
+      },
+      setLayers(set) { state.layers = new Set([...set].filter((x) => !ALWAYS.has(x))); apply(); if (focus) enterFocus(focus, 400); },
+      setShow(tier) { state.tier = tier; apply(); },
+      setRankBy(by) { state.rankBy = by; apply(); },
+      setSpacing(sp) { state.spacing = sp; reshape(); },
       select(id) {
         const n = id ? byId[id] : null;
         state.selected = n && n.h <= state.h ? n : null;
         node.classed("selected", (d) => d === state.selected);
+        refresh();
         if (opts.onSelect) opts.onSelect(state.selected);   // first, so the focus can see the card's room
         if (opts.focusMode && zoom) { if (state.selected) enterFocus(state.selected); else leaveFocus(); }
         focusOn(state.selected);
@@ -530,13 +830,31 @@
       // stated ties only: the faint ones are counted on their own
       count: (type) => links.filter((l) => !faint(l) && l.type === type && l.on <= state.h).length,
       countStyle: (style) => links.filter((l) => styleOf(l) === style && l.on <= state.h).length,
-      visibleCounts: () => ({ nodes: nodes.filter((n) => n.h <= state.h).length, links: links.filter((l) => !faint(l) && shown(l)).length }),
+      // what's drawn in the current view: names, and stated ties that aren't memberships
+      visibleCounts: () => {
+        if (!page) return { nodes: nodes.filter((n) => n.h <= state.h).length, links: links.filter((l) => !faint(l) && shown(l)).length };
+        return {
+          nodes: nodes.filter((n) => drawn.has(n.id) && n.h <= state.h).length,
+          links: links.filter((l) => !faint(l) && !l.member && shown(l) && drawn.has(l.source.id) && drawn.has(l.target.id)).length,
+        };
+      },
+      // how many names each layer would add to The Cast at the chapter shown
+      layerCounts: () => {
+        const c = {};
+        nodes.forEach((n) => { if (n.h <= state.h && !ALWAYS.has(n.layer)) c[n.layer] = (c[n.layer] || 0) + 1; });
+        return c;
+      },
+      inView: (id) => !!byId[id] && inView(byId[id]),
       fit() { userMoved = false; setT(fitTransform(), 500); },
       zoomBy(f) { if (zoom) svg.transition("cam").duration(P.reducedMotion ? 0 : 300).call(zoom.scaleBy, f); },
       reframe() { if (focus) enterFocus(focus, 450); },
       has: (id) => !!byId[id],
     };
+    if (page) nodes.forEach((n) => { n.r = cast() ? castR(n, lim) : n.rE; });
+    paintR();
     apply();
+    if (nodes.length) setT(startTransform());
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); terrName.each(function (t) { t.tw = this.getComputedTextLength() * T.k; }); layoutLabels(); });
     return api;
   };
 })();

@@ -623,7 +623,8 @@ blockquote.wade.is-new::after { all: unset; content: "Wade · new"; display: blo
 body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf { display: flex; flex-direction: column; }
 .uf-stage {
-  position: relative; overflow: hidden; isolation: isolate; height: calc(100dvh - var(--head-h) - var(--dock-h, 7.5rem)); min-height: 420px;
+  position: relative; overflow: hidden; isolation: isolate; height: calc(100dvh - var(--head-h) - var(--dock-h, 9.6rem) - var(--banner-h, 0px)); min-height: 420px;
+  --uf-quiet: 0.55;   /* The Cast's lines, until someone is picked */
   background:
     radial-gradient(60% 55% at 50% 45%, rgba(57, 135, 229, 0.12), transparent 70%),
     radial-gradient(40% 40% at 85% 15%, rgba(185, 147, 255, 0.07), transparent 70%),
@@ -777,7 +778,7 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 
 /* the timeline dock */
 .uf-dock {
-  position: relative; z-index: 7; height: var(--dock-h, 7.5rem); display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "btns cap" "btns orbs";
+  position: relative; z-index: 7; height: var(--dock-h, 9.6rem); display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "btns view" "btns cap" "btns orbs";
   align-content: center; column-gap: 1.25rem; row-gap: 0.2rem; padding: 0 1.25rem;
   background: linear-gradient(180deg, rgba(14, 20, 28, 0.96), rgba(10, 14, 20, 1)); border-top: 1px solid var(--rule);
 }
@@ -811,6 +812,39 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-ahead::before { content: ""; position: absolute; left: 0; right: 0.6rem; top: calc(50% - 0.55rem); height: 1px; background: linear-gradient(90deg, rgba(216, 236, 255, 0.35), transparent); }
 .uf-ahead .dun { --s: 14px; position: relative; }
 .uf-ahead small { position: absolute; left: 0.9rem; right: 0; bottom: 0; text-align: center; font: italic 400 0.72rem/1 var(--display); color: var(--mist); }
+/* segmented switches: The Cast · Everyone, Show, Rank by, Spacing */
+.uf-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; border: 1px solid var(--rule); background: rgba(0, 0, 0, 0.25); max-width: 100%; }
+.uf-seg button {
+  all: unset; box-sizing: border-box; cursor: pointer; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: var(--step--1); line-height: 1.2;
+  color: var(--dusk); white-space: nowrap; transition: background .2s, color .2s;
+}
+.uf-seg button:hover { color: var(--parchment); }
+.uf-seg button[aria-checked="true"] { background: rgba(216, 236, 255, 0.14); color: var(--parchment); box-shadow: inset 0 0 0 1px rgba(216, 236, 255, 0.25); }
+.uf-seg button:focus-visible { outline: 2px solid var(--sphere); outline-offset: 1px; }
+.uf-seg.sm button { padding: 0.25rem 0.65rem; font-size: var(--step--2); }
+.uf-viewsw { grid-area: view; justify-self: start; align-self: end; height: 2.25rem; }
+.uf-viewsw button { padding: 0.3rem 0.95rem; display: grid; place-items: center; }
+.uf-show { display: grid; gap: 0.5rem; justify-items: start; margin-bottom: 1rem; }
+.uf-rank { display: flex; align-items: center; gap: 0.5rem; color: var(--mist); font-size: var(--step--2); }
+.uf-cast-only[hidden] { display: none; }
+.uf-filters .uf-seg { margin-bottom: 1rem; }
+.uf-filters .uf-show .uf-seg { margin-bottom: 0; }
+.uf-layers .sw { justify-self: center; width: 0.7rem; height: 0.7rem; border-radius: 3px; background: var(--c); transform: rotate(45deg); }
+.uf-layers label:has(input:not(:checked)) { opacity: 0.55; }
+.uf-layers label:has(input:checked) { border-color: var(--rule); background: rgba(255, 255, 255, 0.04); }
+/* territories: a group's members share a soft region */
+.web-terr { fill: rgba(217, 183, 126, 0.07); stroke: rgba(217, 183, 126, 0.42); stroke-width: 1.1; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; cursor: pointer; transition: opacity .3s; }
+.web-terr-name {
+  font-family: var(--text); font-weight: 700; font-variant: small-caps; text-transform: lowercase; letter-spacing: 0.16em; fill: #d9b77e;
+  paint-order: stroke; stroke: #0e151e; stroke-linejoin: round; pointer-events: none; transition: opacity .3s;
+}
+.uf-card .c-id .c-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.15rem 0 0.3rem; text-transform: none; letter-spacing: 0; }
+.uf-card .c-chip {
+  all: unset; cursor: pointer; font-size: var(--step--2); font-weight: 700; color: #d9b77e; padding: 0.1rem 0.55rem; border-radius: 999px;
+  border: 1px solid rgba(217, 183, 126, 0.42); background: rgba(217, 183, 126, 0.07);
+}
+.uf-card .c-chip:hover, .uf-card .c-chip:focus-visible { border-color: #d9b77e; color: var(--parchment); }
+.uf-card .c-also { margin: 0.4rem 0 0; font-size: var(--step--2); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mist); }
 .web-label { font-family: var(--text); fill: var(--parchment); paint-order: stroke; stroke: #0e151e; stroke-linejoin: round; pointer-events: none; transition: opacity .25s; }
 .web-label.minor { fill: var(--dusk); }
 .web-tip {
@@ -842,8 +876,8 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 @keyframes flow { to { stroke-dashoffset: -40; } }
 
 @media (max-width: 760px) {
-  .uf-stage { --dock-h: 7rem; }
-  .uf-dock { --dock-h: 7rem; grid-template-areas: "cap cap" "btns orbs"; column-gap: 0.4rem; row-gap: 0.15rem; padding: 0.55rem 0.6rem calc(0.55rem + env(safe-area-inset-bottom)); height: auto; min-height: var(--dock-h); }
+  .uf-stage { --dock-h: 9.3rem; }
+  .uf-dock { --dock-h: 9.3rem; grid-template-areas: "view view" "cap cap" "btns orbs"; column-gap: 0.4rem; row-gap: 0.15rem; padding: 0.55rem 0.6rem calc(0.55rem + env(safe-area-inset-bottom)); height: auto; min-height: var(--dock-h); }
   .uf-cap { font-size: 0.8rem; padding-left: 0.3rem; }
   .uf-btns { gap: 0.25rem; }
   .uf-btns .play { width: 2.9rem; height: 2.9rem; }
@@ -859,7 +893,7 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
   .uf-counts { display: none; }
   .uf-tools { top: 0.75rem; right: 0.75rem; }
   .uf-tools button { width: 2.4rem; height: 2.4rem; border-radius: 12px; }
-  .uf-filters { right: 0.75rem; left: 0.75rem; width: auto; top: auto; bottom: 0.75rem; max-height: 70%; }
+  .uf-filters { right: 0.75rem; left: 0.75rem; width: auto; top: auto; bottom: 0.75rem; max-height: 40%; }
   .uf-find { top: 0.75rem; left: 0.75rem; right: 3.75rem; width: auto; }
   /* the phone card: a peek bar that leaves the ring in view; details on tap or swipe */
   .uf-card {

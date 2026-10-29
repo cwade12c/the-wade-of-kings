@@ -22,7 +22,7 @@
       <button type="button" id="z-in" aria-label="Zoom in">+</button>
       <button type="button" id="z-out" aria-label="Zoom out">−</button>
       <button type="button" id="z-fit" aria-label="Fit everyone in view"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-      <button type="button" id="f-btn" aria-label="Kinds of tie and key" aria-expanded="false" aria-controls="filters"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
+      <button type="button" id="f-btn" aria-label="What's shown, and the key" aria-expanded="false" aria-controls="filters"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
     </div>
     <div class="uf-find" id="find" hidden>
       <div class="uf-find-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
@@ -33,12 +33,27 @@
       <p class="uf-find-hint" id="find-hint"></p>
     </div>
     <div class="uf-filters" id="filters" hidden>
+      <h2 id="show-h">Show</h2>
+      <div class="uf-show">
+        <div class="uf-seg" id="show" role="radiogroup" aria-labelledby="show-h">
+          <button type="button" role="radio" data-v="leading" aria-checked="false">Leading</button><button type="button" role="radio" data-v="recurring" aria-checked="false">Recurring</button><button type="button" role="radio" data-v="all" aria-checked="true">All</button></div>
+        <div class="uf-rank"><span id="rank-h">Rank by</span>
+          <div class="uf-seg sm" id="rankby" role="radiogroup" aria-labelledby="rank-h">
+            <button type="button" role="radio" data-v="named" aria-checked="true">how often named</button><button type="button" role="radio" data-v="ties" aria-checked="false">ties</button></div></div>
+      </div>
+      <div class="uf-cast-only" id="cast-only">
+        <h2>Layers</h2>
+        <div class="uf-types uf-layers" id="layers" role="group" aria-label="Add a layer to The Cast"></div>
+        <h2 id="spacing-h">Spacing</h2>
+        <div class="uf-seg" id="spacing" role="radiogroup" aria-labelledby="spacing-h">
+          <button type="button" role="radio" data-v="spacious" aria-checked="true">Spacious</button><button type="button" role="radio" data-v="compact" aria-checked="false">Compact</button></div>
+      </div>
       <h2>Kinds of tie</h2>
       <div class="uf-types" id="legend" role="group" aria-label="Show or hide each kind of tie"></div>
       <h2>How we know</h2>
       <div class="uf-types" id="styles" role="group" aria-label="Show or hide each way of knowing"></div>
       <h2>Reading the web</h2>
-      <p>Lit, glowing spheres are viewpoint characters; squares are groups. Arrows mark command, dots support, bars hostility; faint gold lines are family ties that follow from the others. Pinch or scroll to zoom, drag to pan, and pick anyone, or find them by name, to see their ties.</p>
+      <p>Lit, glowing spheres are viewpoint characters; squares are groups. In The Cast, a group's members share a dotted territory, spheres grow with how often the book has named someone, lines stay quiet until you pick someone, and more names appear as you zoom in. Arrows mark command, dots support, bars hostility; faint gold lines are family ties that follow from the others. Pick anyone, or find them by name, to see all their ties.</p>
     </div>
     <aside class="uf-card" id="card" hidden aria-live="polite"></aside>
     <div class="uf-storm" id="storm" aria-hidden="true">
@@ -48,6 +63,8 @@
     <div class="web-tip" id="tip" role="status"></div>
   </div>
   <div class="uf-dock">
+    <div class="uf-seg uf-viewsw" id="view" role="radiogroup" aria-label="View">
+      <button type="button" role="radio" data-v="cast" aria-checked="true">The Cast</button><button type="button" role="radio" data-v="everyone" aria-checked="false">Everyone</button></div>
     <div class="uf-btns">
       <button type="button" id="prev" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM19 5v14L9 12z"/></svg></button>
       <button type="button" class="play" id="play" aria-label="Play from the Prelude"></button>
@@ -60,6 +77,7 @@
 <script src="data/palanaeum.js"></script>
 <script src="assets/palanaeum.js"></script>
 <script src="assets/vendor/d3.v7.min.js"></script>
+<script src="assets/web-layout.js"></script>
 <script src="assets/web.js"></script>
 <script>
 (function () {
@@ -82,8 +100,15 @@
 
   const narrow = () => matchMedia("(max-width: 760px)").matches;
   const stage = $("stage");
+  // a friend's banner takes room too: the map and dock still fit the screen
+  const banner = document.querySelector(".friend-banner");
+  if (banner) stage.style.setProperty("--banner-h", `${banner.offsetHeight}px`);
+  // The Cast opens by default; ?view=everyone opens Everyone. Nothing is remembered between visits.
+  const VIEW0 = new URLSearchParams(location.search).get("view") === "everyone" ? "everyone" : "cast";
   const web = P.web($("web"), {
-    labels: "all", interactive: true, zoom: true, focusMode: true, implied: true, tip: $("tip"),
+    view: VIEW0, labels: "all", interactive: true, zoom: true, focusMode: true, implied: true, tip: $("tip"),
+    // names keep clear of the tool column and the readout (on a phone both fade while someone is picked)
+    avoid: () => (narrow() && stage.classList.contains("focusing") ? [] : [...stage.querySelectorAll(".uf-tools, .uf-readout")].map((el) => el.getBoundingClientRect())),
     pad: narrow() ? { top: 92, right: 12, bottom: 16, left: 12 } : { top: 110, right: 80, bottom: 30, left: 40 },
     // on a phone, open close enough to read, on whoever tonight's chapter follows
     initial: narrow() ? { k: 0.72, cy: 0.56, focus: (P.units[LIM] || { pov: [] }).pov } : null,
@@ -124,22 +149,31 @@
     const ties = P.tiesOf(e.id, current, { implied: true });
     const drawn = P.stated(ties), more = ties.length - drawn;
     const first = P.unitById[e.first_seen.split("@")[0]];
+    // people and groups first; then everything else, "also tied to"
+    const otherOf = (r) => (r.from === e.id ? r.to : r.from);
+    const castSide = (r) => ["cast", "groups"].includes(P.layerOf(P.entityById[otherOf(r)]));
+    const near = ties.filter(castSide), also = ties.filter((r) => !castSide(r));
+    const tieRows = (list) => list.map((r) => {
+      const other = otherOf(r);
+      const how = P.basisNote(r);
+      return `<li${r.basis === "follows" ? ` title="${P.basisNote(r, { long: true })}"` : ""}><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].hex}"></span><span><button type="button" data-id="${other}">${P.esc(P.entName(other))}</button>: ${P.esc(r.label)}${how ? ` <span class="c-how">· ${how}</span>` : ""}</span></li>`;
+    }).join("");
+    // a chip for each group or people the page shows them belonging to
+    const groups = [...new Set(ties.filter((r) => r.member && r.from === e.id).map((r) => r.to))];
     const onstage = (e.units || []).filter((id) => P.unitById[id] && P.unitById[id].h <= current).length;
     card.style.setProperty("--pc", P.entColor(e, current));
     card.hidden = false;
     card.innerHTML = `<button type="button" class="c-grab" aria-label="Show details" aria-expanded="false"></button>
       <div class="c-top">${P.sigil(e, { size: 46, h: current })}
         <div class="c-id"><p>${P.esc(P.FOLDERS[e.folder] || "")}${P.isPov(e.id, current) ? " · viewpoint" : ""}</p><h2>${P.esc(e.name)}</h2>
+          ${groups.length ? `<p class="c-chips">${groups.map((g) => `<button type="button" class="c-chip" data-id="${g}">${P.esc(P.entName(g).replace(/^The /, ""))}</button>`).join("")}</p>` : ""}
           <p class="c-line"><span><b>${drawn}</b> tie${drawn === 1 ? "" : "s"}</span>${more ? ` · <span><b>${more}</b> implied</span>` : ""} · <span><b>${onstage}</b> chapter${onstage === 1 ? "" : "s"}</span> · <span>first met ${P.esc(first ? first.short : "")}</span></p></div>
         <div class="c-btns"><button type="button" class="icon-btn c-more-btn" aria-label="Show details" aria-expanded="false">${CHEVRON}</button>
           <button type="button" class="icon-btn c-x" aria-label="Let go of ${P.esc(e.name)}">${P.icon("close")}</button></div></div>
       <div class="c-more">
         ${P.summaryOf(e, current) ? `<p class="c-sum">${P.summaryOf(e, current)}</p>` : ""}
-        <ul>${ties.map((r) => {
-          const other = r.from === e.id ? r.to : r.from;
-          const how = P.basisNote(r);
-          return `<li${r.basis === "follows" ? ` title="${P.basisNote(r, { long: true })}"` : ""}><span class="tie-swatch ${r.basis}" style="--c:${P.TYPES[r.type].hex}"></span><span><button type="button" data-id="${other}">${P.esc(P.entName(other))}</button>: ${P.esc(r.label)}${how ? ` <span class="c-how">· ${how}</span>` : ""}</span></li>`;
-        }).join("")}</ul>
+        ${near.length ? `<ul>${tieRows(near)}</ul>` : ""}
+        ${also.length ? `<p class="c-also">Also tied to</p><ul>${tieRows(also)}</ul>` : ""}
         <div class="c-acts"><button type="button" class="cta" id="expand">${P.icon("expand")}Full profile</button>
           <a class="cta ghost" href="codex.html#${e.id}">Codex entry</a></div></div>`;
     setCardState(cardState);
@@ -148,7 +182,7 @@
     card.querySelector(".c-more-btn").addEventListener("click", toggle);
     card.querySelector(".c-grab").addEventListener("click", toggle);
     card.querySelector(".c-id").addEventListener("click", () => { if (narrow()) toggle(); });
-    card.querySelectorAll("li button").forEach((b) => b.addEventListener("click", () => web.select(b.dataset.id)));
+    card.querySelectorAll("li button, .c-chip").forEach((b) => b.addEventListener("click", (ev) => { ev.stopPropagation(); web.select(b.dataset.id); }));
     card.querySelector("#expand").addEventListener("click", () => P.openProfile(e.id, {
       h: current,
       link: (id) => `codex.html#${id}`,
@@ -187,6 +221,39 @@
     web.setStyles([...styles.querySelectorAll("input:checked")].map((x) => x.value));
     readout();
   }));
+  // segmented switches: The Cast · Everyone, Show, Rank by, Spacing. Arrow keys move along.
+  function seg(el, on) {
+    const btns = [...el.querySelectorAll("button")];
+    const set = (v) => btns.forEach((b) => { const yes = b.dataset.v === v; b.setAttribute("aria-checked", String(yes)); b.tabIndex = yes ? 0 : -1; });
+    set((btns.find((b) => b.getAttribute("aria-checked") === "true") || btns[0]).dataset.v);
+    btns.forEach((b, i) => {
+      b.addEventListener("click", (ev) => { ev.stopPropagation(); set(b.dataset.v); on(b.dataset.v); });
+      b.addEventListener("keydown", (ev) => {
+        const d = ev.key === "ArrowRight" || ev.key === "ArrowDown" ? 1 : ev.key === "ArrowLeft" || ev.key === "ArrowUp" ? -1 : 0;
+        if (!d) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const nb = btns[(i + d + btns.length) % btns.length];
+        nb.focus();
+        nb.click();
+      });
+    });
+    return set;
+  }
+  const setViewSw = seg($("view"), (v) => { web.setView(v); $("cast-only").hidden = v !== "cast"; readout(); });
+  setViewSw(VIEW0);
+  $("cast-only").hidden = VIEW0 !== "cast";
+  seg($("show"), (v) => { web.setShow(v); readout(); });
+  seg($("rankby"), (v) => { web.setRankBy(v); readout(); });
+  seg($("spacing"), (v) => web.setSpacing(v));
+  const LAYERS = [["things", "Things", "things"], ["places", "Places", "places"], ["fieldguide", "Field guide", "fieldguide"], ["lore", "Systems & lore", "systems"]];
+  const layers = $("layers");
+  layers.innerHTML = LAYERS.map(([k, label, folder]) => `<label>
+    <input type="checkbox" value="${k}"><span class="sw" style="--c:${P.FOLDER_COLOR[folder]}"></span><span>${label}</span><span class="count"></span></label>`).join("");
+  layers.querySelectorAll("input").forEach((i) => i.addEventListener("change", () => {
+    web.setLayers([...layers.querySelectorAll("input:checked")].map((x) => x.value));
+    readout();
+  }));
   const fBtn = $("f-btn"), filters = $("filters");
   fBtn.addEventListener("click", (ev) => {
     ev.stopPropagation();
@@ -195,7 +262,7 @@
     fBtn.setAttribute("aria-expanded", String(!filters.hidden));
   });
   document.addEventListener("click", (ev) => {
-    if (!filters.hidden && !filters.contains(ev.target) && ev.target !== fBtn) { filters.hidden = true; fBtn.setAttribute("aria-expanded", "false"); }
+    if (!filters.hidden && !filters.contains(ev.target) && !fBtn.contains(ev.target)) { filters.hidden = true; fBtn.setAttribute("aria-expanded", "false"); }
     if (!find.hidden && !find.contains(ev.target) && !findBtn.contains(ev.target)) setFind(false);
   });
 
@@ -281,6 +348,8 @@
     $("caption").innerHTML = describe(u);
     legend.querySelectorAll(".count").forEach((el, i) => { el.textContent = web.count(Object.keys(P.TYPES)[i]); });
     styles.querySelectorAll(".count").forEach((el, i) => { el.textContent = web.countStyle(Object.keys(P.STYLES)[i]); });
+    const lc = web.layerCounts();
+    layers.querySelectorAll(".count").forEach((el, i) => { el.textContent = lc[LAYERS[i][0]] || 0; });
   }
   function sweep(u) {
     if (P.reducedMotion || !u) return;
