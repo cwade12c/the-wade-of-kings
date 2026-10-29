@@ -64,7 +64,7 @@
   </div>
   <div class="uf-dock">
     <div class="uf-seg uf-viewsw" id="view" role="radiogroup" aria-label="View">
-      <button type="button" role="radio" data-v="cast" aria-checked="true">The Cast</button><button type="button" role="radio" data-v="everyone" aria-checked="false">Everyone</button></div>
+      <button type="button" role="radio" data-v="cast" aria-checked="true">The Cast</button><button type="button" role="radio" data-v="everyone" aria-checked="false">Everything</button></div>
     <div class="uf-btns">
       <button type="button" id="prev" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM19 5v14L9 12z"/></svg></button>
       <button type="button" class="play" id="play" aria-label="Play from the Prelude"></button>
@@ -103,7 +103,7 @@
   // a friend's banner takes room too: the map and dock still fit the screen
   const banner = document.querySelector(".friend-banner");
   if (banner) stage.style.setProperty("--banner-h", `${banner.offsetHeight}px`);
-  // The Cast opens by default; ?view=everyone opens Everyone. ?spacing=spacious|compact sets the
+  // The Cast opens by default; ?view=everyone opens Everything. ?spacing=spacious|compact sets the
   // spacing of the view it opens on (the renderer ignores anything else). Nothing is remembered
   // between visits.
   const query = new URLSearchParams(location.search);
@@ -224,7 +224,7 @@
     web.setStyles([...styles.querySelectorAll("input:checked")].map((x) => x.value));
     readout();
   }));
-  // segmented switches: The Cast · Everyone, Show, Rank by, Spacing. Arrow keys move along.
+  // segmented switches: The Cast · Everything, Show, Rank by, Spacing. Arrow keys move along.
   function seg(el, on) {
     const btns = [...el.querySelectorAll("button")];
     const set = (v) => btns.forEach((b) => { const yes = b.dataset.v === v; b.setAttribute("aria-checked", String(yes)); b.tabIndex = yes ? 0 : -1; });

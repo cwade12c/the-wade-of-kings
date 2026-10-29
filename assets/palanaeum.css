@@ -812,7 +812,7 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-ahead::before { content: ""; position: absolute; left: 0; right: 0.6rem; top: calc(50% - 0.55rem); height: 1px; background: linear-gradient(90deg, rgba(216, 236, 255, 0.35), transparent); }
 .uf-ahead .dun { --s: 14px; position: relative; }
 .uf-ahead small { position: absolute; left: 0.9rem; right: 0; bottom: 0; text-align: center; font: italic 400 0.72rem/1 var(--display); color: var(--mist); }
-/* segmented switches: The Cast · Everyone, Show, Rank by, Spacing */
+/* segmented switches: The Cast · Everything, Show, Rank by, Spacing */
 .uf-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; border: 1px solid var(--rule); background: rgba(0, 0, 0, 0.25); max-width: 100%; }
 .uf-seg button {
   all: unset; box-sizing: border-box; cursor: pointer; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: var(--step--1); line-height: 1.2;

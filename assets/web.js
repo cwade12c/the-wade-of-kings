@@ -58,7 +58,7 @@
     const castR = (n, h) => Math.min(20, 4 + 0.55 * Math.sqrt(P.mentionsAt(n.e, h)));
     nodes.forEach((n) => {
       n.h = n.e.h;
-      n.rE = 5 + Math.sqrt(n.degree) * 2.6;   // Everyone: by ties
+      n.rE = 5 + Math.sqrt(n.degree) * 2.6;   // Everything: by ties
       n.rMax = castR(n, lim);                  // The Cast: by mentions, at its largest
       n.r = n.rE;
       n.square = ["group", "people"].includes(n.e.kind);
@@ -188,7 +188,7 @@
       sel.append("path").attr("class", "edge-hit").attr("fill", "none").attr("stroke", "transparent").attr("stroke-width", 14);
       return sel;
     }
-    // Everyone: one line per tie, parallel ties curving apart
+    // Everything: one line per tie, parallel ties curving apart
     const gEvery = gLinks.append("g");
     const linkEvery = edges(gEvery, links);
 
@@ -317,7 +317,7 @@
     const pad = { top: 24, right: 24, bottom: 24, left: 24, ...(opts.pad || {}) };
     let curH = lim, pinned = new Set(), drawn = new Set(nodes.map((n) => n.id));
     const subs = new Map();   // in focus: id -> [text, colour] for the tie under a name
-    // Greedy, in rank order. Everyone: whoever is picked and everyone tied to them, then
+    // Greedy, in rank order. Everything: whoever is picked and everyone tied to them, then
     // tonight's viewpoints, then other viewpoints, then the best-tied. The Cast: whoever is picked
     // and their ring, then viewpoints, then whoever is on the page in the chapter shown, then score.
     const nowPov = () => new Set((P.units[curH] || { pov: [] }).pov);
@@ -482,7 +482,7 @@
       renderTerrs();
       layoutLabels();
     }
-    // Fit everyone in the view: on Everyone, everyone; in The Cast, everyone its layers hold.
+    // Fit everyone in the view: on Everything, everyone; in The Cast, everyone its layers hold.
     // { base: true } fits the resting map, ignoring a focus ring.
     function fitTransform(base) {
       const box = svgEl.getBoundingClientRect();
@@ -541,7 +541,7 @@
         if (t === 1) { mover.stop(); mover = null; }
       });
     }
-    // spheres grow and shrink with the chapter shown (The Cast) or switch to ties (Everyone)
+    // spheres grow and shrink with the chapter shown (The Cast) or switch to ties (Everything)
     let grower = null;
     function resize(ms) {
       if (!page) return;

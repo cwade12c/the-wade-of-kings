@@ -2,11 +2,11 @@
    ties and returns Map id -> [x, y]; none of them touches the renderer's own nodes, so the
    renderer can keep several and glide between them.
 
-   - compact: the original layout, run over everyone. It's what Everyone opens on and the home
+   - compact: the original layout, run over everyone. It's what Everything opens on and the home
      teaser has always shown; The Cast can use it too.
    - spacious: both views' roomier map. People and groups are laid out with every name's box
      (sphere plus name) kept clear of its neighbours', each with room for the larger sphere
-     either view draws, so the same map serves The Cast and Everyone.
+     either view draws, so the same map serves The Cast and Everything.
    - satellites: things, places, field guide and lore, each set beside whoever it's most tied to
      on the spacious map and kept clear of every sphere at its largest, with the people held
      still. Switching a layer on never moves a person. */
