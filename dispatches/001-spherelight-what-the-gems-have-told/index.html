@@ -315,6 +315,8 @@
     { amt: "2 skymarks", what: "rent for a reading alcove in the Palanaeum", c: "wok:8", g: null },
     { amt: "2 clearmarks a day", what: "a free bridgeman's pay; a slave gets half, one diamond mark", c: "wok:11", g: "diamond" },
     { amt: "1 mark every 5 days", what: "Kaladin's bribe to keep Gaz in line", c: "wok:11", g: "diamond" },
+    { amt: "1 diamond chip", what: "a loaf of bread", c: "wok:14", g: "diamond" },
+    { amt: "5 marks a week", what: "Kaladin's payday; he hands Gaz the fifth himself, so Gaz knows where it comes from", c: "wok:14", g: "diamond" },
     { amt: "a handful of chips and two marks", what: "the thugs' whole take from Took: “not a single broam in the lot”", c: "wok:i3", g: "diamond" },
   ].filter((p) => seen(p.c));
   document.getElementById("prices").innerHTML = PRICES.map((p) => `<div class="price" style="--c:${p.g ? ART.GEMS[p.g].glow : "#a9b3c1"}">
