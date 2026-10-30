@@ -11,7 +11,7 @@
 <main class="uf">
   <div class="uf-stage" id="stage">
     <div class="uf-motes" id="motes" aria-hidden="true"></div>
-    <svg id="web" role="img" aria-label="Relationship web: everyone met so far and the ties between them"></svg>
+    <canvas id="web" role="img" aria-labelledby="readout"></canvas>
     <div class="uf-readout" id="readout">
       <h1>The Unfolding</h1>
       <div class="uf-at" id="at"></div>
@@ -85,6 +85,7 @@
   </div>
 </main>
 <script src="data/palanaeum.js"></script>
+<script src="data/layout.js"></script>
 <script src="assets/palanaeum.js"></script>
 <script src="assets/vendor/d3.v7.min.js"></script>
 <script src="assets/web-layout.js"></script>
@@ -362,8 +363,7 @@
     setFind(false);
     if (from) { runTrace(from, id); return; }
     web.select(id);
-    const n = document.querySelector("#web .node.selected");
-    if (n) n.focus({ preventScroll: true });
+    web.focusName(id);
   }
   findBtn.addEventListener("click", (ev) => { ev.stopPropagation(); setFind(find.hidden); });
   fq.addEventListener("input", suggest);
