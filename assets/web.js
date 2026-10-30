@@ -8,7 +8,7 @@
      per tie, spheres sized by ties. Called without a view, the web draws exactly as it always has.
    - "cast": people and groups, with things, places, field guide and lore as layers to switch on.
      A group's members share a territory instead of lines to its square; each pair gets one
-     line, quiet until someone is picked; spheres grow with how often the book names someone;
+     line, at the same strength as Everything's; spheres grow with how often the book names someone;
      names come and go with the zoom, like towns on a map.
    Spacing (Spacious or Compact) decides where everyone sits; each view keeps its own.
 
@@ -287,29 +287,80 @@
     function terrMembers(t) {
       return t.rows.filter((l) => l.on <= state.h).map((l) => l.source);
     }
-    function renderTerrs() {
+    // A region hugs its members and routes around everyone else. It's the zero contour of a
+    // field that is positive near the members and along their member rows to the group's square
+    // (smoothly joined), and negative near every other name drawn, so it never takes in someone
+    // who isn't marked as one of them. Where a non-member stands in the way, the region parts:
+    // a gap is better than a false member. Sizes are on-screen px, divided by the zoom.
+    const smin = (a, b, w) => { const h = Math.max(w - Math.abs(a - b), 0) / w; return Math.min(a, b) - h * h * w * 0.25; };
+    const dist = (dx, dy) => Math.sqrt(dx * dx + dy * dy);
+    const segDist = (px, py, ax, ay, bx, by) => {
+      const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
+      const u = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L)) : 0;
+      return dist(px - ax - u * dx, py - ay - u * dy);
+    };
+    function trace(t, k, coarse) {
+      const mine = terrMembers(t).filter((n) => drawn.has(n.id));
+      const ids = new Set([t.g.id, ...terrMembers(t).map((n) => n.id)]);
+      const pad = 13 / k, bar = 6 / k, blend = 16 / k, clear = 7 / k, cell = (coarse ? 10 : 4) / k;
+      const ms = [t.g, ...mine].map((n) => ({ x: n.x, y: n.y, R: n.r * S + pad, core: n.r * S + 2 / k }));
+      const bars = mine.map((n) => [n.x, n.y, t.g.x, t.g.y]);
+      const m = blend + 2 * cell;
+      const x0 = Math.min(...ms.map((c) => c.x - c.R)) - m, x1 = Math.max(...ms.map((c) => c.x + c.R)) + m;
+      const y0 = Math.min(...ms.map((c) => c.y - c.R)) - m, y1 = Math.max(...ms.map((c) => c.y + c.R)) + m;
+      const others = nodes.filter((n) => drawn.has(n.id) && !ids.has(n.id))
+        .map((n) => ({ x: n.x, y: n.y, R: n.r * S + clear, core: n.r * S + 1 / k }))
+        .filter((c) => c.x + c.R > x0 && c.x - c.R < x1 && c.y + c.R > y0 && c.y - c.R < y1);
+      const nx = Math.ceil((x1 - x0) / cell), ny = Math.ceil((y1 - y0) / cell);
+      const f = new Float64Array(nx * ny);
+      for (let j = 0; j < ny; j++) {
+        const py = y0 + (j + 0.5) * cell;
+        for (let i = 0; i < nx; i++) {
+          const px = x0 + (i + 0.5) * cell;
+          let d = Infinity;
+          for (const c of ms) d = smin(d, dist(px - c.x, py - c.y) - c.R, blend);
+          for (const b of bars) d = smin(d, segDist(px, py, b[0], b[1], b[2], b[3]) - bar, blend);
+          if (d > 0) { f[j * nx + i] = -d; continue; }   // outside every member: nothing below can bring it in
+          let v = -d;
+          for (const c of others) v = Math.min(v, dist(px - c.x, py - c.y) - c.R);
+          for (const c of ms) v = Math.max(v, c.core - dist(px - c.x, py - c.y));        // a member's own sphere is always in
+          for (const c of others) v = Math.min(v, dist(px - c.x, py - c.y) - c.core);    // anyone else's never is
+          f[j * nx + i] = v;
+        }
+      }
+      // grid value i sits at contour coordinate i + 0.5, which is x0 + (i + 0.5) × cell
+      const polys = d3.contours().size([nx, ny]).thresholds([0])(f)[0].coordinates;
+      const curve = d3.line().curve(d3.curveCatmullRomClosed.alpha(0.7));
+      t.pts = []; t.area = 0;
+      t.d = polys.flatMap((rings) => rings.map((ring, r) => {
+        const pts = ring.slice(0, -1).map(([X, Y]) => [x0 + X * cell, y0 + Y * cell]);
+        if (!r) t.pts.push(...pts);
+        t.area += (r ? -1 : 1) * Math.abs(d3.polygonArea(pts));
+        return curve(pts);
+      })).join("") || null;
+    }
+    let tracedK = null;   // the zoom the regions were last traced at
+    // Traced finely at rest. While spheres glide they're traced coarsely, so they keep up;
+    // mid-zoom they keep their shape, and they're traced again when the gesture ends.
+    function renderTerrs(o = {}) {
       if (!page) return;
-      const k = T.k, pad = 13 / k;
+      const k = T.k;
+      terrName.attr("font-size", TERR_PX / k).attr("stroke-width", 3 / k);
+      if (o.zooming && tracedK !== null) return;
+      tracedK = k;
       terrs.forEach((t) => {
         t.d = null;
-        if (!cast() || !terrOf.has(t.g.id)) return;
-        const ms = [t.g, ...terrMembers(t).filter((n) => drawn.has(n.id))];
-        const pts = [];
-        ms.forEach((n) => { const R = n.r * S + pad; for (let a = 0; a < 14; a++) pts.push([n.x + Math.cos(a * Math.PI / 7) * R, n.y + Math.sin(a * Math.PI / 7) * R]); });
-        t.hull = d3.polygonHull(pts);
-        t.d = t.hull && d3.line().curve(d3.curveCatmullRomClosed.alpha(0.7))(t.hull);
-        t.area = t.hull ? Math.abs(d3.polygonArea(t.hull)) : 0;
+        if (cast() && terrOf.has(t.g.id)) trace(t, k, o.moving);
       });
       const order = terrs.slice().sort((a, b) => (b.area || 0) - (a.area || 0));   // the largest first, so small ones sit on top
       terrPath.data(order, (t) => t.g.id).order().attr("d", (t) => t.d).style("display", (t) => (t.d ? null : "none"));
-      terrName.attr("font-size", TERR_PX / k).attr("stroke-width", 3 / k);
     }
 
-    function render() {
+    function render(moving) {
       node.attr("transform", (n) => `translate(${n.x},${n.y})`);
       labelG.attr("transform", (n) => `translate(${n.x},${n.y})`);
       link.selectAll("path").attr("d", linkPath);
-      renderTerrs();
+      renderTerrs({ moving });
     }
 
     // ------------------------------------------------------------ name placement
@@ -432,7 +483,7 @@
       const order = terrs.filter((t) => t.d).sort((a, b) => (a.area || 0) - (b.area || 0));
       terrs.forEach((t) => { t.lab = null; });
       for (const t of order) {
-        const sp = t.hull.map(([x, y]) => [T.applyX(x), T.applyY(y)]);
+        const sp = t.pts.map(([x, y]) => [T.applyX(x), T.applyY(y)]);
         const xs = sp.map((p) => p[0]), ys = sp.map((p) => p[1]);
         const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
         const top = sp[ys.indexOf(y0)], bot = sp[ys.indexOf(y1)];
@@ -479,7 +530,7 @@
       }
       label.attr("font-size", LABEL_PX / t.k).attr("stroke-width", 4 / t.k);
       fontK = t.k;
-      renderTerrs();
+      renderTerrs({ zooming: true });
       layoutLabels();
     }
     // Fit everyone in the view: on Everything, everyone; in The Cast, everyone its layers hold.
@@ -501,7 +552,7 @@
       zoom = d3.zoom().scaleExtent([0.25, 6]).on("zoom", (ev) => {
         applyZoom(ev.transform);
         if (ev.sourceEvent) { userMoved = true; hideTip(); }
-      });
+      }).on("end", () => { if (tracedK !== T.k) { renderTerrs(); layoutLabels(); } });
       svg.call(zoom).on("dblclick.zoom", null);
     }
     function setT(t, ms = 0) {
@@ -536,7 +587,7 @@
       mover = d3.timer((el) => {
         const t = Math.min(1, el / ms), e = d3.easeCubicInOut(t);
         nodes.forEach((n, i) => { n.x = from[i][0] + (to[i][0] - from[i][0]) * e; n.y = from[i][1] + (to[i][1] - from[i][1]) * e; });
-        render();
+        render(t < 1);
         layoutLabels();
         if (t === 1) { mover.stop(); mover = null; }
       });
@@ -554,7 +605,7 @@
         const t = Math.min(1, el / ms), e = d3.easeCubicOut(t);
         nodes.forEach((n, i) => { n.r = from[i] + (to[i] - from[i]) * e; });
         paintR();
-        if (t === 1) { grower.stop(); grower = null; done(); } else render();
+        if (t === 1) { grower.stop(); grower = null; done(); } else render(true);
       });
     }
 
@@ -665,8 +716,7 @@
       node.style("opacity", (d) => (!near || near.has(d.id) ? null : 0.14));
       labelG.style("opacity", (d) => (!near || near.has(d.id) ? null : 0.14));
       const touches = (l) => !!n && (l.source.id === n.id || l.target.id === n.id);
-      // The Cast's lines are quiet until someone is picked
-      link.style("opacity", (l) => (!n ? (cast() ? "var(--uf-quiet, 0.55)" : null) : touches(l) ? null : 0.05))
+      link.style("opacity", (l) => (!n || touches(l) ? null : 0.05))
         .classed("hot", touches);
       terrPath.style("opacity", (t) => (n && !near.has(t.g.id) ? 0.15 : null));
       terrName.style("opacity", (t) => (n && !near.has(t.g.id) ? 0.15 : null));
