@@ -72,7 +72,7 @@
       <div class="uf-lenses" id="lenses" role="group" aria-label="Lenses: light some names and fade the rest">
         <button type="button" class="uf-lens" data-lens="chapter" aria-pressed="false">This chapter</button>
         <button type="button" class="uf-lens" data-lens="kin" aria-pressed="false" aria-haspopup="dialog" aria-expanded="false" aria-controls="kin"><span class="t">Kin &amp; crews</span><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
-        <button type="button" class="uf-lens" data-lens="mind" aria-pressed="false">On your mind</button>
+        <button type="button" class="uf-lens" data-lens="mind" aria-pressed="false">On Wade’s mind</button>
       </div>
     </div>
     <div class="uf-btns">
@@ -194,7 +194,7 @@
     // a chip for each group or people the page shows them belonging to
     const groups = [...new Set(ties.filter((r) => r.member && r.from === e.id).map((r) => r.to))];
     const onstage = (e.units || []).filter((id) => P.unitById[id] && P.unitById[id].h <= current).length;
-    // under On your mind, the open questions and predictions about them, in id order, all alike
+    // under On Wade’s mind, the open questions and predictions about them, in id order, all alike
     const mind = lens && lens.kind === "mind" ? mindAt(current).filter((x) => x.about.includes(e.id)) : [];
     const steps = web.stepCount(e.id);
     card.style.setProperty("--pc", P.entColor(e, current));
@@ -210,7 +210,7 @@
         ${P.summaryOf(e, current) ? `<p class="c-sum">${P.summaryOf(e, current)}</p>` : ""}
         ${near.length ? `<ul>${tieRows(near)}</ul>` : ""}
         ${also.length ? `<p class="c-also">Also tied to</p><ul>${tieRows(also)}</ul>` : ""}
-        ${mind.length ? `<p class="c-also">On your mind</p><ul class="c-mind">${mind.map((x) => `<li><a href="ledger.html#${x.id}"><b>${P.esc(x.id)}</b> <span>${x.question || x.claim}</span></a></li>`).join("")}</ul>` : ""}
+        ${mind.length ? `<p class="c-also">On Wade’s mind</p><ul class="c-mind">${mind.map((x) => `<li><a href="ledger.html#${x.id}"><b>${P.esc(x.id)}</b> <span>${x.question || x.claim}</span></a></li>`).join("")}</ul>` : ""}
         <div class="c-acts"><button type="button" class="cta" id="expand">${P.icon("expand")}Full profile</button>
           <button type="button" class="cta ghost" id="trace">${PATH_ICON}Trace a path to…</button>
           <a class="cta ghost" href="codex.html#${e.id}">Codex entry</a></div></div>`;
