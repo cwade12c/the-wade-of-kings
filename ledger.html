@@ -54,7 +54,7 @@
     const fr = section(p, "For"), ag = section(p, "Against");
     const nf = P.sectionCount(fr), na = P.sectionCount(ag);
     const others = (p.sections || []).filter((s) => s !== fr && s !== ag && P.sectionCount(s));
-    return `<article class="th-pred"${P.isNew(p.h) ? ' data-new="1"' : ""}>
+    return `<article class="th-pred" id="${P.esc(p.id)}"${P.isNew(p.h) ? ' data-new="1"' : ""}>
       <div class="th-gauge">${P.gauge(last.p, 136)}<small>${conf.length > 1 ? `confidence ${conf.map((c) => `${c.p}%`).join(" → ")}` : "confidence when made"}
         ${resolved ? `<br><span class="stamp ${p.status}">${p.status === "called" ? "Called it" : P.esc(p.status)}</span>` : ""}</small></div>
       <div>
@@ -100,7 +100,7 @@
         const answered = isAnswered(q);
         const ev = (q.sections || []).filter((s) => P.sectionCount(s));
         const n = ev.reduce((k, s) => k + P.sectionCount(s), 0);
-        return `<article class="th-q${answered ? " answered" : ""}"${P.isNew(q.h) ? ' data-new="1"' : ""}>
+        return `<article class="th-q${answered ? " answered" : ""}" id="${P.esc(q.id)}"${P.isNew(q.h) ? ' data-new="1"' : ""}>
           <blockquote class="wade">${q.question}</blockquote>
           <p class="th-meta"><span class="th-id">${P.esc(q.id)}</span><span>${answered ? `answered in ${P.esc(at(q.answered_at))}` : "still open"}</span>${q.amended ? '<span class="th-flag">amended</span>' : ""}</p>
           ${aboutChips(q)}
@@ -158,7 +158,26 @@
       nb.focus(); nb.click();
     });
   });
-  show(location.hash.slice(1));
+  // a link to one entry (ledger.html#Q-011, from the Unfolding's card) opens its tab and scrolls to it
+  function toEntry(id) {
+    const q = qs.find((x) => x.id === id), p = preds.find((x) => x.id === id);
+    if (!q && !p) return false;
+    show(q ? "questions" : "predictions");
+    if (q && !document.getElementById(id)) {
+      status = ""; topic = "";
+      qp.querySelectorAll("#q-status .chip").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.s === "")));
+      qp.querySelectorAll("#q-topic .chip").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.t === "")));
+      drawQuestions();
+    }
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ block: "center", behavior: P.reducedMotion ? "auto" : "smooth" });
+      el.classList.add("th-hit");
+    }
+    return true;
+  }
+  const want = decodeURIComponent(location.hash.slice(1));
+  if (!toEntry(want)) show(want);
 })();
 </script>
 </body>

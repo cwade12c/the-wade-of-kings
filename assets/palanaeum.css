@@ -699,6 +699,7 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-find-list small { color: var(--mist); font-size: var(--step--2); }
 .uf-find-hint { margin: 0.5rem 0.7rem 0.2rem; font-size: var(--step--1); color: var(--dusk); }
 .uf-filters p { color: var(--dusk); margin: 0; }
+.uf-filters p + p { margin-top: 0.6rem; }
 
 /* the highstorm that sweeps a chapter in */
 .uf-storm { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; visibility: hidden; }
@@ -821,7 +822,52 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-seg button[aria-checked="true"] { background: rgba(216, 236, 255, 0.14); color: var(--parchment); box-shadow: inset 0 0 0 1px rgba(216, 236, 255, 0.25); }
 .uf-seg button:focus-visible { outline: 2px solid var(--sphere); outline-offset: 1px; }
 .uf-seg.sm button { padding: 0.25rem 0.65rem; font-size: var(--step--2); }
-.uf-viewsw { grid-area: view; justify-self: start; align-self: end; height: 2.25rem; }
+.uf-viewsw { justify-self: start; align-self: end; height: 2.25rem; flex: none; }
+/* the dock's top row: the view switch, then the lenses; it scrolls sideways on a phone */
+.uf-row {
+  grid-area: view; display: flex; align-items: center; gap: 0.6rem; min-width: 0; overflow-x: auto; scrollbar-width: none;
+  padding: 4px 2px; margin: -4px -2px;
+}
+.uf-row::-webkit-scrollbar { display: none; }
+.uf-lenses { display: flex; gap: 0.4rem; flex: none; }
+.uf-lens {
+  all: unset; box-sizing: border-box; position: relative; display: inline-flex; align-items: center; gap: 0.3rem; height: 2.25rem; padding: 0 0.95rem;
+  border-radius: 999px; border: 1px solid var(--rule); background: rgba(0, 0, 0, 0.25); color: var(--dusk); font-size: var(--step--1); white-space: nowrap; cursor: pointer;
+  transition: background .2s, color .2s, border-color .2s, box-shadow .2s;
+}
+.uf-lens::after { content: ""; position: absolute; inset: -4px -2px; }   /* a 44 px hit area */
+.uf-lens:hover { color: var(--parchment); border-color: var(--dusk); }
+.uf-lens[aria-pressed="true"] { color: #0e1520; background: linear-gradient(180deg, #fffaf0, #e2d6bc); border-color: transparent; box-shadow: 0 0 18px rgba(216, 236, 255, 0.2); }
+.uf-lens:focus-visible { outline: 2px solid var(--sphere); outline-offset: 1px; }
+.uf-lens .caret { width: 0.8rem; height: 0.8rem; margin-right: -0.2rem; transition: transform .2s; }
+.uf-lens[aria-expanded="true"] .caret { transform: rotate(180deg); }
+/* the Kin & crews list: alphabetical, never ordered by size */
+.uf-kin[hidden] { display: none; }
+.uf-kin {
+  position: absolute; z-index: 6; left: 1.25rem; bottom: 1rem; width: min(20rem, calc(100% - 2.5rem)); max-height: calc(100% - 2rem); overflow: auto; overscroll-behavior: contain;
+  background: rgba(14, 20, 28, 0.96); border: 1px solid var(--rule); border-radius: 18px; padding: 0.9rem 0.8rem 0.4rem; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  animation: pop-in .18s var(--ease-out); font-size: var(--step--1);
+}
+.uf-kin h2 { font: 700 var(--step--2) var(--text); letter-spacing: 0.2em; text-transform: uppercase; color: var(--dusk); margin: 0 0 0.3rem 0.5rem; }
+.uf-kin ul { list-style: none; margin: 0 0 0.75rem; padding: 0; display: grid; gap: 0.05rem; }
+.uf-kin button { all: unset; box-sizing: border-box; display: flex; align-items: center; width: 100%; min-height: 2.75rem; padding: 0.4rem 0.6rem; border-radius: 10px; color: var(--parchment); cursor: pointer; }
+.uf-kin button:hover, .uf-kin button[aria-pressed="true"] { background: rgba(217, 183, 126, 0.1); }
+.uf-kin button[aria-pressed="true"] { color: #d9b77e; }
+.uf-kin button:focus-visible { outline: 2px solid var(--sphere); outline-offset: -2px; }
+.uf-kin p { color: var(--dusk); margin: 0 0.5rem 0.6rem; }
+/* one more step: a pill under the ring */
+.uf-step[hidden] { display: none; }
+.uf-step {
+  all: unset; box-sizing: border-box; position: absolute; z-index: 4; transform: translate(-50%, -100%); display: inline-flex; align-items: center; gap: 0.4rem;
+  height: 2.25rem; padding: 0 0.95rem 0 0.75rem; border-radius: 999px; border: 1px solid var(--rule); background: var(--glass); color: var(--parchment);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-size: var(--step--1); white-space: nowrap; cursor: pointer; animation: pop-in .25s var(--ease-out);
+}
+.uf-step::after { content: ""; position: absolute; inset: -4px 0; }
+.uf-step .ico { width: 1.05rem; height: 1.05rem; }
+.uf-step small { color: var(--mist); font-weight: 700; }
+.uf-step:hover { border-color: var(--dusk); }
+.uf-step[aria-pressed="true"] { border-color: rgba(216, 236, 255, 0.45); box-shadow: inset 0 0 0 1px rgba(216, 236, 255, 0.2), 0 0 18px rgba(216, 236, 255, 0.15); }
+.uf-step:focus-visible { outline: 2px solid var(--sphere); outline-offset: 2px; }
 .uf-viewsw button { padding: 0.3rem 0.95rem; display: grid; place-items: center; }
 .uf-show { display: grid; gap: 0.5rem; justify-items: start; margin-bottom: 1rem; }
 .uf-rank { display: flex; align-items: center; gap: 0.5rem; color: var(--mist); font-size: var(--step--2); }
@@ -844,6 +890,34 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 }
 .uf-card .c-chip:hover, .uf-card .c-chip:focus-visible { border-color: #d9b77e; color: var(--parchment); }
 .uf-card .c-also { margin: 0.4rem 0 0; font-size: var(--step--2); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mist); }
+.uf-card .c-step { color: var(--dusk); }
+.uf-card .c-step .ico { width: 1.15rem; height: 1.15rem; }
+.uf-card .c-step[aria-pressed="true"] { color: var(--parchment); border-color: rgba(216, 236, 255, 0.45); box-shadow: 0 0 14px rgba(216, 236, 255, 0.15); }
+.uf-card .c-line .c-step { all: unset; cursor: pointer; white-space: nowrap; color: var(--dusk); padding: 0 0.45rem; border-radius: 999px; border: 1px solid var(--rule); }
+.uf-card .c-line .c-step:hover, .uf-card .c-line .c-step:focus-visible { color: var(--parchment); border-color: var(--dusk); }
+.uf-card .c-mind li { display: block; }
+.uf-card .c-mind a { display: block; color: var(--dusk); text-decoration: none; padding: 0.15rem 0; }
+.uf-card .c-mind a b { color: var(--parchment); margin-right: 0.3rem; }
+.uf-card .c-mind a span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.uf-card .c-mind a:hover span, .uf-card .c-mind a:focus-visible span { color: var(--parchment); }
+.uf-card .c-acts .ico { width: 1rem; height: 1rem; }
+/* a traced path's card: the chain, step by step */
+.uf-card .c-path-ico { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--rule); color: var(--pc); }
+.uf-card .c-path-ico .ico { width: 1.4rem; height: 1.4rem; }
+.uf-card .c-path { align-items: start; }
+.uf-card .c-chain { margin: 0.8rem 0 0.25rem; font-size: var(--step--1); color: var(--dusk); text-transform: none; letter-spacing: 0; font-weight: 400; line-height: 1.5; }
+.uf-card .c-chain-note { margin: 0.3rem 0 0; font-size: var(--step--2); color: var(--mist); }
+.uf-card .c-chain button { all: unset; cursor: pointer; color: var(--parchment); font-weight: 700; }
+.uf-card .c-chain button:hover, .uf-card .c-chain button:focus-visible { color: var(--sphere); }
+.uf-card .c-chain i { font-style: italic; color: color-mix(in srgb, var(--c) 60%, #fff); }
+.uf-card .c-arrow { color: var(--mist); }
+.web-path-label { font-family: var(--text); font-weight: 700; paint-order: stroke; stroke: #0e151e; stroke-linejoin: round; pointer-events: none; }
+/* Ripples' second ring: spheres at half size */
+.node .node-body { transition: transform .4s var(--ease-out); }
+.node.half .node-body { transform: scale(.5); }
+.node.half .halo { visibility: hidden; }
+/* a people has no territory: under its lens, its members get a thin gold ring */
+.node.belongs .ring { opacity: .9; stroke: #d9b77e; stroke-dasharray: none; stroke-width: 1; animation: none; }
 .web-label { font-family: var(--text); fill: var(--parchment); paint-order: stroke; stroke: #0e151e; stroke-linejoin: round; pointer-events: none; transition: opacity .25s; }
 .web-label.minor { fill: var(--dusk); }
 .web-tip {
@@ -890,6 +964,8 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
   .uf-at .t b { font-size: 1.05rem; }
   .uf-at .t span { font-size: 0.78rem; }
   .uf-counts { display: none; }
+  .uf-stage.lensing .uf-counts { display: block; margin-top: 0.3rem; font-size: 0.78rem; }
+  .uf-kin { left: 0.75rem; right: 0.75rem; bottom: 0.75rem; width: auto; max-height: 55%; }
   .uf-tools { top: 0.75rem; right: 0.75rem; }
   .uf-tools button { width: 2.4rem; height: 2.4rem; border-radius: 12px; }
   .uf-filters { right: 0.75rem; left: 0.75rem; width: auto; top: auto; bottom: 0.75rem; max-height: 40%; }
@@ -1132,6 +1208,8 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .th-group > header h3 { font-size: 1.45rem; }
 .th-group > header small { color: var(--mist); font-size: var(--step--1); }
 .th-qs { columns: 3 20rem; column-gap: 0.9rem; }
+.th-pred, .th-q { scroll-margin-top: calc(var(--head-h) + 1rem); }
+.th-hit { box-shadow: 0 0 0 2px rgba(216, 236, 255, 0.5), 0 0 30px rgba(216, 236, 255, 0.12); }
 .th-q { break-inside: avoid; margin-bottom: 0.9rem; padding: 1.1rem 1.15rem 0.9rem; border-radius: 20px; background: #111923; border: 1px solid var(--rule); }
 .th-q blockquote.wade { margin: 0 0 0.6rem; font-size: 1.07rem; padding: 0.85rem 1rem 0.8rem 2.4rem; }
 .th-q blockquote.wade::before { font-size: 2.4rem; left: 0.5rem; }

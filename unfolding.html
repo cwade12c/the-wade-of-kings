@@ -54,7 +54,10 @@
       <div class="uf-types" id="styles" role="group" aria-label="Show or hide each way of knowing"></div>
       <h2>Reading the web</h2>
       <p>Lit, glowing spheres are viewpoint characters; squares are groups. In The Cast, a group's members share a dotted territory, each pair shares one line, spheres grow with how often the book has named someone, and more names appear as you zoom in. Arrows mark command, dots support, bars hostility; faint gold lines are family ties that follow from the others. Pick anyone, or find them by name, to see all their ties.</p>
+      <p>Lenses light some names and fade the rest, and nobody moves: this chapter's cast, a family or crew, or whoever Wade's open questions and predictions are about. Picking anyone still shows all their ties. From a name's card, trace the chain of ties to anyone else.</p>
     </div>
+    <div class="uf-kin" id="kin" role="dialog" aria-label="Kin &amp; crews" hidden></div>
+    <button type="button" class="uf-step" id="step" aria-pressed="false" hidden></button>
     <aside class="uf-card" id="card" hidden aria-live="polite"></aside>
     <div class="uf-storm" id="storm" aria-hidden="true">
       <div class="uf-front"></div>
@@ -63,8 +66,15 @@
     <div class="web-tip" id="tip" role="status"></div>
   </div>
   <div class="uf-dock">
-    <div class="uf-seg uf-viewsw" id="view" role="radiogroup" aria-label="View">
-      <button type="button" role="radio" data-v="cast" aria-checked="true">The Cast</button><button type="button" role="radio" data-v="everyone" aria-checked="false">Everything</button></div>
+    <div class="uf-row">
+      <div class="uf-seg uf-viewsw" id="view" role="radiogroup" aria-label="View">
+        <button type="button" role="radio" data-v="cast" aria-checked="true">The Cast</button><button type="button" role="radio" data-v="everyone" aria-checked="false">Everything</button></div>
+      <div class="uf-lenses" id="lenses" role="group" aria-label="Lenses: light some names and fade the rest">
+        <button type="button" class="uf-lens" data-lens="chapter" aria-pressed="false">This chapter</button>
+        <button type="button" class="uf-lens" data-lens="kin" aria-pressed="false" aria-haspopup="dialog" aria-expanded="false" aria-controls="kin"><span class="t">Kin &amp; crews</span><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+        <button type="button" class="uf-lens" data-lens="mind" aria-pressed="false">On your mind</button>
+      </div>
+    </div>
     <div class="uf-btns">
       <button type="button" id="prev" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM19 5v14L9 12z"/></svg></button>
       <button type="button" class="play" id="play" aria-label="Play from the Prelude"></button>
@@ -87,6 +97,8 @@
   const shownUnits = P.units.filter((u) => P.visible(u.h));
   const LIM = P.limit();
   let current = LIM, sel = null;
+  let lens = null;      // { kind: "chapter" | "kin" | "mind", id } while a lens is on
+  let tracing = null;   // { a, b, res, i, back } while a path is traced
   const SWEEP = 1500, STEP = 2300;
   const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>';
   const PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>';
@@ -108,31 +120,49 @@
   // between visits.
   const query = new URLSearchParams(location.search);
   const VIEW0 = query.get("view") === "everyone" ? "everyone" : "cast";
-  const web = P.web($("web"), {
+  // the free space a focus ring may use: above the peek bar on a phone, left of the card on a
+  // desktop, and above the one-more-step pill when Ripples will have one ({ full: true } keeps
+  // the pill's room in)
+  const PILL_H = 48;
+  function focusBox(o = {}) {
+    const st = stage.getBoundingClientRect();
+    const pill = !o.full && web && sel && !tracing && web.stepCount(sel.id) ? PILL_H : 0;
+    if (narrow()) {
+      const top = card.querySelector(".c-top");
+      const peek = card.hidden || !top ? 0 : top.offsetHeight + 30;
+      return { x: 6, y: 18, w: st.width - 12, h: st.height - peek - 30 - pill };
+    }
+    const right = card.hidden ? 80 : card.offsetWidth + 100;
+    return { x: 30, y: 96, w: st.width - right - 30, h: st.height - 120 - pill };
+  }
+  let web = null;
+  web = P.web($("web"), {
     view: VIEW0, spacing: query.get("spacing"), labels: "all", interactive: true, zoom: true, focusMode: true, implied: true, tip: $("tip"),
-    // names keep clear of the tool column and the readout (on a phone both fade while someone is picked)
-    avoid: () => (narrow() && stage.classList.contains("focusing") ? [] : [...stage.querySelectorAll(".uf-tools, .uf-readout")].map((el) => el.getBoundingClientRect())),
+    // names keep clear of the tool column, the readout (on a phone both fade while someone is
+    // picked) and the one-more-step pill
+    avoid: () => [...stage.querySelectorAll(narrow() && stage.classList.contains("focusing") ? ".uf-step:not([hidden])" : ".uf-tools, .uf-readout, .uf-step:not([hidden])")].map((el) => el.getBoundingClientRect()),
     pad: narrow() ? { top: 92, right: 12, bottom: 16, left: 12 } : { top: 110, right: 80, bottom: 30, left: 40 },
     // on a phone, open close enough to read, on whoever tonight's chapter follows
     initial: narrow() ? { k: 0.72, cy: 0.56, focus: (P.units[LIM] || { pov: [] }).pov } : null,
-    // the free space a focus ring may use: above the peek bar on a phone, left of the card on a desktop
-    focusBox: () => {
-      const st = stage.getBoundingClientRect();
-      if (narrow()) {
-        const top = card.querySelector(".c-top");
-        const peek = card.hidden || !top ? 0 : top.offsetHeight + 30;
-        return { x: 6, y: 18, w: st.width - 12, h: st.height - peek - 30 };
-      }
-      const right = card.hidden ? 80 : card.offsetWidth + 100;
-      return { x: 30, y: 96, w: st.width - right - 30, h: st.height - 120 };
-    },
+    focusBox,
     onSelect: (n) => {
+      if (n && tracing) tracing = null;   // picking a name lets a traced path go
       sel = n;
+      if (tracing) return;                // the path's own card stays
       renderCard(n);
       stage.classList.toggle("focusing", !!n);
-      history.replaceState(null, "", n ? `#${n.id}` : location.pathname);
+      setURL();
     },
+    onRing: () => updateStep(),
   });
+  // the address keeps what can be shared: the view, spacing, lens and whoever is picked
+  function setURL() {
+    const q = new URLSearchParams(location.search);
+    q.delete("play");
+    if (lens) q.set("lens", lens.kind === "kin" ? `kin:${lens.id}` : lens.kind); else q.delete("lens");
+    const s = q.toString().replace(/%3A/gi, ":");
+    history.replaceState(null, "", `${location.pathname}${s ? `?${s}` : ""}${sel ? `#${sel.id}` : ""}`);
+  }
 
   // ------------------------------------------------------------ the card for a chosen name
   // On a phone it opens as a short peek bar, so the ring stays in view above it; tap or swipe
@@ -164,6 +194,9 @@
     // a chip for each group or people the page shows them belonging to
     const groups = [...new Set(ties.filter((r) => r.member && r.from === e.id).map((r) => r.to))];
     const onstage = (e.units || []).filter((id) => P.unitById[id] && P.unitById[id].h <= current).length;
+    // under On your mind, the open questions and predictions about them, in id order, all alike
+    const mind = lens && lens.kind === "mind" ? mindAt(current).filter((x) => x.about.includes(e.id)) : [];
+    const steps = web.stepCount(e.id);
     card.style.setProperty("--pc", P.entColor(e, current));
     card.hidden = false;
     card.innerHTML = `<button type="button" class="c-grab" aria-label="Show details" aria-expanded="false"></button>
@@ -171,13 +204,15 @@
         <div class="c-id"><p>${P.esc(P.FOLDERS[e.folder] || "")}${P.isPov(e.id, current) ? " · viewpoint" : ""}</p><h2>${P.esc(e.name)}</h2>
           ${groups.length ? `<p class="c-chips">${groups.map((g) => `<button type="button" class="c-chip" data-id="${g}">${P.esc(P.entName(g).replace(/^The /, ""))}</button>`).join("")}</p>` : ""}
           <p class="c-line"><span><b>${drawn}</b> tie${drawn === 1 ? "" : "s"}</span>${more ? ` · <span><b>${more}</b> implied</span>` : ""} · <span><b>${onstage}</b> chapter${onstage === 1 ? "" : "s"}</span> · <span>first met ${P.esc(first ? first.short : "")}</span></p></div>
-        <div class="c-btns"><button type="button" class="icon-btn c-more-btn" aria-label="Show details" aria-expanded="false">${CHEVRON}</button>
+        <div class="c-btns">${steps ? `<button type="button" class="icon-btn c-step" aria-label="One more step" title="One more step" aria-pressed="${web.step()}">${RING_ICON}</button>` : ""}<button type="button" class="icon-btn c-more-btn" aria-label="Show details" aria-expanded="false">${CHEVRON}</button>
           <button type="button" class="icon-btn c-x" aria-label="Let go of ${P.esc(e.name)}">${P.icon("close")}</button></div></div>
       <div class="c-more">
         ${P.summaryOf(e, current) ? `<p class="c-sum">${P.summaryOf(e, current)}</p>` : ""}
         ${near.length ? `<ul>${tieRows(near)}</ul>` : ""}
         ${also.length ? `<p class="c-also">Also tied to</p><ul>${tieRows(also)}</ul>` : ""}
+        ${mind.length ? `<p class="c-also">On your mind</p><ul class="c-mind">${mind.map((x) => `<li><a href="ledger.html#${x.id}"><b>${P.esc(x.id)}</b> <span>${x.question || x.claim}</span></a></li>`).join("")}</ul>` : ""}
         <div class="c-acts"><button type="button" class="cta" id="expand">${P.icon("expand")}Full profile</button>
+          <button type="button" class="cta ghost" id="trace">${PATH_ICON}Trace a path to…</button>
           <a class="cta ghost" href="codex.html#${e.id}">Codex entry</a></div></div>`;
     setCardState(cardState);
     const toggle = () => setCardState(cardState === "open" ? "peek" : "open");
@@ -186,6 +221,9 @@
     card.querySelector(".c-grab").addEventListener("click", toggle);
     card.querySelector(".c-id").addEventListener("click", () => { if (narrow()) toggle(); });
     card.querySelectorAll("li button, .c-chip").forEach((b) => b.addEventListener("click", (ev) => { ev.stopPropagation(); web.select(b.dataset.id); }));
+    const cs = card.querySelector(".c-step");
+    if (cs) cs.addEventListener("click", (ev) => { ev.stopPropagation(); web.setStep(!web.step()); });
+    card.querySelector("#trace").addEventListener("click", (ev) => { ev.stopPropagation(); setFind(true, e.id); });
     card.querySelector("#expand").addEventListener("click", () => P.openProfile(e.id, {
       h: current,
       link: (id) => `codex.html#${id}`,
@@ -269,6 +307,7 @@
   document.addEventListener("click", (ev) => {
     if (!filters.hidden && !filters.contains(ev.target) && !fBtn.contains(ev.target)) { filters.hidden = true; fBtn.setAttribute("aria-expanded", "false"); }
     if (!find.hidden && !find.contains(ev.target) && !findBtn.contains(ev.target)) setFind(false);
+    if (!kin.hidden && !kin.contains(ev.target) && !kinBtn.contains(ev.target)) setKin(false);
   });
 
   // ------------------------------------------------------------ find a name
@@ -277,14 +316,20 @@
   const findBtn = $("find-btn"), find = $("find"), fq = $("find-q"), flist = $("find-list"), fhint = $("find-hint");
   const fold = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const plain = (n) => n.e.name.replace(/^The /, "");
-  let hits = [], active = 0;
-  function setFind(on) {
+  let hits = [], active = 0, pathFrom = null;
+  // Find doubles as the second half of "Trace a path to…": from a name's card it asks where to
+  function setFind(on, from = null) {
     find.hidden = !on;
     findBtn.setAttribute("aria-expanded", String(on));
     fq.setAttribute("aria-expanded", "false");
+    pathFrom = on ? from : null;
+    find.classList.toggle("path", !!pathFrom);
+    fq.placeholder = pathFrom ? `From ${P.entName(pathFrom)} to…` : "Find a name";
+    flist.setAttribute("aria-label", pathFrom ? "Trace a path to" : "Names on the map");
     if (!on) return;
     filters.hidden = true;
     fBtn.setAttribute("aria-expanded", "false");
+    setKin(false);
     fq.value = "";
     suggest();
     fq.focus();
@@ -292,7 +337,7 @@
   function suggest() {
     const t = fold(fq.value.trim());
     const keys = (n) => [n.e.name, ...(P.friendH() === null ? n.e.aka : [])].map(fold);   // friends don't get aliases
-    hits = !t ? [] : web.nodes.filter((n) => n.h <= current).map((n) => ({ n, k: keys(n) }))
+    hits = !t ? [] : web.nodes.filter((n) => n.h <= current && n.id !== pathFrom).map((n) => ({ n, k: keys(n) }))
       .filter((x) => x.k.some((k) => k.includes(t)))
       .map((x) => ({ n: x.n, start: x.k.some((k) => k.split(/[\s-]+/).some((w) => w.startsWith(t))) ? 0 : 1 }))
       .sort((a, b) => a.start - b.start || plain(a.n).localeCompare(plain(b.n)))
@@ -303,7 +348,7 @@
     fq.setAttribute("aria-expanded", String(hits.length > 0));
     if (hits.length) fq.setAttribute("aria-activedescendant", "find-0");
     else fq.removeAttribute("aria-activedescendant");
-    fhint.textContent = !t ? "Anyone, or any group, on the map so far." : hits.length ? "" : "No one on the map by that name.";
+    fhint.textContent = !t ? (pathFrom ? "Anyone on the map so far: the chain of ties between them lights up." : "Anyone, or any group, on the map so far.") : hits.length ? "" : "No one on the map by that name.";
     fhint.hidden = !fhint.textContent;
   }
   function move(d) {
@@ -313,7 +358,9 @@
     fq.setAttribute("aria-activedescendant", `find-${active}`);
   }
   function pick(id) {
+    const from = pathFrom;
     setFind(false);
+    if (from) { runTrace(from, id); return; }
     web.select(id);
     const n = document.querySelector("#web .node.selected");
     if (n) n.focus({ preventScroll: true });
@@ -326,6 +373,186 @@
     else if (ev.key === "Escape") { ev.preventDefault(); setFind(false); findBtn.focus(); }
   });
   flist.addEventListener("click", (ev) => { const li = ev.target.closest("li[data-id]"); if (li) pick(li.dataset.id); });
+  // ------------------------------------------------------------ lenses
+  // Each lights some names and fades the rest, worked out at the chapter shown (a friend's
+  // bookmark included), by rules that treat everyone alike. One at a time; never stored.
+  const openAt = (x, h, done) => x.h !== null && x.h <= h && !(x.status !== "open" && x[done] !== null && x[done] <= h);
+  // Wade's open questions and predictions at h, in id order (The Deep End has no "about")
+  const mindAt = (h) => [...P.data.predictions.filter((x) => openAt(x, h, "rh")), ...P.data.questions.filter((x) => openAt(x, h, "ah"))]
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+  const plainName = (id) => P.entName(id).replace(/^The /, "");
+  // Kin & crews at h: families (joined by family ties), then houses, crews and orders, then
+  // peoples, each list alphabetical. A family whose house's marked members all belong to it,
+  // and make up at least half of it, goes by the house's name.
+  function kinAt(h) {
+    const on = web.links.filter((l) => l.on <= h);
+    const marked = new Map();
+    on.forEach((l) => { if (l.member) { if (!marked.has(l.target.id)) marked.set(l.target.id, new Set()); marked.get(l.target.id).add(l.source.id); } });
+    const groups = [...marked].sort((a, b) => plainName(a[0]).localeCompare(plainName(b[0])));
+    const up = new Map();
+    const root = (x) => { while (up.get(x) !== x) x = up.get(x); return x; };
+    on.forEach((l) => {
+      if (l.type !== "family" || l.member || l.source.square || l.target.square) return;
+      [l.source.id, l.target.id].forEach((id) => { if (!up.has(id)) up.set(id, id); });
+      up.set(root(l.source.id), root(l.target.id));
+    });
+    const comps = new Map();
+    [...up.keys()].forEach((id) => { const r = root(id); if (!comps.has(r)) comps.set(r, new Set()); comps.get(r).add(id); });
+    const named = new Set();
+    const families = [...comps.values()].filter((c) => c.size >= 2).map((c) => {
+      const g = groups.find(([gid, ms]) => P.entityById[gid].kind === "group" && !named.has(gid) && [...ms].every((id) => c.has(id)) && ms.size >= c.size / 2);
+      if (g) { named.add(g[0]); return { key: g[0], name: P.entName(g[0]), ids: [...c, ...g[1], g[0]], has: c }; }
+      const top = [...c].sort((a, b) => P.mentionsAt(P.entityById[b], h) - P.mentionsAt(P.entityById[a], h) || P.entName(a).localeCompare(P.entName(b)))[0];
+      return { key: `family:${top}`, name: `${P.entName(top)}’s family`, ids: [...c], has: c };
+    });
+    const byKind = (kind) => groups.filter(([gid]) => P.entityById[gid].kind === kind && !named.has(gid))
+      .map(([gid, ms]) => ({ key: gid, name: P.entName(gid), ids: [...ms, gid], ring: kind === "people" ? [...ms] : null, has: ms }));
+    const sort = (xs) => xs.sort((a, b) => a.name.replace(/^The /, "").localeCompare(b.name.replace(/^The /, "")));
+    return [["Families", sort(families)], ["Houses, crews and orders", sort(byKind("group"))], ["Peoples", sort(byKind("people"))]];
+  }
+  // the Kin & crews pick at h: by its key, or (for a family) by the member it was named for
+  function kinPick(id, h) {
+    const all = kinAt(h).flatMap(([, xs]) => xs);
+    const who = id.startsWith("family:") ? id.slice(7) : id;
+    return all.find((x) => x.key === id) || all.find((x) => x.key.startsWith("family:") && x.has.has(who)) || all.find((x) => x.key === who) || null;
+  }
+  function lensAt(h) {
+    if (!lens) return null;
+    if (lens.kind === "chapter") {
+      const u = P.units[h];
+      return { ids: web.nodes.filter((n) => n.h <= h && P.onPage(n.e, h)).map((n) => n.id).concat(u ? u.pov : []) };
+    }
+    if (lens.kind === "mind") return { ids: mindAt(h).flatMap((x) => x.about) };
+    const k = kinPick(lens.id, h);
+    return { ids: k ? k.ids : [], ring: k ? k.ring : null, name: k ? k.name : "" };
+  }
+  const lensBtns = [...document.querySelectorAll(".uf-lens")];
+  const kinBtn = lensBtns.find((b) => b.dataset.lens === "kin"), kin = $("kin");
+  function applyLens(o = {}) {
+    const l = lensAt(current);
+    if (!tracing) web.setLens(l ? { kind: lens.kind, ids: l.ids, ring: l.ring } : null, o);
+    lensBtns.forEach((b) => b.setAttribute("aria-pressed", String(!!lens && lens.kind === b.dataset.lens)));
+    kinBtn.querySelector(".t").textContent = lens && lens.kind === "kin" && l.name ? `Kin & crews: ${l.name.replace(/^The /, "")}` : "Kin & crews";
+    stage.classList.toggle("lensing", !!lens);
+    if (sel) renderCard(sel);
+    readout();
+  }
+  function setLens(next) {
+    if (tracing) exitTrace(false);
+    lens = next;
+    setURL();
+    applyLens();
+  }
+  function setKin(on) {
+    kin.hidden = !on;
+    kinBtn.setAttribute("aria-expanded", String(on));
+    if (!on) return;
+    filters.hidden = true;
+    fBtn.setAttribute("aria-expanded", "false");
+    const lists = kinAt(current).filter(([, xs]) => xs.length);
+    const picked = lens && lens.kind === "kin" ? (kinPick(lens.id, current) || {}).key : null;
+    kin.innerHTML = lists.length ? lists.map(([title, xs]) => `<h2>${title}</h2><ul>${xs.map((x) =>
+      `<li><button type="button" data-k="${P.esc(x.key)}" aria-pressed="${x.key === picked}">${P.esc(x.name)}</button></li>`).join("")}</ul>`).join("")
+      : `<p>No families or crews on the map yet.</p>`;
+    kin.querySelectorAll("button").forEach((b) => b.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      setKin(false);
+      setLens({ kind: "kin", id: b.dataset.k });
+      kinBtn.focus();
+    }));
+    const first = kin.querySelector("button[aria-pressed='true']") || kin.querySelector("button");
+    if (first) first.focus({ preventScroll: true });
+  }
+  lensBtns.forEach((b) => b.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const k = b.dataset.lens;
+    if (lens && lens.kind === k) { setKin(false); setLens(null); return; }   // the active chip turns it off
+    if (k === "kin") { setKin(kin.hidden); return; }
+    setKin(false);
+    setLens({ kind: k });
+  }));
+  const lensQ = query.get("lens") || "";
+  if (lensQ === "chapter" || lensQ === "mind") lens = { kind: lensQ };
+  else if (lensQ.startsWith("kin:") && lensQ.length > 4) lens = { kind: "kin", id: lensQ.slice(4) };
+
+  // ------------------------------------------------------------ one more step (Ripples' second ring)
+  const stepBtn = $("step");
+  const RING_ICON = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8.4" stroke-dasharray="2.6 2.4"/></svg>';
+  function updateStep() {
+    const r = web.ring();
+    stepBtn.hidden = !(r.ripples && r.second > 0) || !!tracing;
+    stepBtn.setAttribute("aria-pressed", String(r.on));
+    stepBtn.innerHTML = `${RING_ICON}<span>One more step</span><small>${r.second}</small>`;
+    stepBtn.setAttribute("aria-label", `One more step: ${r.second} more name${r.second === 1 ? "" : "s"}`);
+    const fb = focusBox({ full: true });
+    stepBtn.style.left = `${fb.x + fb.w / 2}px`;
+    stepBtn.style.top = `${fb.y + fb.h - 4}px`;
+    const cs = card.querySelector(".c-step");
+    if (cs) cs.setAttribute("aria-pressed", String(r.on));
+  }
+  stepBtn.addEventListener("click", (ev) => { ev.stopPropagation(); web.setStep(!web.step()); });
+
+  // ------------------------------------------------------------ trace a path
+  // From a name's card, through Find, to anyone. The card shows the chain; × or Escape goes back
+  // to the view, lens and pick from before.
+  const PATH_ICON = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="6" r="2.2"/><path d="M7 16.5c3-1 2.5-6 5-7.5s3.5-1 5.2-1.8"/></svg>';
+  function runTrace(a, b) {
+    const back = tracing ? tracing.back : { lens, sel: sel ? sel.id : null };
+    tracing = { a, b, res: web.trace(a, b), i: 0, back };
+    setKin(false);
+    web.select(null);
+    stage.classList.remove("focusing");
+    renderPathCard();
+    web.showPath(tracing.res ? tracing.res.paths[0] : { ids: [tracing.a, tracing.b], ties: [] });   // no chain: both ends lit
+    updateStep();
+    readout();
+  }
+  function renderPathCard() {
+    const t = tracing, res = t.res, p = res && res.paths[t.i];
+    card.style.setProperty("--pc", P.TYPES.family.hex);
+    card.hidden = false;
+    const name = (id) => `<button type="button" data-id="${id}">${P.esc(P.entName(id))}</button>`;
+    const chain = p ? p.ids.map((id, i) => (i ? ` <span class="c-arrow" aria-hidden="true">→</span> <i style="--c:${P.TYPES[p.ties[i - 1].type].hex}">${P.esc(p.ties[i - 1].label)}</i> <span class="c-arrow" aria-hidden="true">→</span> ` : "") + name(id)).join("") : "";
+    const steps = p ? p.ids.length - 1 : 0;
+    card.innerHTML = `<button type="button" class="c-grab" aria-label="Show details" aria-expanded="false"></button>
+      <div class="c-top c-path">
+        <span class="c-path-ico">${PATH_ICON}</span>
+        <div class="c-id"><p>Trace a path${p ? ` · ${steps} step${steps === 1 ? "" : "s"}` : ""}</p><h2>${P.esc(P.entName(t.a))} to ${P.esc(P.entName(t.b))}</h2>
+          <p class="c-line">${p ? `<span>Path <b>${t.i + 1}</b> of <b>${res.count}</b></span>${res.count > 1 ? ` · <button type="button" class="c-step" id="next-path">Next path</button>` : ""}` : "<span>No chain of ties yet.</span>"}</p></div>
+        <div class="c-btns">${p ? `<button type="button" class="icon-btn c-more-btn" aria-label="Show details" aria-expanded="false">${CHEVRON}</button>` : ""}
+          <button type="button" class="icon-btn c-x" aria-label="Stop tracing">${P.icon("close")}</button></div></div>
+      ${p ? `<div class="c-more"><p class="c-chain">${chain}</p>${res.implied ? `<p class="c-chain-note">Through family ties that follow from the others.</p>` : ""}</div>` : ""}`;
+    setCardState(cardState === "open" && p ? "open" : "peek");
+    card.querySelector(".c-x").addEventListener("click", () => exitTrace(true));
+    const toggle = () => setCardState(cardState === "open" ? "peek" : "open");
+    if (p) {
+      card.querySelector(".c-more-btn").addEventListener("click", toggle);
+      card.querySelector(".c-grab").addEventListener("click", toggle);
+    }
+    card.querySelectorAll(".c-chain button").forEach((b) => b.addEventListener("click", (ev) => { ev.stopPropagation(); web.select(b.dataset.id); }));
+    const nx = card.querySelector("#next-path");
+    if (nx) nx.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      tracing.i = (tracing.i + 1) % res.paths.length;
+      renderPathCard();
+      web.showPath(res.paths[tracing.i]);
+      card.querySelector("#next-path").focus();
+    });
+  }
+  // let the path go; with restore, return to the lens and the pick from before it
+  function exitTrace(restore) {
+    if (!tracing) return;
+    const back = tracing.back;
+    tracing = null;
+    web.showPath(null);
+    card.hidden = true;
+    if (!restore) return;
+    lens = back.lens;
+    setURL();
+    applyLens();
+    if (back.sel) web.select(back.sel);
+  }
+
   $("z-in").addEventListener("click", () => web.zoomBy(1.4));
   $("z-out").addEventListener("click", () => web.zoomBy(1 / 1.4));
   $("z-fit").addEventListener("click", () => web.fit());
@@ -348,8 +575,8 @@
     const num = P.unitNumeral(u), word = u.kind === "prelude" || u.kind === "prologue";
     at.style.setProperty("--c", P.unitColor(u));
     at.innerHTML = `<span class="numeral${word ? " word" : ""}">${P.esc(num)}</span><span class="t"><b>${P.esc(P.unitTitle(u))}</b><span>${P.esc(word ? "" : u.label)}${u.pov.length ? `${word ? "" : " · "}${P.esc(u.pov.map(P.entName).join(" & "))}` : ""}</span></span>`;
-    const c = web.visibleCounts();
-    $("counts").innerHTML = `<b>${c.nodes}</b> names · <b>${c.links}</b> ties`;
+    const c = web.visibleCounts(), lit = web.litCount();
+    $("counts").innerHTML = lens && !tracing && lit !== null ? `<b>${lit}</b> lit of <b>${c.nodes}</b> names` : `<b>${c.nodes}</b> names · <b>${c.links}</b> ties`;
     $("caption").innerHTML = describe(u);
     legend.querySelectorAll(".count").forEach((el, i) => { el.textContent = web.count(Object.keys(P.TYPES)[i]); });
     styles.querySelectorAll(".count").forEach((el, i) => { el.textContent = web.countStyle(Object.keys(P.STYLES)[i]); });
@@ -383,6 +610,14 @@
     });
     $("prev").disabled = h <= 0;
     $("next").disabled = h >= LIM;
+    // a lens re-lights for the chapter (and re-fits unless the reader has moved the map since)
+    if (lens) applyLens({ auto: true });
+    if (tracing) {
+      tracing.res = web.trace(tracing.a, tracing.b);
+      tracing.i = 0;
+      renderPathCard();
+      web.showPath(tracing.res ? tracing.res.paths[0] : { ids: [tracing.a, tracing.b], ties: [] });   // no chain: both ends lit
+    }
     readout();
     if (sel && sel.h <= h) renderCard(sel);
   }
@@ -397,6 +632,7 @@
   function stop() { if (timer) { clearInterval(timer); timer = null; } setPlay(false); }
   function start() {
     if (P.reducedMotion) { goTo(LIM, false); return; }
+    exitTrace(false);
     web.select(null);
     if (narrow()) web.fit();   // the storm sweeps the whole sky, so show all of it
     let h = current >= LIM ? 0 : current + 1;
@@ -417,7 +653,11 @@
     if (ev.target.closest("input,select,textarea") || document.querySelector(".sheet")) return;
     if (ev.key === "ArrowRight" && current < LIM) { stop(); goTo(current + 1, true); }
     if (ev.key === "ArrowLeft" && current > 0) { stop(); goTo(current - 1, false); }
-    if (ev.key === "Escape") web.select(null);
+    if (ev.key === "Escape") {
+      if (!kin.hidden) { setKin(false); kinBtn.focus(); }
+      else if (tracing) exitTrace(true);
+      else web.select(null);
+    }
     if (ev.key === "/" && find.hidden) { ev.preventDefault(); setFind(true); }
   });
 

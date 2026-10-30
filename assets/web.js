@@ -21,8 +21,14 @@
    - Focus: pick someone and everyone tied to them glides into a ring around them, keeping
      roughly the direction they sat in, each labelled with what the tie is. Whatever else
      stood in the way drifts aside. Let go and everything glides home.
+     In The Cast the ring is Ripples instead: people and groups only, grouped by their top kind
+     of tie, clockwise from 12 o'clock, and "one more step" adds a second ring of the people
+     they're tied to.
    - Ties that follow from the family lines (opts.implied) are drawn thin and faint. They join
      focus rings, but have no say in a sphere's size, its name's priority, or the layout.
+   - Lenses (setLens) light some names and fade the rest. Nobody moves, nothing is hidden, and
+     picking anyone still opens their whole ring. A traced path (showPath) is drawn the same way,
+     with its own ties on top.
 
    Salience is mechanical: sizes, tiers and which names show come from counts of the text so far,
    chapter viewpoints and cited ties, by formulas applied to everyone alike, recomputed for
@@ -36,7 +42,11 @@
   const BOOST_AT = 0.9;       // zoomed out past this, spheres and lines stop shrinking…
   const BOOST_MAX = 1.8;      // …until they're this much larger than drawn
   const CAP = 1.4;            // zoomed in past this, they stop growing: zoom only spreads
-  const FOCUS_MS = 700, GLIDE_MS = 700, GROW_MS = 300;
+  const FOCUS_MS = 700, GLIDE_MS = 700, GROW_MS = 300, LENS_MS = 600;
+  // how a lens or a path fades what it doesn't light
+  const FADE = { node: 0.28, out: 0.3, none: 0.05, terr: 0.15 };
+  // Ripples: everyone off the rings, and the second ring's spheres, names and ties
+  const RIPPLE = { rest: 0.06, node2: 0.6, name2: 0.7, tie2: 0.32, gap2: 70 };
   // lighter tints of the tie colours, for text on the dark sky
   const TINT = { family: "#e3ad4c", command: "#74afff", support: "#4fd1a0", hostile: "#f58e9b", other: "#b3bccb" };
   // which tie colours a pair's single line in The Cast
@@ -83,6 +93,9 @@
       h: lim, types: new Set(Object.keys(P.TYPES)), styles: new Set(Object.keys(P.STYLES)), selected: null,
       view: opts.view || "everyone", layers: new Set(), tier: "all", rankBy: "named",
       spacing: { cast: "spacious", everyone: "compact" },   // each view keeps its own, for the visit
+      lens: null,   // { kind, ids, ring }: the names a lens lights, and who gets a belonging ring
+      path: null,   // { ids, ties }: a traced chain of ties
+      step: null,   // one more step: null until the reader chooses; then on by stage width
     };
     if (opts.spacing === "spacious" || opts.spacing === "compact") state.spacing[state.view] = opts.spacing;
     const cast = () => state.view === "cast";
@@ -171,11 +184,19 @@
       const ux = dx / dist, uy = dy / dist;
       let off = (l.idx - (l.total - 1) / 2) * 20 * S;
       if (s.id > t.id) off = -off; // offsets relative to the pair's canonical direction
-      const sx = s.x + ux * (s.r * S + 2), sy = s.y + uy * (s.r * S + 2);
+      const sr = s.r * (s.half ? 0.5 : 1), tr = t.r * (t.half ? 0.5 : 1);
+      const sx = s.x + ux * (sr * S + 2), sy = s.y + uy * (sr * S + 2);
       const end = (l.type === "family" || l.type === "other" ? 2 : 7) * S;
-      const tx = t.x - ux * (t.r * S + end), ty = t.y - uy * (t.r * S + end);
+      const tx = t.x - ux * (tr * S + end), ty = t.y - uy * (tr * S + end);
       if (!off) return `M${sx},${sy}L${tx},${ty}`;
       return `M${sx},${sy}Q${(sx + tx) / 2 - uy * off},${(sy + ty) / 2 + ux * off} ${tx},${ty}`;
+    }
+    // a set of lines, redrawn at the current sphere scale
+    function restroke(sel) {
+      sel.selectAll("path").attr("d", linkPath);
+      sel.select(".edge-line").attr("stroke-width", (l) => width(l) * S);
+      sel.select(".edge-flow").attr("stroke-width", (l) => flowWidth(l) * S);
+      sel.select(".edge-hit").attr("stroke-width", 14 * S);
     }
     function edges(g, data) {
       const sel = g.selectAll("g").data(data).join("g").attr("class", "edge").style("color", (l) => P.TYPES[l.type].hex);
@@ -215,6 +236,10 @@
     const gCast = page ? gLinks.append("g") : null;
     const linkCast = page ? edges(gCast, castPairs) : d3.select(null);
     let link = cast() ? linkCast : linkEvery;
+    // a traced path: its own ties, one straight line per step, drawn over the rest with labels
+    const gPath = page ? gLinks.append("g").attr("class", "web-path") : null;
+    let linkPathSel = d3.select(null), pathLab = d3.select(null);
+    const lines = () => (state.path ? [link, linkPathSel] : [link]);
     // the tie a pair's line stands for right now, or null if the pair has no line
     function pairTie(p) {
       const on = p.ties.filter(shown);
@@ -360,6 +385,7 @@
       node.attr("transform", (n) => `translate(${n.x},${n.y})`);
       labelG.attr("transform", (n) => `translate(${n.x},${n.y})`);
       link.selectAll("path").attr("d", linkPath);
+      linkPathSel.selectAll("path").attr("d", linkPath);
       renderTerrs({ moving });
     }
 
@@ -367,13 +393,22 @@
     let T = d3.zoomIdentity, userMoved = false;
     const pad = { top: 24, right: 24, bottom: 24, left: 24, ...(opts.pad || {}) };
     let curH = lim, pinned = new Set(), drawn = new Set(nodes.map((n) => n.id));
+    let soft = new Set();     // Ripples' second ring: named before anyone else, where there's room
     const subs = new Map();   // in focus: id -> [text, colour] for the tie under a name
+    // the names a lens or a traced path lights, among those drawn; null when nothing is lit
+    // that way, or when someone is picked (their ring sits above the lens)
+    function lightSet() {
+      if (state.selected) return null;
+      if (state.path) return new Set([...state.path.ids].filter((id) => byId[id].h <= state.h));
+      if (!state.lens) return null;
+      return new Set([...state.lens.ids].filter((id) => drawn.has(id) && byId[id].h <= state.h));
+    }
     // Greedy, in rank order. Everything: whoever is picked and everyone tied to them, then
     // tonight's viewpoints, then other viewpoints, then the best-tied. The Cast: whoever is picked
     // and their ring, then viewpoints, then whoever is on the page in the chapter shown, then score.
     const nowPov = () => new Set((P.units[curH] || { pov: [] }).pov);
     const rankEvery = (n, now) => (pinned.has(n.id) ? 1e6 : 0) + (now.has(n.id) ? 1e5 : 0) + (P.isPov(n.id, curH) ? 1e4 : 0) + n.degree;
-    const rankCast = (n) => (pinned.has(n.id) ? 1e6 : 0) + (P.isPov(n.id, curH) ? 1e5 : 0) + (P.onPage(n.e, curH) ? 1e4 : 0) - (n.srank ?? 9999);
+    const rankCast = (n) => (pinned.has(n.id) ? 1e6 : 0) + (soft.has(n.id) ? 5e5 : 0) + (P.isPov(n.id, curH) ? 1e5 : 0) + (P.onPage(n.e, curH) ? 1e4 : 0) - (n.srank ?? 9999);
     const boxHits = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
     const circleHits = (b, cx, cy, r) => {
       const dx = cx - Math.max(b[0], Math.min(cx, b[2])), dy = cy - Math.max(b[1], Math.min(cy, b[3]));
@@ -405,51 +440,89 @@
         }
         return hits;
       };
+      placePathLabels(placed, k);
       placeTerrNames(placed, spheres, cw, k);
       nodes.forEach((n) => { n.lab = null; });
       const now = nowPov();
       const castNow = cast();
+      const lit = lightSet();   // under a lens, the budget fills from lit names only
       const order = castNow ? shownN.slice().sort((a, b) => rankCast(b) - rankCast(a)) : shownN.slice().sort((a, b) => rankEvery(b, now) - rankEvery(a, now));
       const B = castNow ? budget(cw, ch) : Infinity;
       let count = 0;
       for (const n of order) {
         const forced = pinned.has(n.id);
-        if (!forced && count >= B) break;
+        if (!forced && !soft.has(n.id) && count >= B) break;
+        if (lit && !forced && !lit.has(n.id)) continue;
         if (castNow && terrOf.has(n.id) && state.selected !== n) continue;   // the territory carries the group's name
         const want = forced || castNow || (opts.labels === "pov" ? P.isPov(n.id, curH) : opts.labels === "major" ? major(n) : true);
         if (!want) continue;
         const sx = T.applyX(n.x), sy = T.applyY(n.y), r = n.r * S * k;
-        const st = subs.get(n.id);
-        const w = Math.max(n.tw || n.e.name.length * LABEL_PX * 0.55, st ? st[0].length * SUB_PX * 0.52 : 0);
-        const hh = LABEL_PX * 1.15 + (st ? SUB_PX * 1.3 : 0);
-        const mid = sy - LABEL_PX * 0.575;   // the name's line sits level with the sphere
-        const d = r * 0.72;   // the diagonal spots tuck in at the sphere's shoulders
-        const cands = {
-          r: { k: "r", x0: sx + r + gap, y0: mid },
-          l: { k: "l", x0: sx - r - gap - w, y0: mid },
-          b: { k: "b", x0: sx - w / 2, y0: sy + r + 1 },
-          t: { k: "t", x0: sx - w / 2, y0: sy - r - 1 - hh },
-          tr: { k: "tr", x0: sx + d + 1, y0: sy - d - hh + 2 },
-          tl: { k: "tl", x0: sx - d - 1 - w, y0: sy - d - hh + 2 },
-          br: { k: "br", x0: sx + d + 1, y0: sy + d - 2 },
-          bl: { k: "bl", x0: sx - d - 1 - w, y0: sy + d - 2 },
-        };
-        const base = n.flip ? ["l", "r", "tl", "tr", "b", "t", "bl", "br"] : ["r", "l", "tr", "tl", "b", "t", "br", "bl"];
-        const ord = n.pref ? [n.pref, ...base.filter((x) => x !== n.pref)] : base;
-        // how many spheres a spot would cover (Infinity if it's off screen, over a name, or over a lit sphere)
-        const cost = (c) => {
-          const b = [c.x0 - 1, c.y0, c.x0 + w + 1, c.y0 + hh];
-          if (b[0] < 2 || b[2] > cw - 2 || placed.some((p) => boxHits(b, p))) return Infinity;
-          return sphereCost(b, n);
-        };
-        const costs = ord.map((o) => cost(cands[o]));
-        const best = Math.min(...costs);
-        // a clear spot if there is one; important names may sit over a sphere or two
+        const full = subs.get(n.id);
         const important = forced || now.has(n.id) || P.isPov(n.id, curH) || n.degree >= 4;
-        let pick = best === 0 || (important && best <= 2) ? cands[ord[costs.indexOf(best)]] : null;
-        if (!pick && forced) pick = cands[ord[0]];
-        if (!pick) continue;
-        n.lab = { ...pick, w, sx, sy };
+        // the spots around the sphere for a box w × hh, in preference order
+        const spots = (st, only) => {
+          const w = Math.max(n.tw || n.e.name.length * LABEL_PX * 0.55, st ? st[0].length * SUB_PX * (castNow ? 0.6 : 0.52) : 0);
+          const hh = LABEL_PX * 1.15 + (st ? SUB_PX * 1.3 : 0);
+          const mid = sy - LABEL_PX * 0.575;   // the name's line sits level with the sphere
+          const d = r * 0.72;   // the diagonal spots tuck in at the sphere's shoulders
+          const cands = {
+            r: { k: "r", x0: sx + r + gap, y0: mid },
+            l: { k: "l", x0: sx - r - gap - w, y0: mid },
+            b: { k: "b", x0: sx - w / 2, y0: sy + r + 1 },
+            t: { k: "t", x0: sx - w / 2, y0: sy - r - 1 - hh },
+            tr: { k: "tr", x0: sx + d + 1, y0: sy - d - hh + 2 },
+            tl: { k: "tl", x0: sx - d - 1 - w, y0: sy - d - hh + 2 },
+            br: { k: "br", x0: sx + d + 1, y0: sy + d - 2 },
+            bl: { k: "bl", x0: sx - d - 1 - w, y0: sy + d - 2 },
+          };
+          const base = n.flip ? ["l", "r", "tl", "tr", "b", "t", "bl", "br"] : ["r", "l", "tr", "tl", "b", "t", "br", "bl"];
+          const ord = n.pref ? [n.pref, ...base.filter((x) => x !== n.pref)] : base;
+          // in The Cast a ring name may also stand a little further out, its own side first
+          if (castNow && forced) {
+            const far = { r: [16, 0], l: [-16, 0], t: [0, -14], b: [0, 14] };
+            const sides = n.pref && far[n.pref] ? [n.pref, ...Object.keys(far).filter((x) => x !== n.pref)] : Object.keys(far);
+            sides.forEach((x) => { cands[`${x}2`] = { k: x, x0: cands[x].x0 + far[x][0], y0: cands[x].y0 + far[x][1] }; ord.push(`${x}2`); });
+          }
+          // how many spheres a spot would cover (Infinity if it's off screen, over a name, or over a lit sphere)
+          const cost = (c) => {
+            const b = [c.x0 - 1, c.y0, c.x0 + w + 1, c.y0 + hh];
+            if (b[0] < 2 || b[2] > cw - 2 || placed.some((p) => boxHits(b, p))) return Infinity;
+            if (castNow && (b[1] < 2 || b[3] > ch - 2)) return Infinity;
+            return sphereCost(b, n);
+          };
+          if (only) ord.splice(0, ord.length, ...ord.filter((o) => only.includes(o)));
+          const costs = ord.map((o) => cost(cands[o]));
+          const best = Math.min(...costs);
+          // a clear spot if there is one; important names may sit over a sphere or two
+          const pick = best === 0 || (important && best <= 2) ? cands[ord[costs.indexOf(best)]] : null;
+          return { pick, w, hh, st, cands, ord };
+        };
+        // A ring name must show, and in The Cast it points outward: on its own side with its tie
+        // beneath, else on its own side without the tie (the card lists it), else anywhere with
+        // the tie, else anywhere without; failing all that, the bare name takes the spot that's
+        // least in the way: on screen first, then over the fewest names, then spheres. Everything
+        // keeps its first choice.
+        const own = castNow && forced && n.pref ? [n.pref, `${n.pref}2`] : null;
+        let s = own ? spots(full, own) : spots(full);
+        if (own && !s.pick && full) s = spots(null, own);
+        if (own && !s.pick) s = spots(full);
+        if (!s.pick && forced && castNow) {
+          const bare = full ? spots(null) : null;
+          if (bare) s = bare;
+          if (!s.pick) {
+            const worse = (c) => {
+              const b = [c.x0 - 1, c.y0, c.x0 + s.w + 1, c.y0 + s.hh];
+              const off = Math.max(0, 2 - b[0]) + Math.max(0, b[2] - (cw - 2)) + Math.max(0, -b[1]) + Math.max(0, b[3] - ch);
+              return off * 100 + placed.filter((p) => boxHits(b, p)).length * 40 + Math.min(sphereCost(b, n), 20);
+            };
+            const ws = s.ord.map((o) => worse(s.cands[o]));
+            s.pick = s.cands[s.ord[ws.indexOf(Math.min(...ws))]];
+          }
+        }
+        if (!s.pick && forced) s.pick = s.cands[s.ord[0]];
+        if (!s.pick) continue;
+        const { pick, w, hh } = s;
+        n.lab = { ...pick, w, sx, sy, st: s.st };
         placed.push([pick.x0 - 2, pick.y0, pick.x0 + w + 2, pick.y0 + hh]);
         count += 1;
       }
@@ -464,7 +537,7 @@
         this.setAttribute("x", x);
         this.setAttribute("y", y);
         this.setAttribute("text-anchor", a);
-        const st = subs.get(n.id), sp = this.querySelector(".web-sub");
+        const st = p.st, sp = this.querySelector(".web-sub");
         if (st) {
           sp.textContent = st[0];
           sp.setAttribute("x", x);
@@ -473,6 +546,18 @@
           sp.setAttribute("font-size", SUB_PX / k);
           sp.style.display = "";
         } else sp.style.display = "none";
+      });
+    }
+    // A traced path's ties carry their labels at their midpoints; names keep clear of them.
+    function placePathLabels(placed, k) {
+      pathLab.each(function (l) {
+        const x = (l.source.x + l.target.x) / 2, y = (l.source.y + l.target.y) / 2;
+        const sx = T.applyX(x), sy = T.applyY(y), w = l.label.length * SUB_PX * 0.56, hh = SUB_PX * 1.3;
+        placed.push([sx - w / 2 - 2, sy - hh / 2, sx + w / 2 + 2, sy + hh / 2]);
+        this.setAttribute("x", x);
+        this.setAttribute("y", y + (SUB_PX * 0.36) / k);
+        this.setAttribute("font-size", SUB_PX / k);
+        this.setAttribute("stroke-width", 3.5 / k);
       });
     }
     // A territory's name tries above its region, then below, then left and right, a little
@@ -523,10 +608,7 @@
       if (Math.abs(s - S) / S > 0.01) {
         S = s;
         scaled.attr("transform", S === 1 ? null : `scale(${S.toFixed(4)})`);
-        link.selectAll("path").attr("d", linkPath);
-        link.select(".edge-line").attr("stroke-width", (l) => width(l) * S);
-        link.select(".edge-flow").attr("stroke-width", (l) => flowWidth(l) * S);
-        link.select(".edge-hit").attr("stroke-width", 14 * S);
+        lines().forEach(restroke);
       }
       label.attr("font-size", LABEL_PX / t.k).attr("stroke-width", 4 / t.k);
       fontK = t.k;
@@ -546,6 +628,25 @@
       const tx = pad.left + (cw - pad.left - pad.right - (x1 - x0) * k) / 2 - x0 * k;
       const ty = pad.top + (ch - pad.top - pad.bottom - (y1 - y0) * k) / 2 - y0 * k;
       return d3.zoomIdentity.translate(tx, ty).scale(k);
+    }
+    // Fit a few names (a lens's lit names, a path) where they sit at rest: inside the page's
+    // margins and the focus box, with 60 px more on the right for their names.
+    function fitNodes(ns) {
+      const b = svgEl.getBoundingClientRect(), cw = b.width || W, ch = b.height || HGT, fb = box();
+      const L = Math.max(pad.left, fb.x), Tp = Math.max(pad.top, fb.y);
+      const R = Math.min(cw - pad.right, fb.x + fb.w) - 60, Bt = Math.min(ch - pad.bottom, fb.y + fb.h);
+      const xs = ns.map((n) => n.bx), ys = ns.map((n) => n.by);
+      const x0 = Math.min(...xs) - 24, x1 = Math.max(...xs) + 24, y0 = Math.min(...ys) - 22, y1 = Math.max(...ys) + 36;
+      const k = Math.max(0.25, Math.min((R - L) / (x1 - x0), (Bt - Tp) / (y1 - y0), 1.8));
+      return d3.zoomIdentity.translate(L + (R - L - (x1 - x0) * k) / 2 - x0 * k, Tp + (Bt - Tp - (y1 - y0) * k) / 2 - y0 * k).scale(k);
+    }
+    function fitLit(ms) {
+      const lit = lightSet();
+      const ns = lit ? [...lit].map((id) => byId[id]) : [];
+      if (!ns.length || !zoom) return false;
+      userMoved = false;
+      setT(fitNodes(ns), ms);
+      return true;
     }
     let zoom = null;
     if (opts.zoom) {
@@ -657,34 +758,141 @@
       const cam = d3.zoomIdentity.translate(fb.x + fb.w / 2 - n.bx * k, fb.y + fb.h / 2 - n.by * k).scale(k);
       return { target, cam };
     }
+    // ---- Ripples (The Cast): people and groups in a ring grouped by kind of tie, and one more step
+    let ring2 = new Map();   // second-ring id -> the first-ring people who connect them
+    let ring2Count = 0;      // how many one more step would add, on or off
+    const stepOn = () => state.step ?? (svgEl.getBoundingClientRect().width >= 900);
+    // the pair's top tie on show, as a place in the merge priority (stated before implied)
+    function topTie(n, m) {
+      let best = Infinity;
+      links.forEach((l) => {
+        if (!shown(l) || !((l.source === n && l.target === m) || (l.source === m && l.target === n))) return;
+        best = Math.min(best, PRIORITY.indexOf(l.type) + (faint(l) ? PRIORITY.length : 0));
+      });
+      return best;
+    }
+    // drawn at rest: met by the chapter, in the view and in the tier on Show
+    const atRest = (m) => m.h <= state.h && inView(m) && (!tierSet || tierSet.has(m.id));
+    function secondRing(n, ring1) {
+      const out = new Map();
+      links.forEach((l) => {
+        if (!shown(l)) return;
+        [[l.source, l.target], [l.target, l.source]].forEach(([a, b]) => {
+          if (!ring1.has(a.id) || ring1.has(b.id) || b === n || !ALWAYS.has(b.layer) || !atRest(b)) return;
+          if (!out.has(b.id)) out.set(b.id, new Set());
+          out.get(b.id).add(a);
+        });
+      });
+      return out;
+    }
+    // outward from the ring: right half right, left half left, near the top or bottom above or below
+    const outward = (c, s) => (Math.abs(c) < 0.38 ? (s < 0 ? "t" : "b") : c > 0 ? "r" : "l");
+    function rippleLayout(n) {
+      const fb = box();
+      const near = ringOf(n).filter((m) => m !== n);
+      near.forEach((m) => { m.tie = topTie(n, m); });
+      near.sort((a, b) => a.tie - b.tie || (b.score ?? 0) - (a.score ?? 0) || a.e.name.localeCompare(b.e.name));
+      const all = secondRing(n, new Set(near.map((m) => m.id)));
+      ring2Count = all.size;
+      ring2 = stepOn() ? all : new Map();
+      const N = near.length, need = Math.max(100, (N * 40) / (2 * Math.PI));
+      // a tall stage keeps 120 px above and below for the second ring and its names; with no
+      // second ring out, 56 px is room enough for a name and its tie
+      let rx, ry;
+      if (fb.h >= fb.w) { rx = Math.min(fb.w / 2 - 92, need); ry = Math.max(rx * 1.35, Math.min(fb.h / 2 - (ring2.size ? 120 : 56), 230)); }
+      else { ry = Math.min(fb.h / 2 - 92, need); rx = Math.max(ry * 1.35, Math.min(fb.w / 2 - 120, 230)); }
+      const target = new Map([[n.id, [n.bx, n.by]]]);
+      nodes.forEach((m) => { m.pref = null; m.half = false; });
+      n.pref = "t";
+      const th = new Map();
+      near.forEach((m, j) => {
+        const a = -Math.PI / 2 + ((j + 0.5) / N) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+        th.set(m.id, a);
+        target.set(m.id, [n.bx + c * rx, n.by + s * ry]);
+        m.pref = outward(c, s);
+      });
+      // one more step: at the circular mean of the people who connect them, nudged apart
+      const two = [...ring2].map(([id, via]) => {
+        let sx = 0, sy = 0;
+        via.forEach((m) => { sx += Math.cos(th.get(m.id)); sy += Math.sin(th.get(m.id)); });
+        return { m: byId[id], a: Math.atan2(sy, sx) };
+      }).sort((p, q) => p.a - q.a || p.m.e.name.localeCompare(q.m.e.name));
+      const gap = (Math.PI * 2) / Math.max(two.length, 26);
+      for (let pass = 0; pass < 30 && two.length > 1; pass++) {
+        let moved = false;
+        two.forEach((p, i) => {
+          const q = two[(i + 1) % two.length];
+          let d = q.a - p.a;
+          if (i === two.length - 1) d += Math.PI * 2;
+          if (d >= gap - 1e-6) return;
+          const push = (gap - d) / 2;
+          p.a -= push; q.a += push; moved = true;
+        });
+        if (!moved) break;
+      }
+      const RX2 = rx + RIPPLE.gap2, RY2 = ry + RIPPLE.gap2;
+      two.forEach(({ m, a }) => {
+        const c = Math.cos(a), s = Math.sin(a);
+        target.set(m.id, [n.bx + c * RX2, n.by + s * RY2]);
+        m.pref = outward(c, s);
+        m.half = true;
+      });
+      soft = new Set(ring2.keys());
+      // everyone else within 1.5 ring-radii drifts outward, keeping their bearing (past the
+      // second ring when it's out)
+      const reach = two.length ? Math.max(1.5, (Math.min(rx, ry) + RIPPLE.gap2 + 30) / Math.min(rx, ry)) : 1.5;
+      nodes.forEach((m) => {
+        if (target.has(m.id)) return;
+        const dx = m.bx - n.bx, dy = m.by - n.by;
+        const e = Math.hypot(dx / rx, dy / ry);
+        if (e >= reach || e === 0) return;
+        const f = (reach + e * 0.35) / e;
+        target.set(m.id, [n.bx + dx * f, n.by + dy * f]);
+      });
+      // at k = 1 while focused, so names sit at their designed size
+      const cam = d3.zoomIdentity.translate(fb.x + fb.w / 2 - n.bx, fb.y + fb.h / 2 - n.by);
+      return { target, cam };
+    }
     function tieSubs(n) {
       subs.clear();
+      const cut = cast() ? 30 : 34;
       links.forEach((l) => {
         if (!shown(l) || (l.source.id !== n.id && l.target.id !== n.id)) return;
         const o = l.source.id === n.id ? l.target : l.source;
         if (!inView(o)) return;
         const cur = subs.get(o.id);
         const text = cur ? `${cur[0]} · ${l.label}` : l.label;
-        subs.set(o.id, [text.length > 34 ? `${text.slice(0, 33).trim()}…` : text, cur ? cur[1] : TINT[l.type]]);
+        subs.set(o.id, [text.length > cut ? `${text.slice(0, cut - 1).trim()}…` : text, cur ? cur[1] : TINT[l.type]]);
       });
     }
     function enterFocus(n, ms = FOCUS_MS) {
       if (!focus) before = T;   // the view to come back to
       focus = n;
       tieSubs(n);
-      const { target, cam } = focusLayout(n);
+      ring2 = new Map(); soft = new Set();
+      nodes.forEach((m) => { m.half = false; });
+      const { target, cam } = cast() ? rippleLayout(n) : focusLayout(n);
+      refresh();
+      paintHalf();
       moveTo(target, ms);
       if (zoom) setT(cam, ms);
+      if (opts.onRing) opts.onRing();
     }
     function leaveFocus() {
       if (!focus) return;
       focus = null;
       subs.clear();
-      nodes.forEach((m) => { m.pref = null; });
+      ring2 = new Map(); soft = new Set();
+      nodes.forEach((m) => { m.pref = null; m.half = false; });
+      refresh();
+      paintHalf();
       moveTo(new Map(), FOCUS_MS);
       if (before && zoom) setT(before, FOCUS_MS);
       before = null;
+      if (opts.onRing) opts.onRing();
     }
+    // the second ring's spheres are drawn at half size
+    function paintHalf() { node.classed("half", (n) => !!n.half); }
 
     if (window.ResizeObserver) {
       let last = `${box0.width}x${box0.height}`;
@@ -693,7 +901,7 @@
         if (key === last || !b.width) return;
         last = key;
         if (focus) enterFocus(focus, 0);
-        else if (!userMoved && nodes.length) setT(startTransform());
+        else if (!userMoved && nodes.length && !fitLit(0)) setT(startTransform());
       }).observe(svgEl);
     }
 
@@ -709,17 +917,37 @@
       });
       return set;
     };
+    // whoever joins n's ring: in The Cast only people and groups (the card lists the rest)
+    const ringOf = (n) => [...neighbours(n)].map((id) => byId[id]).filter((m) => !cast() || ALWAYS.has(m.layer));
+    // How everything is lit: a ring around n (picked, or hovered), else a lens or a path, else all.
     function focusOn(n) {
-      const near = n ? neighbours(n) : null;
-      pinned = near || new Set();
+      const near = n ? new Set(ringOf(n).map((m) => m.id)) : null;
+      pinned = near || (state.path ? new Set(state.path.ids) : new Set());
       layoutLabels();
-      node.style("opacity", (d) => (!near || near.has(d.id) ? null : 0.14));
-      labelG.style("opacity", (d) => (!near || near.has(d.id) ? null : 0.14));
+      const lit = n ? null : lightSet();
+      const ripples = n && n === focus && cast();
+      const rest = ripples ? RIPPLE.rest : 0.14;
+      const two = (d) => ripples && ring2.has(d.id);
+      node.style("opacity", (d) => (near ? (near.has(d.id) ? null : two(d) ? RIPPLE.node2 : rest) : lit && !lit.has(d.id) ? FADE.node : null));
+      labelG.style("opacity", (d) => (near ? (near.has(d.id) ? null : two(d) ? RIPPLE.name2 : rest) : null));
       const touches = (l) => !!n && (l.source.id === n.id || l.target.id === n.id);
-      link.style("opacity", (l) => (!n || touches(l) ? null : 0.05))
-        .classed("hot", touches);
-      terrPath.style("opacity", (t) => (n && !near.has(t.g.id) ? 0.15 : null));
-      terrName.style("opacity", (t) => (n && !near.has(t.g.id) ? 0.15 : null));
+      // a second-ring name's ties to the first-ring people who connect them
+      const reach2 = (l) => ripples && ((ring2.has(l.source.id) && ring2.get(l.source.id).has(l.target)) || (ring2.has(l.target.id) && ring2.get(l.target.id).has(l.source)));
+      const onPath = (l) => !!state.path && state.path.keys.has(l.key);
+      link.style("opacity", (l) => {
+        if (n) return touches(l) ? null : reach2(l) ? RIPPLE.tie2 : 0.05;
+        if (onPath(l)) return 0;   // drawn by the path's own lines
+        if (!lit) return null;
+        const ends = lit.has(l.source.id) + lit.has(l.target.id);
+        return ends === 2 ? null : ends === 1 ? FADE.out : FADE.none;
+      }).classed("hot", touches);
+      const terrLit = (t) => lit.has(t.g.id) || terrMembers(t).filter((m) => drawn.has(m.id)).every((m) => lit.has(m.id));
+      const terrO = (t) => (n ? (near.has(t.g.id) ? null : 0.15) : lit && !terrLit(t) ? FADE.terr : null);
+      terrPath.style("opacity", terrO);
+      terrName.style("opacity", terrO);
+      // a people has no territory: a lens on it gives its lit members a thin gold ring
+      const belongs = !n && state.lens && state.lens.ring;
+      node.classed("belongs", (d) => !!belongs && belongs.has(d.id) && lit.has(d.id));
     }
     function showTip(evt, html) {
       if (!tip) return;
@@ -792,8 +1020,8 @@
     // and everyone tied to them are always drawn, whatever the tier.
     function refresh() {
       const sel = state.selected;
-      const ring = sel ? neighbours(sel) : new Set();
-      drawn = new Set(nodes.filter((n) => (n.h <= state.h && inView(n) && (!tierSet || tierSet.has(n.id))) || ring.has(n.id)).map((n) => n.id));
+      const ring = new Set(sel ? ringOf(sel).map((m) => m.id) : state.path ? state.path.ids : []);
+      drawn = new Set(nodes.filter((n) => atRest(n) || (ring.has(n.id) && n.h <= state.h)).map((n) => n.id));
       const both = (l) => drawn.has(l.source.id) && drawn.has(l.target.id);
       terrOf.clear();
       if (page && cast()) {
@@ -838,6 +1066,67 @@
       if (focus && opts.focusMode) enterFocus(focus, 400);   // the ring follows the chapter
       focusOn(state.selected);
     }
+    // ------------------------------------------------------------ trace a path
+    // Every tie at the chapter shown counts, hidden layers and member rows included. Stated ties
+    // first; implied family ties only when nothing stated joins the two. Breadth-first, visiting
+    // neighbours in alphabetical order, so path 1 is always the same one.
+    const plainName = (id) => byId[id].e.name.replace(/^The /, "");
+    const byName = (a, b) => plainName(a).localeCompare(plainName(b)) || (a < b ? -1 : 1);
+    function tracePaths(a, b, max = 20) {
+      const run = (withImplied) => {
+        const adj = new Map();
+        const add = (x, y, l) => {
+          if (!adj.has(x)) adj.set(x, new Map());
+          const m = adj.get(x);
+          if (!m.has(y)) m.set(y, []);
+          m.get(y).push(l);
+        };
+        links.forEach((l) => {
+          if (l.on > state.h || (faint(l) && !withImplied)) return;
+          add(l.source.id, l.target.id, l); add(l.target.id, l.source.id, l);
+        });
+        const nbrs = new Map([...adj].map(([x, m]) => [x, [...m.keys()].sort(byName)]));
+        const bfs = (s) => {
+          const d = new Map([[s, 0]]), q = [s];
+          for (let i = 0; i < q.length; i++) for (const v of nbrs.get(q[i]) || []) if (!d.has(v)) { d.set(v, d.get(q[i]) + 1); q.push(v); }
+          return [d, q];
+        };
+        const [da, order] = bfs(a);
+        if (!da.has(b)) return null;
+        const [db] = bfs(b);
+        const D = da.get(b);
+        const onShortest = (v) => da.has(v) && db.has(v) && da.get(v) + db.get(v) === D;
+        // how many shortest paths there are, counted layer by layer
+        const cnt = new Map([[a, 1]]);
+        order.forEach((u) => (nbrs.get(u) || []).forEach((v) => { if (da.get(v) === da.get(u) + 1) cnt.set(v, (cnt.get(v) || 0) + cnt.get(u)); }));
+        // the first few, in alphabetical order step by step
+        const paths = [];
+        const walk = (u, acc) => {
+          if (paths.length >= max) return;
+          if (u === b) { paths.push(acc.slice()); return; }
+          for (const v of nbrs.get(u) || []) if (da.get(v) === da.get(u) + 1 && onShortest(v)) { acc.push(v); walk(v, acc); acc.pop(); }
+        };
+        walk(a, [a]);
+        // each step's tie: stated before implied, then the merge priority
+        const tieOf = (x, y) => adj.get(x).get(y).slice().sort((p, q) => (faint(p) - faint(q)) || PRIORITY.indexOf(p.type) - PRIORITY.indexOf(q.type))[0];
+        return { count: cnt.get(b), implied: withImplied, paths: paths.map((ids) => ({ ids, ties: ids.slice(1).map((y, i) => tieOf(ids[i], y)) })) };
+      };
+      if (!byId[a] || !byId[b] || a === b) return null;
+      return run(false) || (opts.implied ? run(true) : null);
+    }
+    function showPath(p) {
+      if (!page) return;
+      state.path = p ? { ids: new Set(p.ids), ties: p.ties, keys: new Set(p.ties.map((l) => l.key)) } : null;
+      const data = p ? p.ties.map((l) => ({ ...l, idx: 0, total: 1 })) : [];
+      gPath.selectAll("*").remove();
+      linkPathSel = edges(gPath, data);
+      linkPathSel.classed("hot", true);
+      pathLab = gLabels.selectAll("text.web-path-label").data(data).join("text").attr("class", "web-path-label")
+        .attr("fill", (l) => TINT[l.type]).attr("text-anchor", "middle").text((l) => l.label);
+      restroke(linkPathSel);
+      refresh();
+      focusOn(null);
+    }
     // a new view or spacing: everyone glides to their place on the map it uses
     function reshape(o = {}) {
       const name = layoutName();
@@ -847,7 +1136,7 @@
         else moveTo(new Map(), GLIDE_MS);
       }
       // the camera follows only if the reader hasn't moved it and nobody is picked
-      if (o.refit && !focus && zoom && !userMoved) setT(startTransform(), GLIDE_MS);
+      if (o.refit && !focus && zoom && !userMoved && !fitLit(GLIDE_MS)) setT(startTransform(), GLIDE_MS);
     }
     const api = {
       nodes, links,
@@ -858,10 +1147,7 @@
         if (!page || v === state.view) return;
         state.view = v;
         link = cast() ? linkCast : linkEvery;
-        link.selectAll("path").attr("d", linkPath);
-        link.select(".edge-line").attr("stroke-width", (l) => width(l) * S);
-        link.select(".edge-flow").attr("stroke-width", (l) => flowWidth(l) * S);
-        link.select(".edge-hit").attr("stroke-width", 14 * S);
+        restroke(link);
         if (state.selected && !inView(state.selected)) api.select(null);
         apply();
         resize(GROW_MS);
@@ -872,8 +1158,38 @@
       setRankBy(by) { state.rankBy = by; apply(); },
       setSpacing(sp) { state.spacing[state.view] = sp; reshape({ refit: true }); },
       spacing: () => state.spacing[state.view],
+      // A lens: { kind, ids, ring } or null. It changes opacity only. Turning one on fits its lit
+      // names; { auto: true } (a new chapter under the same lens) re-fits only if the reader
+      // hasn't panned or zoomed since the last fit.
+      setLens(l, o = {}) {
+        state.lens = l ? { kind: l.kind, ids: new Set(l.ids), ring: l.ring ? new Set(l.ring) : null } : null;
+        focusOn(state.selected);
+        if (state.lens && !focus && !state.path && (!o.auto || !userMoved)) fitLit(LENS_MS);
+      },
+      // how many names the lens (or path) lights, of those drawn
+      litCount: () => { const s = lightSet(); return s ? s.size : null; },
+      trace: (a, b) => tracePaths(a, b),
+      // show one path from trace(), or null to let it go; the camera fits it
+      showPath(p) {
+        if (p && state.selected) api.select(null);
+        showPath(p);
+        if (p) fitLit(LENS_MS);
+      },
+      // one more step (Ripples' second ring): the reader's choice lasts for the visit
+      setStep(on) { state.step = !!on; if (focus && cast()) { enterFocus(focus, 450); focusOn(state.selected); } },
+      step: () => stepOn(),
+      // how many names one more step would add around id, in The Cast
+      stepCount(id) {
+        const n = byId[id];
+        if (!n || !cast()) return 0;
+        const r1 = ringOf(n).filter((m) => m !== n);
+        return secondRing(n, new Set(r1.map((m) => m.id))).size;
+      },
+      view: () => state.view,
+      ring: () => ({ ripples: !!focus && cast(), second: focus && cast() ? ring2Count : 0, on: stepOn() }),
       select(id) {
         const n = id ? byId[id] : null;
+        if (n && state.path) showPath(null);
         state.selected = n && n.h <= state.h ? n : null;
         node.classed("selected", (d) => d === state.selected);
         refresh();
