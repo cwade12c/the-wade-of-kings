@@ -39,8 +39,11 @@
    - Ties that follow from the family lines (opts.implied) are drawn thin and faint. They join
      focus rings, but have no say in a sphere's size, its name's priority, or the layout.
    - Lenses (setLens) light some names and fade the rest. Nobody moves, nothing is hidden, and
-     picking anyone still opens their whole ring. A traced path (showPath) is drawn the same way,
-     with its own ties on top.
+     picking anyone still opens their whole ring. This chapter, at a chapter whose interactions
+     are filed, carries who interacts with whom there: a picked ring keeps everyone, but only
+     those they interact with stay at full strength, labelled with what passed between them, and
+     with nobody picked only lines between two who interact stay at full strength. A traced path
+     (showPath) is drawn the same way as a lens, with its own ties on top.
 
    Salience is mechanical: sizes, tiers and which names show come from counts of the text so far,
    chapter viewpoints and cited ties, by formulas applied to everyone alike, recomputed for
@@ -938,16 +941,25 @@
       const cam = d3.zoomIdentity.translate(fb.x + fb.w / 2 - n.bx, fb.y + fb.h / 2 - n.by);
       return { target, cam };
     }
+    // This chapter at a swept chapter: whoever n interacts with there (id -> interaction), an
+    // empty Map if nobody; null when the lens carries no interactions (today's ring)
+    const meets = (n) => (n && state.lens && state.lens.with ? state.lens.with.get(n.id) || new Map() : null);
     function tieSubs(n) {
       subs.clear();
       const cut = cast() ? 30 : 34;
+      const clip = (text) => (text.length > cut ? `${text.slice(0, cut - 1).trim()}…` : text);
+      const met = meets(n);
+      if (met) {   // only the people n interacts with carry a label: what passed between them
+        neighbours(n).forEach((id) => { const x = met.get(id); if (x) subs.set(id, [clip(x.label), TINT[x.type]]); });
+        return;
+      }
       adj.get(n.id).forEach((l) => {
         if (!shown(l)) return;
         const o = l.source.id === n.id ? l.target : l.source;
         if (!inView(o)) return;
         const cur = subs.get(o.id);
         const text = cur ? `${cur[0]} · ${l.label}` : l.label;
-        subs.set(o.id, [text.length > cut ? `${text.slice(0, cut - 1).trim()}…` : text, cur ? cur[1] : TINT[l.type]]);
+        subs.set(o.id, [clip(text), cur ? cur[1] : TINT[l.type]]);
       });
     }
     function enterFocus(n, ms = FOCUS_MS) {
@@ -1015,22 +1027,29 @@
       const ripples = n && n === focus && cast();
       const rest = ripples ? RIPPLE.rest : 0.14;
       const two = (d) => ripples && ring2.has(d.id);
+      // This chapter at a swept chapter: the ring stays put, but only the people n interacts
+      // with there stay at full strength; the rest of the ring fades, one tap away
+      const met = meets(n);
+      const quiet = (id) => !!met && id !== n.id && !met.has(id);
       nodes.forEach((d) => {
-        d.alpha = near ? (near.has(d.id) ? 1 : two(d) ? RIPPLE.node2 : rest) : lit && !lit.has(d.id) ? FADE.node : 1;
-        d.lg = near ? (near.has(d.id) ? 1 : two(d) ? RIPPLE.name2 : rest) : 1;
+        d.alpha = near ? (near.has(d.id) ? (quiet(d.id) ? FADE.node : 1) : two(d) ? RIPPLE.node2 : rest) : lit && !lit.has(d.id) ? FADE.node : 1;
+        d.lg = near ? (near.has(d.id) ? (quiet(d.id) ? RIPPLE.name2 : 1) : two(d) ? RIPPLE.name2 : rest) : 1;
       });
       const touches = (l) => !!n && (l.source.id === n.id || l.target.id === n.id);
+      const other = (l) => (l.source.id === n.id ? l.target.id : l.source.id);
+      // nobody picked: a line between two lit names is at full strength only if they interact
+      const pairs = !n && state.lens && state.lens.pairs;
       // a second-ring name's ties to the first-ring people who connect them
       const reach2 = (l) => ripples && ((ring2.has(l.source.id) && ring2.get(l.source.id).has(l.target)) || (ring2.has(l.target.id) && ring2.get(l.target.id).has(l.source)));
       const onPath = (l) => !!state.path && state.path.keys.has(l.key);
       link.forEach((l) => {
         let o;
-        if (n) o = touches(l) ? 1 : reach2(l) ? RIPPLE.tie2 : 0.05;
+        if (n) o = touches(l) ? (quiet(other(l)) ? FADE.out : 1) : reach2(l) ? RIPPLE.tie2 : 0.05;
         else if (onPath(l)) o = 0;   // drawn by the path's own lines
         else if (!lit) o = 1;
-        else { const ends = lit.has(l.source.id) + lit.has(l.target.id); o = ends === 2 ? 1 : ends === 1 ? FADE.out : FADE.none; }
+        else { const ends = lit.has(l.source.id) + lit.has(l.target.id); o = ends === 2 ? (!pairs || pairs.has(l.key) ? 1 : FADE.out) : ends === 1 ? FADE.out : FADE.none; }
         l.op.set(o);
-        l.hot = touches(l);
+        l.hot = touches(l) && !quiet(other(l));
         l.fl.set(l.hot ? 1 : 0);
       });
       const terrLit = (t) => lit.has(t.g.id) || terrMembers(t).filter((m) => drawn.has(m.id)).every((m) => lit.has(m.id));
@@ -1180,14 +1199,20 @@
     // stated ties in this view. Ranked by score, then who we met first, then name. The tiers
     // are fixed shares of everyone on the map, the same for all.
     let tierSet = null;
+    // Rank by ties: stated, non-member ties met by the chapter shown, to someone in view. The Cast
+    // draws one line per pair, so it counts the people and groups at their other ends, once
+    // each; Everything draws a curve per tie, so it counts every tie.
     function tieScore(n) {
+      const people = cast() ? new Set() : null;
       let s = 0;
       adj.get(n.id).forEach((l) => {
         if (faint(l) || l.member || l.on > state.h) return;
-        if (l.source === n && inView(l.target)) s += 1;
-        else if (l.target === n && inView(l.source)) s += 1;
+        const o = l.source === n ? l.target : l.source;
+        if (!inView(o)) return;
+        if (!people) s += 1;
+        else if (ALWAYS.has(o.layer)) people.add(o.id);
       });
-      return s;
+      return people ? people.size : s;
     }
     function rankAll() {
       const list = nodes.filter((n) => n.h <= state.h && inView(n));
@@ -1625,7 +1650,9 @@
       // names; { auto: true } (a new chapter under the same lens) re-fits only if the reader
       // hasn't panned or zoomed since the last fit.
       setLens(l, o = {}) {
-        state.lens = l ? { kind: l.kind, ids: new Set(l.ids), ring: l.ring ? new Set(l.ring) : null } : null;
+        state.lens = l ? { kind: l.kind, ids: new Set(l.ids), ring: l.ring ? new Set(l.ring) : null,
+          pairs: l.pairs ? new Set(l.pairs) : null, with: l.with || null } : null;
+        if (focus) tieSubs(focus);   // the ring's labels follow the lens; nobody moves
         focusOn(state.selected);
         if (state.lens && !focus && !state.path && (!o.auto || !userMoved)) fitLit(LENS_MS);
       },
@@ -1689,7 +1716,10 @@
       // (a Path2D in layout units, filled even-odd) with the names marked as its members
       debug: () => ({
         T, S, ahead: !!ahead && Object.keys(layouts).every((k) => ahead[k] && nodes.every((n) => ahead[k][n.id])),
-        nodes: nodes.filter((n) => drawn.has(n.id) && n.h <= state.h).map((n) => ({ id: n.id, x: n.x, y: n.y, bx: n.bx, by: n.by, r: n.r, label: !!n.lab })),
+        nodes: nodes.filter((n) => drawn.has(n.id) && n.h <= state.h).map((n) => ({ id: n.id, x: n.x, y: n.y, bx: n.bx, by: n.by, r: n.r, label: !!n.lab,
+          alpha: n.alpha, name: n.lg, sub: subs.has(n.id) ? subs.get(n.id)[0] : null, score: n.score })),
+        // each line of the view shown, with the opacity it's heading for
+        lines: link.filter((l) => l.on <= state.h).map((l) => ({ key: l.key, op: l.op.to })),
         terrs: terrs.filter((t) => t.path).map((t) => ({ id: t.g.id, path: t.path, members: [t.g.id, ...t.rows.filter((l) => l.on <= state.h).map((l) => l.source.id)] })),
       }),
     };

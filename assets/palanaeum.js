@@ -312,6 +312,9 @@
     .filter((r) => r.h <= h && (r.from === id || r.to === id) &&
       entityById[r.from] && entityById[r.to] && entityById[r.from].h <= h && entityById[r.to].h <= h);
   const stated = (ties) => ties.filter((r) => r.basis !== "follows").length;
+  // who interacts with whom on the page in unit h, in file order (codex/interactions.toml);
+  // only units whose sweep is done have any
+  const interactionsAt = (h) => (DATA.interactions || []).filter((x) => x.h === h && entityById[x.from] && entityById[x.to]);
 
   // The few words on how a tie is known: "says Adolin", "Wade's reading", "through Gavilar".
   // { long: true } spells out the lines a derived tie follows from, with their chapters.
@@ -490,7 +493,7 @@
     data: DATA, esc, units, unitById, entities, entityById, H, TYPES, FOLDERS, FOLDER_COLOR, NAV, icon,
     friendH, limit, visible, visibleAt, isNew, isPov, summaryOf, unitLabel, unitTitle, unitNumeral, unitAnchor,
     entName, entLink, renderSections, sectionCount, markNew, lightbox, sheet, gauge,
-    povColor, unitColor, entColor, sigil, egoWeb, presence, profile, openProfile, tiesOf,
+    povColor, unitColor, entColor, sigil, egoWeb, presence, profile, openProfile, tiesOf, interactionsAt,
     BASES, STYLES, basisNote, stated, reducedMotion, mentionsAt, onPage, layerOf,
   };
 

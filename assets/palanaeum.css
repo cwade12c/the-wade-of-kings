@@ -770,6 +770,7 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-card li { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.55rem; align-items: baseline; font-size: var(--step--1); color: var(--dusk); padding: 0.18rem 0; }
 .uf-card li .tie-swatch { margin-top: 0; }
 .uf-card li .c-how { color: var(--mist); }
+.uf-card .c-meets .c-how { font-size: var(--step--2); }
 .uf-card li button { all: unset; cursor: pointer; color: var(--parchment); font-weight: 700; }
 .uf-card li button:hover, .uf-card li button:focus-visible { color: var(--sphere); }
 .uf-card .c-acts { display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -883,6 +884,7 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 }
 .uf-card .c-chip:hover, .uf-card .c-chip:focus-visible { border-color: #d9b77e; color: var(--parchment); }
 .uf-card .c-also { margin: 0.4rem 0 0; font-size: var(--step--2); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mist); }
+.uf-card .c-none { margin: 0.3rem 0 0.2rem; color: var(--dusk); font-size: var(--step--1); }
 .uf-card .c-step { color: var(--dusk); }
 .uf-card .c-step .ico { width: 1.15rem; height: 1.15rem; }
 .uf-card .c-step[aria-pressed="true"] { color: var(--parchment); border-color: rgba(216, 236, 255, 0.45); box-shadow: 0 0 14px rgba(216, 236, 255, 0.15); }

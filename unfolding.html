@@ -54,7 +54,7 @@
       <div class="uf-types" id="styles" role="group" aria-label="Show or hide each way of knowing"></div>
       <h2>Reading the web</h2>
       <p>Lit, glowing spheres are viewpoint characters; squares are groups. In The Cast, a group's members share a dotted territory, each pair shares one line, spheres grow with how often the book has named someone, and more names appear as you zoom in. Arrows mark command, dots support, bars hostility; faint gold lines are family ties that follow from the others. Pick anyone, or find them by name, to see all their ties.</p>
-      <p>Lenses light some names and fade the rest, and nobody moves: this chapter's cast, a family or crew, or whoever Wade's open questions and predictions are about. Picking anyone still shows all their ties. From a name's card, trace the chain of ties to anyone else.</p>
+      <p>Lenses light some names and fade the rest, and nobody moves: this chapter's cast, a family or crew, or whoever Wade's open questions and predictions are about. Picking anyone still shows all their ties; under This chapter, the ones the chapter doesn’t show fade, and those they’re on the page with are labelled with what passed between them. From a name's card, trace the chain of ties to anyone else.</p>
     </div>
     <div class="uf-kin" id="kin" role="dialog" aria-label="Kin &amp; crews" hidden></div>
     <button type="button" class="uf-step" id="step" aria-pressed="false" hidden></button>
@@ -169,6 +169,7 @@
   // On a phone it opens as a short peek bar, so the ring stays in view above it; tap or swipe
   // up for the details, swipe down (or ×) to let go. On a desktop it sits beside the ring.
   let cardState = "peek";
+  const TIE_ORDER = ["family", "hostile", "command", "support", "other"];   // web.js merges a pair's ties in this order
   const CHEVRON = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14.5l6-6 6 6"/></svg>';
   function setCardState(st) {
     cardState = st;
@@ -197,6 +198,18 @@
     const onstage = (e.units || []).filter((id) => P.unitById[id] && P.unitById[id].h <= current).length;
     // under On Wade’s mind, the open questions and predictions about them, in id order, all alike
     const mind = lens && lens.kind === "mind" ? mindAt(current).filter((x) => x.about.includes(e.id)) : [];
+    // under This chapter at a swept chapter, who they're on the page with there, in file order,
+    // each with the tie the pair already had (the top stated one, if it came before)
+    const u = P.units[current];
+    const meets = lens && lens.kind === "chapter" && u && u.swept ? P.interactionsAt(current).filter((x) => x.from === e.id || x.to === e.id) : null;
+    const earlier = (other) => {
+      const top = ties.filter((r) => r.basis !== "follows" && otherOf(r) === other).sort((a, b) => TIE_ORDER.indexOf(a.type) - TIE_ORDER.indexOf(b.type))[0];
+      return top && top.h < current ? ` <span class="c-how">· ${P.esc(top.label)} · ${P.esc(P.unitLabel(P.units[top.h], { short: true }))}</span>` : "";
+    };
+    const meetRows = (meets || []).map((x) => {
+      const other = x.from === e.id ? x.to : x.from;
+      return `<li><span class="tie-swatch seen" style="--c:${P.TYPES[x.type].hex}"></span><span><button type="button" data-id="${other}">${P.esc(P.entName(other))}</button>: ${P.esc(x.label)}${earlier(other)}</span></li>`;
+    }).join("");
     const steps = web.stepCount(e.id);
     card.style.setProperty("--pc", P.entColor(e, current));
     card.hidden = false;
@@ -208,7 +221,9 @@
         <div class="c-btns">${steps ? `<button type="button" class="icon-btn c-step" aria-label="One more step" title="One more step" aria-pressed="${web.step()}">${RING_ICON}</button>` : ""}<button type="button" class="icon-btn c-more-btn" aria-label="Show details" aria-expanded="false">${CHEVRON}</button>
           <button type="button" class="icon-btn c-x" aria-label="Let go of ${P.esc(e.name)}">${P.icon("close")}</button></div></div>
       <div class="c-more">
+        ${meets ? `<p class="c-also">In this chapter</p>${meetRows ? `<ul class="c-meets">${meetRows}</ul>` : `<p class="c-none">Not on the page with anyone in this chapter.</p>`}` : ""}
         ${P.summaryOf(e, current) ? `<p class="c-sum">${P.summaryOf(e, current)}</p>` : ""}
+        ${meets && ties.length ? `<p class="c-also">All ties</p>` : ""}
         ${near.length ? `<ul>${tieRows(near)}</ul>` : ""}
         ${also.length ? `<p class="c-also">Also tied to</p><ul>${tieRows(also)}</ul>` : ""}
         ${mind.length ? `<p class="c-also">On Wade’s mind</p><ul class="c-mind">${mind.map((x) => `<li><a href="ledger.html#${x.id}"><b>${P.esc(x.id)}</b> <span>${x.question || x.claim}</span></a></li>`).join("")}</ul>` : ""}
@@ -420,7 +435,13 @@
     if (!lens) return null;
     if (lens.kind === "chapter") {
       const u = P.units[h];
-      return { ids: web.nodes.filter((n) => n.h <= h && P.onPage(n.e, h)).map((n) => n.id).concat(u ? u.pov : []) };
+      const ids = web.nodes.filter((n) => n.h <= h && P.onPage(n.e, h)).map((n) => n.id).concat(u ? u.pov : []);
+      if (!u || !u.swept) return { ids };
+      // a swept chapter also carries who interacts with whom there: pair keys, and id -> other -> interaction
+      const xs = P.interactionsAt(h), pairs = [], meets = new Map();
+      const add = (a, b, x) => { if (!meets.has(a)) meets.set(a, new Map()); meets.get(a).set(b, x); };
+      xs.forEach((x) => { pairs.push([x.from, x.to].sort().join("|")); add(x.from, x.to, x); add(x.to, x.from, x); });
+      return { ids, pairs, with: meets };
     }
     if (lens.kind === "mind") return { ids: mindAt(h).flatMap((x) => x.about) };
     const k = kinPick(lens.id, h);
@@ -428,9 +449,10 @@
   }
   const lensBtns = [...document.querySelectorAll(".uf-lens")];
   const kinBtn = lensBtns.find((b) => b.dataset.lens === "kin"), kin = $("kin");
+  const forWeb = (l) => (l ? { kind: lens.kind, ids: l.ids, ring: l.ring, pairs: l.pairs, with: l.with } : null);
   function applyLens(o = {}) {
     const l = lensAt(current);
-    if (!tracing) web.setLens(l ? { kind: lens.kind, ids: l.ids, ring: l.ring } : null, o);
+    if (!tracing) web.setLens(forWeb(l), o);
     lensBtns.forEach((b) => b.setAttribute("aria-pressed", String(!!lens && lens.kind === b.dataset.lens)));
     kinBtn.querySelector(".t").textContent = lens && lens.kind === "kin" && l.name ? `Kin & crews: ${l.name.replace(/^The /, "")}` : "Kin & crews";
     stage.classList.toggle("lensing", !!lens);
@@ -598,6 +620,9 @@
   function goTo(h, withSweep) {
     current = h;
     if (withSweep) sweep(P.units[h]);
+    // the lens goes first, so a ring that follows the chapter lights the new chapter's
+    // interactions on its first frame
+    if (lens && !tracing && sel) web.setLens(forWeb(lensAt(h)), { auto: true });
     web.setHorizon(h, { sweepMs: withSweep && !P.reducedMotion ? SWEEP : 0 });
     orbs.querySelectorAll(".uf-tick").forEach((b) => {
       const bh = Number(b.dataset.h);
