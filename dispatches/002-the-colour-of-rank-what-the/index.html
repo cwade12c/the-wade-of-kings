@@ -207,6 +207,7 @@
     { n: "the Parshendi", w: "black", g: "outside", c: "wok:6", note: "Black eyes in lean, marbled faces." },
     {"n": "Adolin", "w": "blue", "g": "light", "c": "wok:15", "note": "Blue eyes during the argument with Sadeas."},
     {"n": "Vamah", "w": "light grey", "g": "light", "c": "wok:15", "note": "Light grey eyes; he squints as Dalinar approaches."},
+    {"n": "Laral", "w": "pale green", "g": "light", "c": "wok:16", "note": "The citylord’s daughter, with bright, pale green eyes."},
   ].filter((p) => seen(p.c));
 
   // ------------------------------------------------------------ hero
@@ -252,7 +253,7 @@
   const DARK = [
     { b: "First nahn", p: "Bashin the huntmaster: “the highest and most prestigious rank a darkeyes could have, worthy even of marrying into a lighteyed family.”", c: "wok:12" },
     { b: "Second nahn", p: "A master-servant is “a darkeyed citizen of very high rank.” So are Lirin and Kaladin: Lirin's grandfathers “bought and worked” the family up to it, for full citizenship and the right of travel.", c: ["wok:3", "wok:6", "wok:10"] },
-    { gap: true, p: "The lower nahns: not named yet" },
+    { b: "Fourth and fifth nahn", p: "The other Hearthstone families are fourth or fifth nahn; Kal’s family alone is second nahn.", c: "wok:16" },
   ].filter((r) => r.gap || seen(r.c));
   const rung = (r) => r.gap ? `<li class="gap">${r.p}</li>` : `<li><b>${r.b}</b><p>${r.p} ${cite(r.c)}${basis(r.basis)}</p></li>`;
   document.getElementById("lad-light").innerHTML = LIGHT.map(rung).join("");
@@ -293,6 +294,7 @@
     { h: "Calling", t: "A good Calling, worked hard, ensures good placement in the afterlife. Lirin wants Kal to use his family's rank and right of travel for surgery, not war.", c: ["wok:3", "wok:10"] },
     {"h": "The Way of Kings", "t": "The book places lighteyes beneath darkeyes, contradicting Vorin teaching.", "c": "wok:15"},
     {"h": "The King's Wit", "t": "Openly killing the King's Wit is legal, but costs the killer title and lands.", "c": "wok:15"},
+    {"h": "Winning a Blade", "t": "Kal and Laral say a darkeyes who wins a Shardblade becomes a lighteyes, even if enslaved. Naget asks whether anyone knows a real example.", "c": "wok:16", "b": "said: Kaladin, Laral, Naget"},
   ].filter((f) => seen(f.c));
   document.getElementById("customs").innerHTML = CUSTOMS.map((f) => `<div class="custom"><h4>${f.h}</h4><p>${f.t} ${cite(f.c)}${basis(f.b)}</p></div>`).join("");
 
@@ -327,7 +329,7 @@
     { t: "Why eye colour decides rank at all, beyond Cenn's belief that the Heralds choose brightlords at birth", c: "wok:1" },
     { t: "Which way the dahn numbers run, and how many dahns and nahns there are", c: "wok:8" },
     { t: "What Wit is, if he's neither lighteyed nor darkeyed", c: "wok:12" },
-    { t: "What the ranks below the second nahn are called, and what they allow", c: "wok:10" },
+    { t: "What the fourth and fifth nahns allow", c: "wok:16" },
     {"t": "Whether the Lost Radiants were darkeyes (your <a href=\"../../ledger.html\">Q-034</a>)", "c": "wok:15"},
   ].filter((f) => seen(f.c));
   document.getElementById("unknowns").innerHTML = UNK.map((f) => li(f, "#7d8899")).join("");
