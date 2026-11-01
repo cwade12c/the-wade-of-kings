@@ -92,7 +92,7 @@
   }
 </style>
 </head>
-<body data-page="dispatch" data-horizon="wok:13" data-root="../../">
+<body data-page="dispatch" data-horizon="wok:15" data-root="../../">
 <main class="wrap dispatch-page dx">
   <header class="page-head">
     <p class="eyebrow">Dispatch #002 · <span class="living"><i></i>Living</span> · safe through <span id="safe"></span></p>
@@ -205,6 +205,8 @@
     { n: "Szeth", w: "dark green", g: "outside", c: "wok:i3", note: "Dark green, until he summons his Blade." },
     { n: "Wit", w: "blue", g: "outside", c: "wok:12", note: "Blue eyes, but neither lighteyes nor darkeyes." },
     { n: "the Parshendi", w: "black", g: "outside", c: "wok:6", note: "Black eyes in lean, marbled faces." },
+    {"n": "Adolin", "w": "blue", "g": "light", "c": "wok:15", "note": "Blue eyes during the argument with Sadeas."},
+    {"n": "Vamah", "w": "light grey", "g": "light", "c": "wok:15", "note": "Light grey eyes; he squints as Dalinar approaches."},
   ].filter((p) => seen(p.c));
 
   // ------------------------------------------------------------ hero
@@ -289,6 +291,8 @@
     { h: "Names", t: "Kal prefers the short name, because “Kaladin sounded like a lighteyes's name.”", c: "wok:10" },
     { h: "Trust", t: "Every lighteyes Kaladin has known, slave or free, has seemed to him “corrupt to the core.”", c: "wok:4", b: "said: Kaladin" },
     { h: "Calling", t: "A good Calling, worked hard, ensures good placement in the afterlife. Lirin wants Kal to use his family's rank and right of travel for surgery, not war.", c: ["wok:3", "wok:10"] },
+    {"h": "The Way of Kings", "t": "The book places lighteyes beneath darkeyes, contradicting Vorin teaching.", "c": "wok:15"},
+    {"h": "The King's Wit", "t": "Openly killing the King's Wit is legal, but costs the killer title and lands.", "c": "wok:15"},
   ].filter((f) => seen(f.c));
   document.getElementById("customs").innerHTML = CUSTOMS.map((f) => `<div class="custom"><h4>${f.h}</h4><p>${f.t} ${cite(f.c)}${basis(f.b)}</p></div>`).join("");
 
@@ -306,6 +310,7 @@
     { t: "A Shardblade kill burns out the eyes: the guard's “smoked and burned,” then “blackened, shriveling up”", c: "wok:prologue" },
     { t: "In the Ten Essences the eyes go with crystal and glass, “the windows into a person's mind and spirit.” For Shallan, getting a portrait's eyes right is “the most important” part", c: "wok:7" },
     { t: "One of Ishikk's foreigners has eyes “the wrong shape,” and Easterners think the Shin, with their large, round eyes, look like children", c: ["wok:i1", "wok:i3"] },
+    {"t": "Gallant's eyes are deep black", "c": "wok:15"},
   ].filter((f) => seen(f.c));
   document.getElementById("devs").innerHTML = devs.join("") + `<ul class="facts">${MORE.map((f) => li(f, "#a9b3c1")).join("")}</ul>`;
   const summon = document.getElementById("summon");
@@ -323,6 +328,7 @@
     { t: "Which way the dahn numbers run, and how many dahns and nahns there are", c: "wok:8" },
     { t: "What Wit is, if he's neither lighteyed nor darkeyed", c: "wok:12" },
     { t: "What the ranks below the second nahn are called, and what they allow", c: "wok:10" },
+    {"t": "Whether the Lost Radiants were darkeyes (your <a href=\"../../ledger.html\">Q-034</a>)", "c": "wok:15"},
   ].filter((f) => seen(f.c));
   document.getElementById("unknowns").innerHTML = UNK.map((f) => li(f, "#7d8899")).join("");
 })();

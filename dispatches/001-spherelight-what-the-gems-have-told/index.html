@@ -101,7 +101,7 @@
   }
 </style>
 </head>
-<body data-page="dispatch" data-horizon="wok:13" data-root="../../">
+<body data-page="dispatch" data-horizon="wok:15" data-root="../../">
 <main class="wrap dispatch-page dx">
   <header class="page-head">
     <p class="eyebrow">Dispatch #001 · <span class="living"><i></i>Living</span> · safe through <span id="safe"></span></p>
@@ -215,6 +215,7 @@
     { id: "ruby", name: "Ruby", light: "red", facts: [
       { t: "Ruby is among the coins in Shallan's money pouch", c: "wok:3" },
       { t: "One of the three stones on Jasnah's Soulcaster", c: "wok:5" },
+      {"t": "Large rubies in golden fittings warm the pavilion without a fire", "c": "wok:15"},
     ]},
     { id: "emerald", name: "Emerald", light: "green", facts: [
       { t: "Emeralds are the most valuable, “for they could be used by Soulcasters to create food”", c: "wok:3" },
@@ -332,6 +333,9 @@
     { h: "Soulcasting", t: "Jasnah's Soulcaster holds a smokestone, a diamond and a ruby. Emeralds can make food.", c: ["wok:3", "wok:5"] },
     { h: "Fabrials", t: "Lirin's clock runs on an infused smokestone. The new Alethi bows each need a small infused gemstone to hold their pull.", c: ["wok:10", "wok:12"] },
     { h: "Crystal in art", t: "In the Ten Essences, eyes are associated with crystal and glass, “the windows into a person's mind and spirit.”", c: "wok:7" },
+    {"h": "Warmth", "t": "Ruby fabrials give off heat without a fire in the pavilion.", "c": "wok:15"},
+    {"h": "Food and wood", "t": "The highprinces depend on the king's Soulcasters to feed their armies and provide wood; access fees are his main tax on them.", "c": "wok:15"},
+    {"h": "Plate repairs", "t": "With time Shardplate repairs itself, even after complete shattering. The chapter does not explain the mechanism.", "c": "wok:15"},
   ].filter((u) => seen(u.c));
   document.getElementById("uses").innerHTML = USES.map((u) => `<div class="use"><h3>${u.h}</h3><p>${u.t} ${cite(u.c)}</p></div>`).join("");
 
@@ -342,6 +346,9 @@
     { t: "Szeth has hidden it in Jah Keved and doesn't know what it is", c: "wok:i3" },
     { t: "Took tells a tale of stealing “a sphere that glowed black at night” from the Nightwatcher herself. It makes Szeth uneasy", c: "wok:i3", b: "said: Took" },
     { t: "Gemhearts: the plateau chrysalises have gemstones at their hearts, and the highprinces race each other to capture them", c: ["wok:9", "wok:12"] },
+    {"t": "Most gemhearts are harvested from vulnerable chasmfiends in rocky chrysalises on the western plateaus", "c": "wok:15"},
+    {"t": "A single gemheart can cover a highprince's expenses for months", "c": "wok:15"},
+    {"t": "Larger gemstones are less likely to shatter when used in Soulcasting", "c": "wok:15"},
   ].filter((f) => seen(f.c));
   document.getElementById("strange").innerHTML = STRANGE.map((f) => li(f, "#b7b0e0")).join("");
 
