@@ -8,15 +8,18 @@
 <link rel="stylesheet" href="assets/palanaeum.css">
 </head>
 <body data-page="unfolding">
-<main class="uf">
+<main class="uf" id="uf" data-tab="web">
   <div class="uf-stage" id="stage">
     <div class="uf-motes" id="motes" aria-hidden="true"></div>
-    <canvas id="web" role="img" aria-labelledby="readout"></canvas>
     <div class="uf-readout" id="readout">
-      <h1>The Unfolding</h1>
+      <h1 id="uf-title">The Unfolding</h1>
+      <div class="uf-tabs" id="tabs" role="tablist" aria-label="The Unfolding">
+        <button type="button" role="tab" id="tab-web" data-tab="web" aria-selected="true" aria-controls="panel-web">Connections</button><button type="button" role="tab" id="tab-lines" data-tab="lines" aria-selected="false" aria-controls="panel-lines" tabindex="-1">POV Lines</button></div>
       <div class="uf-at" id="at"></div>
       <p class="uf-counts" id="counts"></p>
     </div>
+    <div class="uf-panel" id="panel-web" role="tabpanel" aria-labelledby="tab-web">
+    <canvas id="web" role="img" aria-labelledby="uf-title at counts"></canvas>
     <div class="uf-tools" role="group" aria-label="View">
       <button type="button" id="find-btn" aria-label="Find a name" aria-expanded="false" aria-controls="find"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
       <button type="button" id="z-in" aria-label="Zoom in">+</button>
@@ -64,6 +67,12 @@
       <div class="uf-plate" id="plate"></div>
     </div>
     <div class="web-tip" id="tip" role="status"></div>
+    </div>
+    <div class="uf-panel" id="panel-lines" role="tabpanel" aria-labelledby="tab-lines" hidden>
+      <div id="lines"></div>
+      <aside class="uf-card ln-card" id="lcard" hidden aria-live="polite"></aside>
+      <div class="web-tip" id="ltip" role="status"></div>
+    </div>
   </div>
   <div class="uf-dock">
     <div class="uf-row">
@@ -75,6 +84,12 @@
         <button type="button" class="uf-lens" data-lens="mind" aria-pressed="false">On Wade’s mind</button>
       </div>
     </div>
+    <ul class="uf-key" id="lkey" aria-label="Reading POV Lines">
+      <li><span class="k-st" aria-hidden="true"></span>a chapter through their eyes</li>
+      <li><span class="k-ix" aria-hidden="true"><i></i><i></i></span>two at once</li>
+      <li><span class="k-st flash" aria-hidden="true"></span>a flashback</li>
+      <li class="il"><span class="k-il" aria-hidden="true"></span>Interludes</li>
+    </ul>
     <div class="uf-btns">
       <button type="button" id="prev" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM19 5v14L9 12z"/></svg></button>
       <button type="button" class="play" id="play" aria-label="Play from the Prelude"></button>
@@ -90,6 +105,7 @@
 <script src="assets/vendor/d3.v7.min.js"></script>
 <script src="assets/web-layout.js"></script>
 <script src="assets/web.js"></script>
+<script src="assets/lines.js"></script>
 <script>
 (function () {
   "use strict";
@@ -121,6 +137,12 @@
   // between visits.
   const query = new URLSearchParams(location.search);
   const VIEW0 = query.get("view") === "everyone" ? "everyone" : "cast";
+  // Two tabs: Connections (the map, "web") and POV Lines ("lines"); ?tab=lines opens POV Lines.
+  // Both show the same chapter. The map is made the first time Connections is shown, and while
+  // POV Lines is shown it's left alone (marked behind), to catch up by the dock's own rules.
+  const TAB0 = query.get("tab") === "lines" ? "lines" : "web";
+  let tab = null, mapH = null;
+  let pendingPick = location.hash.slice(1) || null;   // a pick from the address waits for the map
   // the free space a focus ring may use: above the peek bar on a phone, left of the card on a
   // desktop, and above the one-more-step pill when Ripples will have one ({ full: true } keeps
   // the pill's room in)
@@ -137,32 +159,49 @@
     return { x: 30, y: 96, w: st.width - right - 30, h: st.height - 120 - pill };
   }
   let web = null;
-  web = P.web($("web"), {
-    view: VIEW0, spacing: query.get("spacing"), labels: "all", interactive: true, zoom: true, focusMode: true, implied: true, tip: $("tip"),
-    // names keep clear of the tool column, the readout (on a phone both fade while someone is
-    // picked) and the one-more-step pill
-    avoid: () => [...stage.querySelectorAll(narrow() && stage.classList.contains("focusing") ? ".uf-step:not([hidden])" : ".uf-tools, .uf-readout, .uf-step:not([hidden])")].map((el) => el.getBoundingClientRect()),
-    pad: narrow() ? { top: 92, right: 12, bottom: 16, left: 12 } : { top: 110, right: 80, bottom: 30, left: 40 },
-    // on a phone, open close enough to read, on whoever tonight's chapter follows
-    initial: narrow() ? { k: 0.72, cy: 0.56, focus: (P.units[LIM] || { pov: [] }).pov } : null,
-    focusBox,
-    onSelect: (n) => {
-      if (n && tracing) tracing = null;   // picking a name lets a traced path go
-      sel = n;
-      if (tracing) return;                // the path's own card stays
-      renderCard(n);
-      stage.classList.toggle("focusing", !!n);
-      setURL();
-    },
-    onRing: () => updateStep(),
-  });
-  // the address keeps what can be shared: the view, spacing, lens and whoever is picked
+  // the tabs push the chapter readout down; the map's top margin grows by as much
+  function tabsShift() {
+    const ro = $("readout"), at = $("at"), y = at.offsetTop;
+    ro.classList.add("no-tabs");
+    const shift = y - at.offsetTop;
+    ro.classList.remove("no-tabs");
+    return shift;
+  }
+  function makeWeb() {
+    const shift = tabsShift();
+    web = P.web($("web"), {
+      view: VIEW0, spacing: query.get("spacing"), labels: "all", interactive: true, zoom: true, focusMode: true, implied: true, tip: $("tip"),
+      // names keep clear of the tool column, the readout and tabs (on a phone the readout and the
+      // tools fade while someone is picked; the tabs stay) and the one-more-step pill
+      avoid: () => [...stage.querySelectorAll(narrow() && stage.classList.contains("focusing") ? ".uf-tabs, .uf-step:not([hidden])" : ".uf-tools, .uf-readout, .uf-tabs, .uf-step:not([hidden])")].map((el) => el.getBoundingClientRect()),
+      pad: narrow() ? { top: 92 + shift, right: 12, bottom: 16, left: 12 } : { top: 110 + shift, right: 80, bottom: 30, left: 40 },
+      // on a phone, open close enough to read, on whoever the chapter shown follows
+      initial: narrow() ? { k: 0.72, cy: 0.56, focus: (P.units[current] || { pov: [] }).pov } : null,
+      focusBox,
+      onSelect: (n) => {
+        if (n && tracing) tracing = null;   // picking a name lets a traced path go
+        sel = n;
+        if (tracing) return;                // the path's own card stays
+        renderCard(n);
+        stage.classList.toggle("focusing", !!n);
+        setURL();
+      },
+      onRing: () => updateStep(),
+    });
+    setSpacingSw(web.spacing());
+    mapTo(current, false);
+    if (pendingPick) { web.select(pendingPick); pendingPick = null; }
+  }
+  // the address keeps what can be shared: the tab, the view, spacing, lens and whoever is picked
+  // (while POV Lines is shown, the map's options stay in it too)
   function setURL() {
     const q = new URLSearchParams(location.search);
     q.delete("play");
+    if (tab === "lines") q.set("tab", "lines"); else q.delete("tab");
     if (lens) q.set("lens", lens.kind === "kin" ? `kin:${lens.id}` : lens.kind); else q.delete("lens");
     const s = q.toString().replace(/%3A/gi, ":");
-    history.replaceState(null, "", `${location.pathname}${s ? `?${s}` : ""}${sel ? `#${sel.id}` : ""}`);
+    const pick = sel ? sel.id : pendingPick;
+    history.replaceState(null, "", `${location.pathname}${s ? `?${s}` : ""}${pick ? `#${pick}` : ""}`);
   }
 
   // ------------------------------------------------------------ the card for a chosen name
@@ -171,12 +210,15 @@
   let cardState = "peek";
   const TIE_ORDER = ["family", "hostile", "command", "support", "other"];   // web.js merges a pair's ties in this order
   const CHEVRON = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14.5l6-6 6 6"/></svg>';
-  function setCardState(st) {
-    cardState = st;
-    card.dataset.state = st;
-    const g = card.querySelector(".c-grab"), b = card.querySelector(".c-more-btn");
+  function sheetState(el, st) {
+    el.dataset.state = st;
+    const g = el.querySelector(".c-grab"), b = el.querySelector(".c-more-btn");
     [g, b].forEach((x) => x && x.setAttribute("aria-expanded", String(st === "open")));
     if (b) b.setAttribute("aria-label", st === "open" ? "Hide details" : "Show details");
+  }
+  function setCardState(st) {
+    cardState = st;
+    sheetState(card, st);
   }
   function renderCard(n) {
     if (!n) { card.hidden = true; cardState = "peek"; return; }
@@ -246,22 +288,23 @@
       onPick: (id) => (web.has(id) ? web.select(id) : (location.href = `codex.html#${id}`)),
     }));
   }
-  // swipe the card: up opens the details, down folds them, down again lets go
-  (function swipe() {
+  // swipe a card: up opens the details, down folds them, down again lets go
+  function swipe(el, set, close) {
     let y0 = null;
-    card.addEventListener("pointerdown", (ev) => {
+    el.addEventListener("pointerdown", (ev) => {
       if (!narrow() || !ev.target.closest(".c-grab, .c-top") || ev.target.closest(".c-btns")) return;
       y0 = ev.clientY;
     });
-    card.addEventListener("pointerup", (ev) => {
+    el.addEventListener("pointerup", (ev) => {
       if (y0 === null) return;
       const dy = ev.clientY - y0;
       y0 = null;
-      if (dy < -30) setCardState("open");
-      else if (dy > 30) { if (cardState === "open") setCardState("peek"); else web.select(null); }
+      if (dy < -30) set("open");
+      else if (dy > 30) { if (el.dataset.state === "open") set("peek"); else close(); }
     });
-    card.addEventListener("pointercancel", () => { y0 = null; });
-  })();
+    el.addEventListener("pointercancel", () => { y0 = null; });
+  }
+  swipe(card, setCardState, () => web.select(null));
 
   // ------------------------------------------------------------ filters
   const legend = $("legend");
@@ -299,7 +342,6 @@
   }
   // each view keeps its own spacing; the switch always shows the spacing of the view on screen
   const setSpacingSw = seg($("spacing"), (v) => web.setSpacing(v));
-  setSpacingSw(web.spacing());
   const setViewSw = seg($("view"), (v) => { web.setView(v); setSpacingSw(web.spacing()); $("cast-only").hidden = v !== "cast"; readout(); });
   setViewSw(VIEW0);
   $("cast-only").hidden = VIEW0 !== "cast";
@@ -597,6 +639,13 @@
     const num = P.unitNumeral(u), word = u.kind === "prelude" || u.kind === "prologue";
     at.style.setProperty("--c", P.unitColor(u));
     at.innerHTML = `<span class="numeral${word ? " word" : ""}">${P.esc(num)}</span><span class="t"><b>${P.esc(P.unitTitle(u))}</b><span>${P.esc(word ? "" : u.label)}${u.pov.length ? `${word ? "" : " · "}${P.esc(u.pov.map(P.entName).join(" & "))}` : ""}</span></span>`;
+    if (tab !== "web" || !web) {
+      // POV Lines: whose eyes, and how many units, up to the chapter shown
+      const read = P.units.filter((x) => x.h <= current), eyes = new Set(read.flatMap((x) => x.pov)).size;
+      $("counts").innerHTML = `<b>${eyes}</b> viewpoint${eyes === 1 ? "" : "s"} · <b>${read.length}</b> chapter${read.length === 1 ? "" : "s"}`;
+      $("caption").innerHTML = describe(u);
+      return;
+    }
     const c = web.visibleCounts(), lit = web.litCount();
     $("counts").innerHTML = lens && !tracing && lit !== null ? `<b>${lit}</b> lit of <b>${c.nodes}</b> names` : `<b>${c.nodes}</b> names · <b>${c.links}</b> ties`;
     $("caption").innerHTML = describe(u);
@@ -617,24 +666,39 @@
     clearTimeout(sweep.t);
     sweep.t = setTimeout(() => storm.classList.remove("go"), SWEEP + 50);
   }
+  // the page's one way to change chapter: the dock, a station, an orb or the arrow keys
   function goTo(h, withSweep) {
     current = h;
-    if (withSweep) sweep(P.units[h]);
-    // the lens goes first, so a ring that follows the chapter lights the new chapter's
-    // interactions on its first frame
-    if (lens && !tracing && sel) web.setLens(forWeb(lensAt(h)), { auto: true });
-    web.setHorizon(h, { sweepMs: withSweep && !P.reducedMotion ? SWEEP : 0 });
+    if (tab === "web" && web) {
+      if (withSweep) sweep(P.units[h]);
+      mapTo(h, withSweep);
+    }
+    if (lines) {
+      lines.setHorizon(h, { glow: withSweep && tab === "lines" });
+      if (tab === "lines") { lines.scrollTo(h, { smooth: true }); linesH = h; }
+      if (lcardFor) renderLCard();
+    }
     orbs.querySelectorAll(".uf-tick").forEach((b) => {
       const bh = Number(b.dataset.h);
       b.querySelector(".orb").classList.toggle("dim", bh > h);
       b.setAttribute("aria-pressed", String(bh === h));
-      if (bh === h) {
-        const left = b.offsetLeft - orbs.clientWidth / 2 + b.offsetWidth / 2;
-        orbs.scrollTo({ left, behavior: P.reducedMotion ? "auto" : "smooth" });
-      }
     });
+    if (tab === "web") centreOrb(!P.reducedMotion);
     $("prev").disabled = h <= 0;
     $("next").disabled = h >= LIM;
+    readout();
+  }
+  function centreOrb(smooth) {
+    const b = orbs.querySelector(".uf-tick[aria-pressed='true']");
+    if (b) orbs.scrollTo({ left: b.offsetLeft - orbs.clientWidth / 2 + b.offsetWidth / 2, behavior: smooth ? "smooth" : "auto" });
+  }
+  // the map's half of a chapter change
+  function mapTo(h, withSweep) {
+    mapH = h;
+    // the lens goes first, so a ring that follows the chapter lights the new chapter's
+    // interactions on its first frame
+    if (lens && !tracing && sel) web.setLens(forWeb(lensAt(h)), { auto: true });
+    web.setHorizon(h, { sweepMs: withSweep && !P.reducedMotion ? SWEEP : 0 });
     // a lens re-lights for the chapter (and re-fits unless the reader has moved the map since)
     if (lens) applyLens({ auto: true });
     if (tracing) {
@@ -647,6 +711,163 @@
     if (sel && sel.h <= h) renderCard(sel);
   }
 
+  // ------------------------------------------------------------ the tabs
+  const ufMain = $("uf"), panelWeb = $("panel-web"), panelLines = $("panel-lines");
+  const tabBtns = [...document.querySelectorAll(".uf-tabs [role='tab']")];
+  function showTab(t) {
+    if (t === tab) return;
+    stop();
+    const first = tab === null;
+    tab = t;
+    ufMain.dataset.tab = t;
+    tabBtns.forEach((b) => { const yes = b.dataset.tab === t; b.setAttribute("aria-selected", String(yes)); b.tabIndex = yes ? 0 : -1; });
+    if (t === "lines") {
+      if (!first) {
+        setFind(false);
+        filters.hidden = true;
+        fBtn.setAttribute("aria-expanded", "false");
+        setKin(false);
+      }
+      // display: none pauses the map: its glows stop, and a zero size is never refit
+      panelWeb.hidden = true;
+      panelLines.hidden = false;
+      stage.classList.remove("focusing", "lensing");
+      placeLines();
+      if (!lines) makeLines();
+      else {
+        // it keeps its scroll, unless the chapter changed on the map: then it follows, if it's out of view
+        if (linesH !== current) lines.scrollTo(current, { smooth: true });
+        linesH = current;
+        if (lcardFor) renderLCard();
+      }
+    } else {
+      panelLines.hidden = true;
+      panelWeb.hidden = false;
+      if (!web) makeWeb();
+      else {
+        if (mapH !== current) mapTo(current, false);   // the map catches up, as the dock would bring it
+        if (pendingPick && web.has(pendingPick)) web.select(pendingPick);
+        pendingPick = null;
+        stage.classList.toggle("focusing", !!sel && !tracing);
+        stage.classList.toggle("lensing", !!lens);
+      }
+      centreOrb(false);
+    }
+    readout();
+    if (!first) setURL();
+  }
+  tabBtns.forEach((b, i) => {
+    b.addEventListener("click", (ev) => { ev.stopPropagation(); showTab(b.dataset.tab); });
+    // Left and Right (and Home and End) move between the tabs, and stop there
+    b.addEventListener("keydown", (ev) => {
+      const n = tabBtns.length, k = ev.key;
+      const j = k === "ArrowRight" ? (i + 1) % n : k === "ArrowLeft" ? (i - 1 + n) % n : k === "Home" ? 0 : k === "End" ? n - 1 : -1;
+      if (j < 0) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      tabBtns[j].focus();
+      showTab(tabBtns[j].dataset.tab);
+    });
+  });
+
+  // ------------------------------------------------------------ POV Lines
+  // Whose eyes each chapter uses (assets/lines.js). A station chooses its chapter for both tabs
+  // and opens its card; a lane's name lights that lane and opens the lane's card.
+  const lcard = $("lcard"), linesHost = $("lines");
+  let lines = null, lcardFor = null;   // { h } for a station's card, { lane } for a lane's
+  let linesH = null;                   // the chapter the strip last followed
+  // the strip starts below the readout and the tabs
+  function placeLines() {
+    const ro = $("readout");
+    linesHost.style.top = `${Math.round(ro.offsetTop + ro.offsetHeight + (narrow() ? 4 : 10))}px`;
+  }
+  function makeLines() {
+    lines = P.lines(linesHost, {
+      tip: $("ltip"), narrow,
+      onPick: (h) => { stop(); goTo(h, true); openLCard({ h }); },
+      onLane: (id) => (lcardFor && lcardFor.lane === id ? closeLCard() : openLCard({ lane: id })),
+    });
+    lines.setHorizon(current);
+    lines.scrollTo(current, { center: true });
+    linesH = current;
+  }
+  const setLState = (st) => sheetState(lcard, st);
+  function openLCard(o) {
+    const again = !!lcardFor;
+    lcardFor = o;
+    renderLCard();
+    if (!again) setLState("peek");
+    lines.highlight(o.lane !== undefined ? o.lane : null);
+    lines.setReserve({ right: narrow() ? 0 : lcard.offsetWidth + 32 });
+    if (o.h !== undefined) lines.scrollTo(o.h, { smooth: true });
+  }
+  function closeLCard() {
+    if (!lcardFor) return;
+    lcardFor = null;
+    lcard.hidden = true;
+    lines.highlight(null);
+    lines.setReserve({ right: 0 });
+  }
+  const cardBtns = (label) => `<div class="c-btns"><button type="button" class="icon-btn c-more-btn" aria-label="Show details" aria-expanded="false">${CHEVRON}</button>
+    <button type="button" class="icon-btn c-x" aria-label="${P.esc(label)}">${P.icon("close")}</button></div>`;
+  function renderLCard() {
+    const o = lcardFor;
+    if (o.lane !== undefined) { renderLaneCard(o.lane); return; }
+    const u = P.units[o.h];
+    const c = P.unitColor(u), eyes = u.pov.map(P.entName).join(" and "), q = P.firstQuote(u);
+    const line = [eyes ? `through <i>${P.esc(eyes)}</i>'s eyes` : "", u.when ? P.esc(u.when) : "", u.flashback ? "flashback" : ""].filter(Boolean).join(" · ");
+    lcard.style.setProperty("--pc", c);
+    lcard.hidden = false;
+    lcard.innerHTML = `<button type="button" class="c-grab" aria-label="Show details" aria-expanded="false"></button>
+      <div class="c-top"><span class="orb${u.kind === "interlude" ? " il" : ""}" style="--c:${c}" aria-hidden="true"></span>
+        <div class="c-id"><p>${P.esc(u.label)}</p><h2>${P.esc(P.unitTitle(u))}</h2><p class="c-line" style="--c:${c}">${line}</p></div>
+        ${cardBtns("Close")}</div>
+      <div class="c-more">
+        ${u.part ? `<p class="c-also">${P.esc(u.part)}</p>` : ""}
+        ${q ? `<blockquote class="wade">${P.esc(P.clip(q, 160))}</blockquote>` : ""}
+        ${u.pov.length ? `<p class="c-also">On the map</p><p class="c-chips">${u.pov.map((id) => `<button type="button" class="c-chip" data-id="${id}" style="--c:${P.povColor(id)}">${P.esc(P.entName(id))}</button>`).join("")}</p>` : ""}
+        <div class="c-acts"><a class="cta" href="journal.html#${P.unitAnchor(u.id)}">Journal entry</a><button type="button" class="cta ghost" id="lc-map">See it on the map</button></div></div>`;
+    wireLCard();
+    lcard.querySelector("#lc-map").addEventListener("click", (ev) => { ev.stopPropagation(); showTab("web"); });
+    lcard.querySelectorAll(".c-chip").forEach((b) => b.addEventListener("click", (ev) => { ev.stopPropagation(); showTab("web"); web.select(b.dataset.id); }));
+  }
+  function renderLaneCard(id) {
+    const lane = lines.lanes().find((l) => l.id === id);
+    const seen = lane.stations.filter((h) => h <= current).map((h) => P.units[h]);
+    lcard.style.setProperty("--pc", lane.color);
+    lcard.hidden = false;
+    const eyes = (u) => u.pov.map(P.entName).join(" and ");
+    if (lane.il) {
+      // the Interludes lane: each of its stations, a button that chooses it
+      lcard.innerHTML = `<button type="button" class="c-grab" aria-label="Show details" aria-expanded="false"></button>
+        <div class="c-top"><span class="orb il" style="--c:${lane.color}" aria-hidden="true"></span>
+          <div class="c-id"><p>A lane of POV Lines</p><h2>Interludes</h2><p class="c-line">Viewpoints with only interludes so far</p></div>
+          ${cardBtns("Let go of the Interludes lane")}</div>
+        <div class="c-more"><ul class="c-meets">${lane.stations.map((h) => { const u = P.units[h]; return `<li><span class="tie-swatch seen" style="--c:${lane.color}"></span><span><button type="button" data-h="${h}">${P.esc(u.short)}: ${P.esc(P.unitTitle(u))}</button>${eyes(u) === P.unitTitle(u) ? "" : ` <span class="c-how">· ${P.esc(eyes(u))}</span>`}</span></li>`; }).join("")}</ul></div>`;
+      wireLCard();
+      lcard.querySelectorAll("li button").forEach((b) => b.addEventListener("click", (ev) => { ev.stopPropagation(); stop(); goTo(Number(b.dataset.h), true); openLCard({ h: Number(b.dataset.h) }); }));
+      return;
+    }
+    const e = P.entityById[id], n = seen.length;
+    const count = n ? `<b>${n}</b> chapter${n === 1 ? "" : "s"} through their eyes, ${n === 1 ? P.esc(seen[0].short) : `from ${P.esc(seen[0].short)} to ${P.esc(seen[n - 1].short)}`}` : `None through their eyes by ${P.esc(P.units[current] ? P.units[current].short : "the Prelude")}`;
+    lcard.innerHTML = `<button type="button" class="c-grab" aria-label="Show details" aria-expanded="false"></button>
+      <div class="c-top">${P.sigil(e, { size: 46, h: current })}
+        <div class="c-id"><p>A lane of POV Lines</p><h2>${P.esc(e.name)}</h2><p class="c-line">${count}</p></div>
+        ${cardBtns(`Let go of ${e.name}'s lane`)}</div>
+      <div class="c-more"><div class="c-acts"><button type="button" class="cta" id="lc-pick">Pick on the map</button><a class="cta ghost" href="codex.html#${id}">Codex entry</a></div></div>`;
+    wireLCard();
+    lcard.querySelector("#lc-pick").addEventListener("click", (ev) => { ev.stopPropagation(); showTab("web"); web.select(id); });
+  }
+  function wireLCard() {
+    setLState(lcard.dataset.state || "peek");
+    const toggle = () => setLState(lcard.dataset.state === "open" ? "peek" : "open");
+    lcard.querySelector(".c-x").addEventListener("click", (ev) => { ev.stopPropagation(); closeLCard(); });
+    lcard.querySelector(".c-more-btn").addEventListener("click", toggle);
+    lcard.querySelector(".c-grab").addEventListener("click", toggle);
+    lcard.querySelector(".c-id").addEventListener("click", () => { if (narrow()) toggle(); });
+  }
+  swipe(lcard, setLState, closeLCard);
+
   // ------------------------------------------------------------ play
   let timer = null;
   const play = $("play");
@@ -657,9 +878,11 @@
   function stop() { if (timer) { clearInterval(timer); timer = null; } setPlay(false); }
   function start() {
     if (P.reducedMotion) { goTo(LIM, false); return; }
-    exitTrace(false);
-    web.select(null);
-    if (narrow()) web.fit();   // the storm sweeps the whole sky, so show all of it
+    if (tab === "web") {
+      exitTrace(false);
+      web.select(null);
+      if (narrow()) web.fit();   // the storm sweeps the whole sky, so show all of it
+    }
     let h = current >= LIM ? 0 : current + 1;
     if (h === 0) goTo(-1, false);
     setPlay(true);
@@ -678,6 +901,8 @@
     if (ev.target.closest("input,select,textarea") || document.querySelector(".sheet")) return;
     if (ev.key === "ArrowRight" && current < LIM) { stop(); goTo(current + 1, true); }
     if (ev.key === "ArrowLeft" && current > 0) { stop(); goTo(current - 1, false); }
+    // on POV Lines, Escape closes its own card and / does nothing; neither reaches the map
+    if (tab === "lines") { if (ev.key === "Escape") closeLCard(); return; }
     if (ev.key === "Escape") {
       if (!kin.hidden) { setKin(false); kinBtn.focus(); }
       else if (tracing) exitTrace(true);
@@ -685,12 +910,18 @@
     }
     if (ev.key === "/" && find.hidden) { ev.preventDefault(); setFind(true); }
   });
+  document.addEventListener("click", (ev) => { if (tab === "lines" && lcardFor && !lcard.contains(ev.target) && !ev.target.closest(".ln-st, .ln-name, .uf-dock, .uf-tabs")) closeLCard(); });
+  addEventListener("resize", () => { if (tab === "lines") placeLines(); });
 
   setPlay(false);
   goTo(LIM, false);
-  const id = location.hash.slice(1);
-  if (id) web.select(id);
-  window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h && web.has(h)) web.select(h); });
+  if (TAB0 === "lines") panelWeb.hidden = true;
+  showTab(TAB0);
+  window.addEventListener("hashchange", () => {
+    const h = location.hash.slice(1);
+    if (!h) return;
+    if (tab === "web" && web) { if (web.has(h)) web.select(h); } else pendingPick = h;
+  });
   if (new URLSearchParams(location.search).has("play")) setTimeout(start, 500);
 })();
 </script>

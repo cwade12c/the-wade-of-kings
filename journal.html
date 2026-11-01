@@ -59,7 +59,7 @@
       html.push(`<li class="jr-ch${voice ? "" : " quiet"}" id="${P.unitAnchor(u.id)}" data-g="${gi}" data-pov="${u.pov.join(" ")}" style="--c:${c}"${P.isNew(u.h) ? ' data-new="1"' : ""}>
         <header class="jr-ch-head">
           <span class="orb jr-num${word ? " word" : ""}${u.kind === "interlude" ? " il" : ""}" style="--c:${c}" aria-hidden="true">${word ? P.esc(u.label.slice(0, 3)) : P.esc(u.kind === "interlude" ? u.short : u.n)}</span>
-          <div><p class="jr-meta"><span class="lab">${P.esc(u.label)}</span>${pov ? `<span>through ${pov}</span>` : ""}${u.when ? `<span class="when">${P.esc(u.when)}</span>` : ""}</p>
+          <div><p class="jr-meta"><span class="lab">${P.esc(u.label)}</span>${pov ? `<span>through ${pov}</span>` : ""}${u.when ? `<span class="when">${P.esc(P.whenOf(u))}</span>` : ""}</p>
           <h2>${P.esc(P.unitTitle(u))}</h2></div>
         </header>
         <div class="jr-body">

@@ -27,7 +27,7 @@
 
   const NAV = [
     ["index.html", "Home", "home", "The bookmark, and what's new"],
-    ["unfolding.html", "The Unfolding", "unfolding", "The living web of who's tied to whom"],
+    ["unfolding.html", "The Unfolding", "unfolding", "Who's tied to whom, and whose eyes tell each chapter"],
     ["dispatches.html", "Dispatches", "dispatches", "Maps, posters and illustrated guides"],
     ["codex.html", "Codex", "codex", "Everyone and everything met so far"],
     ["journal.html", "Journal", "journal", "Every chapter, and what Wade made of it"],
@@ -129,22 +129,33 @@
   // ------------------------------------------------------------ viewpoint colours
   // The three Part One lanes keep the colours of the Part One poster; interludes are teal.
   // Everyone else draws from a neutral palette in order of their first viewpoint chapter,
-  // so a colour is never chosen with hindsight.
+  // so a colour is never chosen with hindsight. A colour is worked out at a horizon h (the
+  // visitor's bookmark by default): a viewpoint seen only in interludes by h stays teal, and
+  // takes their palette colour at their first other unit at or before h, so a friend reading
+  // behind never learns that a chapter through those eyes is coming.
   const POV_FIXED = { cenn: "#e3a94a", kaladin: "#5fb0ff", shallan: "#b993ff" };
   const POV_PALETTE = ["#f08f86", "#86d39b", "#f2d27a", "#8fa8ff", "#f5a3cf", "#c8a77e", "#7fd8e0", "#d4e27a"];
   const INTERLUDE = "#6fd6c4";
-  const povColorMap = {};
+  const povLane = {};   // id -> [palette colour, the first unit not an interlude through their eyes]
   (function () {
     let i = 0;
     units.filter((u) => u.kind !== "interlude").forEach((u) => u.pov.forEach((id) => {
-      if (povColorMap[id]) return;
-      povColorMap[id] = POV_FIXED[id] || POV_PALETTE[i++ % POV_PALETTE.length];
+      if (povLane[id]) return;
+      povLane[id] = [POV_FIXED[id] || POV_PALETTE[i++ % POV_PALETTE.length], u.h];
     }));
-    units.forEach((u) => u.pov.forEach((id) => { if (!povColorMap[id]) povColorMap[id] = INTERLUDE; }));
   })();
-  const povColor = (id) => povColorMap[id] || "#d8ecff";
-  const unitColor = (u) => (u.kind === "interlude" ? INTERLUDE : u.pov.length ? povColor(u.pov[0]) : "#d8ecff");
-  const entColor = (e, h = limit()) => (isPov(e.id, h) ? povColor(e.id) : FOLDER_COLOR[e.folder] || "#c9d6e8");
+  const povColor = (id, h = limit()) => (povLane[id] && povLane[id][1] <= h ? povLane[id][0] : isPov(id, h) ? INTERLUDE : "#d8ecff");
+  const unitColor = (u) => (u.kind === "interlude" ? INTERLUDE : u.pov.length ? povColor(u.pov[0], u.h) : "#d8ecff");
+  const entColor = (e, h = limit()) => (isPov(e.id, h) ? povColor(e.id, h) : FOLDER_COLOR[e.folder] || "#c9d6e8");
+  // what the page says of a unit's time, with "(flashback)" when it's marked as one
+  const whenOf = (u) => (u.when ? `${u.when}${u.flashback ? " (flashback)" : ""}` : "");
+  // the first of Wade's quotes in a unit's journal entry, as plain text; and a clip at a word
+  const firstQuote = (u) => {
+    for (const s of u.sections) for (const it of s.items)
+      if (visible(it.h) && it.kind === "quote") return it.html.replace(/<[^>]+>/g, "").trim();
+    return "";
+  };
+  const clip = (s, n) => (s.length <= n ? s : s.slice(0, s.lastIndexOf(" ", n)) + "…");
 
   // ------------------------------------------------------------ rendered notes
   function renderSections(sections, opts = {}) {
@@ -493,7 +504,7 @@
     data: DATA, esc, units, unitById, entities, entityById, H, TYPES, FOLDERS, FOLDER_COLOR, NAV, icon,
     friendH, limit, visible, visibleAt, isNew, isPov, summaryOf, unitLabel, unitTitle, unitNumeral, unitAnchor,
     entName, entLink, renderSections, sectionCount, markNew, lightbox, sheet, gauge,
-    povColor, unitColor, entColor, sigil, egoWeb, presence, profile, openProfile, tiesOf, interactionsAt,
+    povColor, unitColor, entColor, whenOf, firstQuote, clip, INTERLUDE, sigil, egoWeb, presence, profile, openProfile, tiesOf, interactionsAt,
     BASES, STYLES, basisNote, stated, reducedMotion, mentionsAt, onPage, layerOf,
   };
 

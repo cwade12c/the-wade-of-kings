@@ -906,6 +906,125 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-card .c-chain button:hover, .uf-card .c-chain button:focus-visible { color: var(--sphere); }
 .uf-card .c-chain i { font-style: italic; color: color-mix(in srgb, var(--c) 60%, #fff); }
 .uf-card .c-arrow { color: var(--mist); }
+/* the two tabs, Connections · POV Lines: the stage's heading, letter-spaced small capitals */
+.uf-tabs { display: flex; gap: 1.2rem; margin-top: 0.3rem; pointer-events: auto; }
+.uf-tabs [role="tab"] {
+  all: unset; box-sizing: border-box; position: relative; cursor: pointer; padding: 0.45rem 0 0.35rem; border-bottom: 2px solid transparent;
+  font: 700 var(--step--2) var(--text); letter-spacing: 0.2em; text-transform: uppercase; color: var(--dusk); white-space: nowrap; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+.uf-tabs [role="tab"]::after { content: ""; position: absolute; inset: -8px -0.6rem; }   /* a 44 px hit area */
+.uf-tabs [role="tab"]:hover { color: var(--parchment); }
+.uf-tabs [role="tab"][aria-selected="true"] { color: var(--parchment); border-bottom-color: var(--sphere); }
+.uf-tabs [role="tab"]:focus-visible { outline: 2px solid var(--sphere); outline-offset: 4px; border-radius: 3px; }
+.uf-readout.no-tabs .uf-tabs { display: none; }
+.uf-panel { position: absolute; inset: 0; }
+.uf-panel[hidden] { display: none; }
+.uf[data-tab="lines"] .uf-readout { max-width: calc(100% - 2.5rem); }
+
+/* POV Lines (assets/lines.js): lanes on an SVG; stations, names and labels over it */
+#lines { position: absolute; left: 0; right: 0; bottom: 0; top: 11rem; }
+.ln-names { position: absolute; left: 0; bottom: 0; width: var(--name-w); overflow: hidden; z-index: 2; }
+.ln-names-in { position: relative; }
+.ln-name {
+  all: unset; box-sizing: border-box; position: absolute; left: 0.85rem; right: 0.5rem; transform: translateY(-50%); cursor: pointer;
+  font: 400 0.98rem/1.08 var(--display); color: var(--c); text-shadow: 0 0 14px color-mix(in srgb, var(--c) 35%, transparent); transition: opacity .3s;
+}
+.ln-name::after { content: ""; position: absolute; left: -0.85rem; right: -0.5rem; top: 50%; height: var(--p); transform: translateY(-50%); }
+.ln-name.il { font: 700 0.66rem/1.1 var(--text); letter-spacing: 0.16em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 760px) { .ln-name { left: 0.7rem; right: 0.35rem; } .ln-name.il { font-size: 0.56rem; letter-spacing: 0.06em; } }
+.ln-name:hover, .ln-name[aria-pressed="true"] { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.ln-name:focus-visible { outline: 2px solid var(--sphere); outline-offset: 3px; border-radius: 3px; }
+.ln-name.dim { opacity: 0.35; }
+.ln-name.off { opacity: 0.35; }
+.ln-scroll {
+  position: absolute; top: 0; right: 0; bottom: 0; left: var(--name-w); overflow: auto; scrollbar-width: none; overscroll-behavior-x: contain; outline: none;
+  mask-image: linear-gradient(90deg, transparent, #000 0.9rem); -webkit-mask-image: linear-gradient(90deg, transparent, #000 0.9rem);
+}
+.ln-scroll::-webkit-scrollbar { display: none; }
+@media (hover: hover) and (pointer: fine) { .ln-scroll { scrollbar-width: thin; scrollbar-color: var(--rule) transparent; } .ln-scroll::-webkit-scrollbar { display: block; height: 8px; } .ln-scroll::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 8px; } }
+.ln-inner { position: relative; }
+.ln-head { position: sticky; top: 0; z-index: 2; height: var(--head-h); }
+.ln.vscroll .ln-head { background: linear-gradient(180deg, rgba(14, 21, 30, 0.94) 82%, rgba(14, 21, 30, 0)); }
+.ln-body { position: relative; }
+.ln-svg { position: absolute; left: 0; top: 0; overflow: visible; }
+.ln-lane { transition: opacity .3s; }
+.ln-lane.off { opacity: 0.35; }
+.ln-part {
+  position: absolute; top: 0; height: 18px; padding-top: 5px; border-top: 1px solid var(--rule); white-space: nowrap;
+  font: 700 0.6rem/1 var(--text); letter-spacing: 0.16em; text-transform: uppercase; color: var(--mist);
+}
+/* a band's name keeps to the strip's visible edge while its band scrolls by */
+.ln-part span { position: sticky; left: 0.9rem; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+.ln-col { position: absolute; top: 0; width: var(--col-w); height: var(--head-h); transition: opacity .3s; }
+.ln-col.dim { opacity: 0.25; }
+.ln-num { position: absolute; left: 0; right: 0; bottom: 3px; text-align: center; font: 700 0.68rem/1 var(--text); letter-spacing: 0.04em; color: var(--mist); transition: color .2s; }
+.ln-col.on .ln-num { color: var(--parchment); }
+.ln-col.none .ln-num { color: color-mix(in srgb, var(--mist) 50%, transparent); }
+.ln-bm { position: absolute; left: 50%; bottom: 20px; width: 16px; height: 16px; margin-left: -8px; color: var(--sphere); filter: drop-shadow(0 0 6px rgba(216, 236, 255, 0.6)); }
+.ln-bm .ico { width: 16px; height: 16px; }
+.ln-title {
+  position: absolute; left: calc(50% - 2px); bottom: 42px; transform-origin: 0 100%; transform: rotate(-40deg); white-space: nowrap;
+  font: italic 400 0.84rem/1 var(--display); color: var(--dusk);
+}
+.ln-col.on .ln-title { color: var(--parchment); }
+.ln-ahead { position: absolute; bottom: 2px; padding-bottom: 0.95rem; }
+.ln-band { position: absolute; top: 0; bottom: 0; width: var(--col-w); border-radius: 14px; pointer-events: none; background: linear-gradient(180deg, rgba(216, 236, 255, 0.075), rgba(216, 236, 255, 0.025)); transition: left .35s var(--ease-out); }
+.ln-band.head { top: 22px; border-radius: 14px 14px 0 0; background: rgba(216, 236, 255, 0.06); }
+.ln-band[hidden] { display: none; }
+.ln-sts { position: absolute; inset: 0; }
+.ln-st {
+  all: unset; box-sizing: border-box; position: absolute; z-index: 1; width: calc(var(--r) * 2); height: calc(var(--r) * 2); border-radius: 50%; cursor: pointer;
+  background: #0b1017; border: 3px solid var(--c); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 45%, transparent);
+  transition: opacity .3s, transform .25s var(--ease-spring, ease), box-shadow .25s;
+}
+.ln-st::before { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #fff; }
+.ln-st.il::before { width: 4px; height: 4px; margin: -2px 0 0 -2px; }
+.ln-st::after { content: ""; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }   /* a 44 px hit area */
+.ln-st.flash { border-style: dashed; }
+.ln-st.ix { --c: #fff; width: 22px; border-radius: 11px; border: 2px solid #fff; box-shadow: 0 0 12px rgba(255, 255, 255, 0.25); }
+.ln-st.ix::before { display: none; }
+.ln-st.ix::after { height: calc(100% + 22px); }
+.ln-st.ix i { position: absolute; left: 50%; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.ln-st:hover { transform: scale(1.18); }
+.ln-st.on { transform: scale(1.3); box-shadow: 0 0 20px var(--c), 0 0 0 3px rgba(14, 21, 30, 0.9), 0 0 0 4px color-mix(in srgb, var(--c) 60%, transparent); }
+.ln-st.ix:hover, .ln-st.ix.on { transform: scaleX(1.18); }
+.ln-st:focus-visible { outline: 2px solid var(--sphere); outline-offset: 4px; }
+.ln-st.dim { opacity: 0.25; }
+.ln-st.off { opacity: 0.35; }
+.ln-st.dim.off { opacity: 0.12; }
+.ln-st.infuse { animation: ln-infuse 1.2s ease-out 1; }
+@keyframes ln-infuse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 80%, transparent), 0 0 20px var(--c); } 60% { box-shadow: 0 0 0 14px transparent, 0 0 34px var(--c); } }
+.ln-label { position: absolute; transition: opacity .3s; pointer-events: none; }
+.ln-label.dim { opacity: 0.25; }
+.ln-label.off { opacity: 0.35; }
+.ln-who { font-size: 0.6rem; line-height: 1.1; text-align: center; color: var(--dusk); }
+.ln-when { font: italic 400 0.8rem/1.1 var(--display); white-space: nowrap; color: var(--dusk); }
+/* the station card: the map's card, beside the strip on a desktop */
+.ln-card { right: 1rem; }
+.ln-card .c-top > .orb { margin: 0 0.35rem; cursor: default; }
+.ln-card .c-top > .orb:hover { transform: none; }
+.ln-card .c-line i { font-style: normal; color: var(--c); }
+.ln-card .c-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.4rem 0 0.9rem; }
+.ln-card .c-chip { color: var(--c); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 8%, transparent); padding: 0.2rem 0.7rem; font-size: var(--step--1); }
+.ln-card .c-chip:hover, .ln-card .c-chip:focus-visible { border-color: var(--c); color: var(--parchment); }
+.ln-card blockquote.wade { font-size: 1.02em; margin: 0.6rem 0 0.9rem; }
+.ln-card .c-meets { margin-top: 0.7rem; }
+/* the dock's key on POV Lines, where the view and lens row is on Connections */
+.uf-key { grid-area: view; display: none; list-style: none; margin: 0; padding: 0.2rem 2px; gap: 1.1rem; align-items: center; overflow-x: auto; scrollbar-width: none; font-size: var(--step--2); color: var(--dusk); min-height: 2.25rem; }
+.uf-key::-webkit-scrollbar { display: none; }
+.uf-key li { display: inline-flex; align-items: center; gap: 0.45rem; white-space: nowrap; flex: none; }
+.uf-key li.il { color: #6fd6c4; }
+.uf-key .k-st { width: 13px; height: 13px; border-radius: 50%; box-sizing: border-box; border: 2.5px solid var(--sphere); background: #0b1017; box-shadow: 0 0 8px rgba(216, 236, 255, 0.35); }
+.uf-key .k-st.flash { border-style: dashed; transform: translateY(3px); }
+.uf-key .k-ix { width: 12px; height: 22px; box-sizing: border-box; border: 1.5px solid #fff; border-radius: 6px; display: grid; align-content: space-evenly; justify-items: center; }
+.uf-key .k-ix i { width: 5px; height: 5px; border-radius: 50%; background: #5fb0ff; }
+.uf-key .k-ix i + i { background: #f08f86; }
+.uf-key .k-il { width: 22px; border-top: 3px dotted #6fd6c4; }
+.uf[data-tab="lines"] .uf-row, .uf[data-tab="lines"] .uf-orbs { display: none; }
+.uf[data-tab="lines"] .uf-key { display: flex; }
+.uf[data-tab="lines"] .uf-stage, .uf[data-tab="lines"] .uf-dock { --dock-h: 6.6rem; }
+.uf[data-tab="lines"] .uf-dock { grid-template-areas: "btns view" "btns cap"; }
+
 /* The Unfolding's web is drawn on a canvas (assets/web.js), its colours and timings in the script; the tip is the page's */
 .web-tip {
   position: absolute; z-index: 8; pointer-events: none; background: rgba(14, 20, 28, 0.95); border: 1px solid var(--rule); border-radius: 12px;
@@ -950,8 +1069,15 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
   .uf-card .c-id h2 { font-size: 1.3rem; }
   .uf-card[data-state="peek"] .c-more { display: none; }
   .uf-card[data-state="open"] .c-more { animation: acc-in .35s var(--ease-out); }
-  .uf-stage.focusing .uf-readout, .uf-stage.focusing .uf-tools { opacity: 0; pointer-events: none; }
-  .uf-readout, .uf-tools { transition: opacity .3s; }
+  .uf-stage.focusing .uf-readout > :not(.uf-tabs), .uf-stage.focusing .uf-readout::before, .uf-stage.focusing .uf-tools { opacity: 0; pointer-events: none; }
+  .uf-readout > *, .uf-readout::before, .uf-tools { transition: opacity .3s; }
+  /* the tabs take the place of the small label, which stays for screen readers */
+  .uf-readout:not(.no-tabs) h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .uf-tabs { margin-top: -0.35rem; gap: 1.1rem; }
+  .uf[data-tab="lines"] .uf-counts, .uf[data-tab="lines"] .uf-stage.lensing .uf-counts { display: none; }
+  .uf[data-tab="lines"] .uf-stage, .uf[data-tab="lines"] .uf-dock { --dock-h: 6.9rem; }
+  .uf[data-tab="lines"] .uf-dock { grid-template-areas: "view view" "btns cap"; row-gap: 0.4rem; }
+  .uf[data-tab="lines"] .uf-cap { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
 }
 
 /* ------------------------------------------------------------ codex */

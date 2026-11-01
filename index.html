@@ -76,12 +76,7 @@
   const at = f === null ? P.unitById[hz.id] : P.units[f];
   const vis = (xs) => xs.filter((x) => P.visible(x.h));
   const shown = vis(D.units);
-  const firstQuote = (u) => {
-    for (const s of u.sections) for (const it of s.items)
-      if (P.visible(it.h) && it.kind === "quote") return it.html.replace(/<[^>]+>/g, "").trim();
-    return "";
-  };
-  const clip = (s, n) => (s.length <= n ? s : s.slice(0, s.lastIndexOf(" ", n)) + "…");
+  const { firstQuote, clip } = P;
 
   // ------------------------------------------------------------ sky: a highstorm wall above the title
   (function sky() {
@@ -161,7 +156,7 @@
     const who = u.pov.map(P.entName).join(" and ");
     cap.style.setProperty("--c", P.unitColor(u));
     cap.innerHTML = `<div class="k">${P.esc(u.label)}${u.part ? "" : ""}</div><h3>${P.esc(P.unitTitle(u))}</h3>
-      <p class="w">${who ? `Through ${P.esc(who)}'s eyes` : ""}${u.when ? `${who ? " · " : ""}<i>${P.esc(u.when)}</i>` : ""}</p>
+      <p class="w">${who ? `Through ${P.esc(who)}'s eyes` : ""}${u.when ? `${who ? " · " : ""}<i>${P.esc(P.whenOf(u))}</i>` : ""}</p>
       ${q ? `<q>${P.esc(clip(q, 160))}</q>` : ""}<a class="arrow-link go" href="journal.html#${P.unitAnchor(u.id)}">Read the entry</a>`;
     const sr = strand.getBoundingClientRect(), br = btn.getBoundingClientRect();
     cap.classList.add("on");
