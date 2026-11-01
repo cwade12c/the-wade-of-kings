@@ -1310,6 +1310,8 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .th-q details .prose { font-size: 0.93rem; margin-top: 0.4rem; }
 .th-q details .prose h3 { font-size: 1rem; margin: 0.6rem 0 0.2rem; }
 .th-q.answered { border-color: rgba(25, 158, 112, 0.45); }
+.th-q.partial { border-color: rgba(240, 195, 106, 0.55); }
+.th-q.partial .th-state { color: #f0c36a; }
 .th-unh { display: grid; gap: 1.25rem; }
 .th-u {
   position: relative; overflow: hidden; padding: 2rem 2rem 1.6rem; border-radius: 26px; isolation: isolate;

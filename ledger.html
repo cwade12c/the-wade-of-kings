@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c1118">
 <title>Theories · The Wade of Kings</title>
-<link rel="stylesheet" href="assets/palanaeum.css">
+<link rel="stylesheet" href="assets/palanaeum.css?v=partial">
 </head>
 <body data-page="ledger">
 <main class="wrap">
@@ -20,7 +20,7 @@
   <section class="th-panel" id="p-deep-end" role="tabpanel" aria-labelledby="t-deep-end" hidden></section>
 </main>
 <script src="data/palanaeum.js"></script>
-<script src="assets/palanaeum.js"></script>
+<script src="assets/palanaeum.js?v=partial"></script>
 <script>
 (function () {
   "use strict";
@@ -73,16 +73,19 @@
 
   // ------------------------------------------------------------ questions, grouped by the chapter that raised them
   const qs = D.questions.filter((q) => P.visible(q.h));
-  const isAnswered = (q) => q.status !== "open" && q.ah !== null && P.visible(q.ah);
+  const stateOf = P.questionStatus;
   const topicCount = {};
   qs.forEach((q) => about(q).forEach((id) => { topicCount[id] = (topicCount[id] || 0) + 1; }));
   const topics = Object.entries(topicCount).filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1] || P.entName(a[0]).localeCompare(P.entName(b[0])));
-  const nOpen = qs.filter((q) => !isAnswered(q)).length;
+  const nOpen = qs.filter((q) => stateOf(q) === "open").length;
+  const nPartial = qs.filter((q) => stateOf(q) === "partial").length;
+  const nAnswered = qs.filter((q) => stateOf(q) === "answered").length;
   const qp = document.getElementById("p-questions");
   qp.innerHTML = qs.length ? `<div class="th-filter">
       <div class="chips" role="group" aria-label="Status" id="q-status">
         <button type="button" class="chip" data-s="open" aria-pressed="true">Open<span class="n">${nOpen}</span></button>
-        <button type="button" class="chip" data-s="answered" aria-pressed="false" style="--c:#199e70">Answered<span class="n">${qs.length - nOpen}</span></button>
+        <button type="button" class="chip" data-s="partial" aria-pressed="false" style="--c:#f0c36a">Partial<span class="n">${nPartial}</span></button>
+        <button type="button" class="chip" data-s="answered" aria-pressed="false" style="--c:#199e70">Answered<span class="n">${nAnswered}</span></button>
         <button type="button" class="chip" data-s="" aria-pressed="false">All<span class="n">${qs.length}</span></button></div>
       <div class="chips scroll" role="group" aria-label="About" id="q-topic">
         <button type="button" class="chip" data-t="" aria-pressed="true">Any topic</button>
@@ -91,20 +94,20 @@
 
   let status = "open", topic = "";
   function drawQuestions() {
-    const keep = qs.filter((q) => (!status || (status === "open") !== isAnswered(q)) && (!topic || about(q).includes(topic)));
+    const keep = qs.filter((q) => (!status || status === stateOf(q)) && (!topic || about(q).includes(topic)));
     const groups = {};
     keep.forEach((q) => { const u = unitOf(q.recalled_from || q.asked_at); (groups[u.h] ||= { u, qs: [] }).qs.push(q); });
     const out = Object.values(groups).sort((a, b) => a.u.h - b.u.h).map(({ u, qs: list }) => `<section class="th-group">
       <header><span class="orb${u.kind === "interlude" ? " il" : ""}" style="--c:${P.unitColor(u)}"></span><h3>${P.esc(P.unitLabel(u))}</h3><small>${list.length} question${list.length === 1 ? "" : "s"}</small></header>
       <div class="th-qs">${list.map((q) => {
-        const answered = isAnswered(q);
+        const state = stateOf(q), answered = state === "answered", partial = state === "partial";
         const ev = (q.sections || []).filter((s) => P.sectionCount(s));
         const n = ev.reduce((k, s) => k + P.sectionCount(s), 0);
-        return `<article class="th-q${answered ? " answered" : ""}" id="${P.esc(q.id)}"${P.isNew(q.h) ? ' data-new="1"' : ""}>
+        return `<article class="th-q ${state}" id="${P.esc(q.id)}"${P.isNew(q.h) ? ' data-new="1"' : ""}>
           <blockquote class="wade">${q.question}</blockquote>
-          <p class="th-meta"><span class="th-id">${P.esc(q.id)}</span><span>${answered ? `answered in ${P.esc(at(q.answered_at))}` : "still open"}</span>${q.amended ? '<span class="th-flag">amended</span>' : ""}</p>
+          <p class="th-meta"><span class="th-id">${P.esc(q.id)}</span><span class="th-state">${answered ? `answered in ${P.esc(at(q.answered_at))}` : partial ? `Partial · ${P.esc(at(q.partial_at))}` : "still open"}</span>${q.amended ? '<span class="th-flag">amended</span>' : ""}</p>
           ${aboutChips(q)}
-          ${n ? `<details><summary>${answered ? "The answer" : "Evidence so far"} <span class="muted" style="font-weight:400">· ${n}</span></summary><div class="prose">${P.renderSections(ev, { skipTitles: ev.length < 2 })}</div></details>` : ""}
+          ${n ? `<details><summary>${answered ? "The answer" : partial ? "Partial answer and open question" : "Evidence so far"} <span class="muted" style="font-weight:400">· ${n}</span></summary><div class="prose">${P.renderSections(ev, { skipTitles: ev.length < 2 })}</div></details>` : ""}
         </article>`;
       }).join("")}</div></section>`).join("");
     document.getElementById("q-groups").innerHTML = out || `<div class="empty"><strong>Nothing here.</strong>No questions match these filters yet.</div>`;
@@ -131,7 +134,7 @@
   const avg = preds.length ? Math.round(preds.reduce((k, p) => { const c = p.confidence.filter((x) => P.visible(x.h)); return k + (c[c.length - 1] || p.confidence[0]).p; }, 0) / preds.length) : 0;
   const TABS = [
     ["predictions", "Predictions", preds.length, preds.length ? `average confidence ${avg}%` : "none yet", "#5fb0ff"],
-    ["questions", "Questions", nOpen, `open · ${qs.length - nOpen} answered`, "#b993ff"],
+    ["questions", "Questions", nOpen + nPartial, `unresolved · ${nPartial} partial · ${nAnswered} answered`, "#b993ff"],
     ["deep-end", "The Deep End", un.length, "sealed forever", "#ea5f6f"],
   ];
   const tabs = document.getElementById("tabs");

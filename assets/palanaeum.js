@@ -98,6 +98,12 @@
   const summaryOf = (e, h = limit()) => (e.sh === undefined || e.sh <= h ? e.summary : "");
   const visible = (h) => h === null || h === undefined || h <= limit();
   const visibleAt = (h, at) => h === null || h === undefined || h <= at;
+  // A partial answer remains unresolved. Show its state only once its evidence is read.
+  const questionStatus = (q, h = limit()) => {
+    if ((q.status === "answered" || q.status === "reframed") && q.ah != null && q.ah <= h) return "answered";
+    if (q.ph != null && q.ph <= h) return "partial";
+    return "open";
+  };
   // How often the text names an entry, summed over the chapters up to h (the build ships one
   // [chapter, count] pair per chapter that names it), and whether the chapter at h names it.
   const mentionsAt = (e, h = limit()) => (e.m || []).reduce((a, [uh, n]) => (uh <= h ? a + n : a), 0);
@@ -502,7 +508,7 @@
 
   window.P = {
     data: DATA, esc, units, unitById, entities, entityById, H, TYPES, FOLDERS, FOLDER_COLOR, NAV, icon,
-    friendH, limit, visible, visibleAt, isNew, isPov, summaryOf, unitLabel, unitTitle, unitNumeral, unitAnchor,
+    friendH, limit, visible, visibleAt, questionStatus, isNew, isPov, summaryOf, unitLabel, unitTitle, unitNumeral, unitAnchor,
     entName, entLink, renderSections, sectionCount, markNew, lightbox, sheet, gauge,
     povColor, unitColor, entColor, whenOf, firstQuote, clip, INTERLUDE, sigil, egoWeb, presence, profile, openProfile, tiesOf, interactionsAt,
     BASES, STYLES, basisNote, stated, reducedMotion, mentionsAt, onPage, layerOf,

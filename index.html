@@ -65,7 +65,7 @@
   </section>
 </main>
 <script src="data/palanaeum.js"></script>
-<script src="assets/palanaeum.js"></script>
+<script src="assets/palanaeum.js?v=partial"></script>
 <script src="assets/vendor/d3.v7.min.js"></script>
 <script src="assets/web-layout.js"></script>
 <script src="assets/web.js"></script>
@@ -187,13 +187,13 @@
   const people = vis(D.entities).filter((e) => e.folder === "people").length;
   const entries = vis(D.entities).length;
   const ties = vis(D.relations).length;
-  const qs = vis(D.questions).filter((q) => q.status === "open").length;
+  const qs = vis(D.questions).filter((q) => P.questionStatus(q) !== "answered").length;
   const preds = vis(D.predictions).length;
   const tiles = [
     [shown.length, "chapters and interludes read", "journal.html", P.unitColor(at)],
     [people, `people met, ${entries} codex entries in all`, "codex.html", "#c9d6e8"],
     [ties, "ties drawn between them", "unfolding.html", "#3987e5"],
-    [qs, `open question${qs === 1 ? "" : "s"}`, "ledger.html#questions", "#b993ff"],
+    [qs, `unresolved question${qs === 1 ? "" : "s"}`, "ledger.html#questions", "#b993ff"],
     [preds, `prediction${preds === 1 ? "" : "s"} on the record`, "ledger.html#predictions", "#f0c36a"],
   ];
   const tilesEl = document.getElementById("tiles");
