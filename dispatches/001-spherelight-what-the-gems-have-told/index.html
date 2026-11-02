@@ -202,6 +202,8 @@
     { id: "garnet", name: "Garnet", light: "deep violet", facts: [
       { t: "Most of the chandeliers in Kharbranth's Conclave are hung with deep violet garnets", c: "wok:5" },
       { t: "They rank low in value, yet a whole chandelier of them is still worth a great deal", c: "wok:5" },
+      {"t": "Bundles of garnet spheres light the apothecary's windowless shop", "c": "wok:17"},
+      {"t": "Kaladin reckons five diamond marks to a garnet", "c": "wok:17"},
     ]},
     { id: "amethyst", name: "Amethyst", light: "a soft violet light", facts: [
       { t: "Amethyst broams light the Palanaeum's lift with “a soft violet light”", c: "wok:7" },
@@ -212,6 +214,7 @@
       { t: "Szeth drains Stormlight from sapphire lamps to power his Lashings", c: "wok:prologue" },
       { t: "A chit of admittance to the Palanaeum costs a thousand sapphire broams", c: "wok:7" },
       { t: "Part of the price of Shallan's books: three sapphire", c: "wok:8" },
+      {"t": "Lister's oil costs two sapphire marks", "c": "wok:17"},
     ]},
     { id: "ruby", name: "Ruby", light: "red", facts: [
       { t: "Ruby is among the coins in Shallan's money pouch", c: "wok:3" },
@@ -265,6 +268,10 @@
     { t: "“A cut stone could hold more Stormlight”", c: "wok:5" },
     { t: "Dun spheres are “considered suspect”; sometimes a moneylender has to judge whether the gem is real", c: "wok:3" },
     { t: "Gaz leaves his spheres out in a highstorm to infuse them. The safer ways: trade dun spheres for infused ones at a moneychanger, or pay to have them infused in guarded nests", c: "wok:11" },
+    {"t": "A dun sphere is worth as much as an infused one; a highstorm recharges it, and it glows for a week or so", "c": "wok:17"},
+    {"t": "The apothecary checks a dun mark with a jeweler's loupe to be sure the gem is real", "c": "wok:17"},
+    {"t": "Three of Kaladin's four marks are dun by afternoon; he says they glowed that morning. Gaz says they were newly infused, straight from Sadeas's treasurer", "c": "wok:17"},
+    {"t": "Kaladin keeps a glowing sphere in his pocket: “If you get caught in the dark, you'll have light”", "c": "wok:17"},
   ].filter((f) => seen(f.c));
   document.getElementById("anat-facts").innerHTML = ANAT.map((f) => li(f, ART.GEMS.sapphire.glow)).join("");
   document.querySelectorAll(".switch button").forEach((b) => b.addEventListener("click", () => {
@@ -290,7 +297,7 @@
   // ------------------------------------------------------------ matrix
   const SEEN = {
     "diamond chip": ["wok:3"], "diamond mark": ["wok:11"], "diamond broam": ["wok:8"], "emerald broam": ["wok:6", "wok:8"],
-    "sapphire broam": ["wok:7"], "amethyst broam": ["wok:7"],
+    "sapphire broam": ["wok:7"], "amethyst broam": ["wok:7"], "sapphire mark": ["wok:17"], "garnet mark": ["wok:17"],
   };
   const sizes = ["chip", "mark", "broam"];
   document.getElementById("matrix").innerHTML = `<tr><th></th>${sizes.map((s) => `<th>${s}</th>`).join("")}</tr>` +
@@ -303,6 +310,8 @@
     { t: "<b>Clearmark</b>: what Gaz pays bridgemen; Kaladin works it out as one diamond mark", c: "wok:11" },
     { t: "<b>Firemark</b>: “wages for a week's sailing,” to a sailor", c: "wok:3" },
     { t: "<b>Skymark</b>: Shallan's alcove rent is two of them. Which stone it holds, the book hasn't said", c: "wok:8" },
+    {"t": "<b>Bloodmark</b>: a bottle of larmic mucus costs two. Kaladin counts it as ten days' pay, at five diamond marks to a garnet", "c": "wok:17"},
+    {"t": "<b>Clearchip</b>: the apothecary prices bandages at two clearchips an arm length", "c": "wok:17"},
     { t: "Yalb's winnings: a pile of chips that “glowed with a variety of hues”", c: "wok:8" },
   ].filter((f) => seen(f.c));
   document.getElementById("coin-names").innerHTML = NAMES.map((f) => li(f)).join("");
@@ -320,6 +329,10 @@
     { amt: "1 diamond chip", what: "a loaf of bread", c: "wok:14", g: "diamond" },
     { amt: "5 marks a week", what: "Kaladin's payday; he hands Gaz the fifth himself, so Gaz knows where it comes from", c: "wok:14", g: "diamond" },
     { amt: "a handful of chips and two marks", what: "the thugs' whole take from Took: “not a single broam in the lot”", c: "wok:i3", g: "diamond" },
+    {"amt": "2 bloodmarks", "what": "a small bottle of larmic mucus, the cheap antiseptic: ten days of Kaladin's pay", "c": "wok:17", "g": null},
+    {"amt": "2 sapphire marks", "what": "lister's oil; knobweed sap costs less, but more than the mucus", "c": "wok:17", "g": "sapphire"},
+    {"amt": "2 clearmarks", "what": "a needle and gut", "c": "wok:17", "g": "diamond"},
+    {"amt": "1 mark", "what": "a box of bleached scrap bandages, priced at two clearchips an arm length", "c": "wok:17", "g": "diamond"},
   ].filter((p) => seen(p.c));
   document.getElementById("prices").innerHTML = PRICES.map((p) => `<div class="price" style="--c:${p.g ? ART.GEMS[p.g].glow : "#a9b3c1"}">
     <div class="amt">${p.amt}</div><div class="what">${p.what}</div>${cite(p.c)}</div>`).join("");
@@ -358,7 +371,7 @@
     { t: "How the different gems fit into a larger system (your <a href=\"../../ledger.html\">Q-017</a>)", c: "wok:5" },
     { t: "What the black sphere is (your <a href=\"../../ledger.html\">Q-008</a>)", c: "wok:prologue" },
     { t: "How many marks make a broam, and where ruby, sapphire and amethyst sit in value", c: "wok:8" },
-    { t: "Which stones are in a firemark or a skymark", c: "wok:8" },
+    { t: "Which stones are in a firemark, a skymark or a bloodmark", c: "wok:8" },
   ].filter((f) => seen(f.c));
   document.getElementById("unknowns").innerHTML = UNK.map((f) => li(f, "#7d8899")).join("");
 })();
