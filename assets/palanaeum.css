@@ -841,7 +841,7 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-lens:focus-visible { outline: 2px solid var(--sphere); outline-offset: 1px; }
 .uf-lens .caret { width: 0.8rem; height: 0.8rem; margin-right: -0.2rem; transition: transform .2s; }
 .uf-lens[aria-expanded="true"] .caret { transform: rotate(180deg); }
-/* the Kin & crews list: alphabetical, never ordered by size */
+/* the Kin & crews and Threads lists: alphabetical, never ordered by size */
 .uf-kin[hidden] { display: none; }
 .uf-kin {
   position: absolute; z-index: 6; left: 1.25rem; bottom: 1rem; width: min(20rem, calc(100% - 2.5rem)); max-height: calc(100% - 2rem); overflow: auto; overscroll-behavior: contain;
@@ -855,6 +855,8 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
 .uf-kin button[aria-pressed="true"] { color: #d9b77e; }
 .uf-kin button:focus-visible { outline: 2px solid var(--sphere); outline-offset: -2px; }
 .uf-kin p { color: var(--dusk); margin: 0 0.5rem 0.6rem; }
+/* the Threads list: each viewpoint with their colour, alphabetical */
+.uf-kin .dot { flex: none; width: 0.6rem; height: 0.6rem; margin-right: 0.6rem; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 50%, transparent); }
 /* one more step: a pill under the ring */
 .uf-step[hidden] { display: none; }
 .uf-step {

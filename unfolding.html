@@ -57,9 +57,10 @@
       <div class="uf-types" id="styles" role="group" aria-label="Show or hide each way of knowing"></div>
       <h2>Reading the web</h2>
       <p>Lit, glowing spheres are viewpoint characters; squares are groups. In The Cast, a group's members share a dotted territory, each pair shares one line, spheres grow with how often the book has named someone, and more names appear as you zoom in. Arrows mark command, dots support, bars hostility; faint gold lines are family ties that follow from the others. Pick anyone, or find them by name, to see all their ties.</p>
-      <p>Lenses light some names and fade the rest, and nobody moves: this chapter's cast, a family or crew, or whoever Wade's open questions and predictions are about. Picking anyone still shows all their ties; under This chapter, the ones the chapter doesn’t show fade, and those they’re on the page with are labelled with what passed between them. From a name's card, trace the chain of ties to anyone else.</p>
+      <p>Lenses light some names and fade the rest, and nobody moves: this chapter's cast, everyone on stage in the chapters told through one viewpoint's eyes, a family or crew, or whoever Wade's open questions and predictions are about. Picking anyone still shows all their ties; under This chapter, the ones the chapter doesn’t show fade, and those they’re on the page with are labelled with what passed between them. From a name's card, trace the chain of ties to anyone else.</p>
     </div>
     <div class="uf-kin" id="kin" role="dialog" aria-label="Kin &amp; crews" hidden></div>
+    <div class="uf-kin" id="threads" role="dialog" aria-label="Threads" hidden></div>
     <button type="button" class="uf-step" id="step" aria-pressed="false" hidden></button>
     <aside class="uf-card" id="card" hidden aria-live="polite"></aside>
     <div class="uf-storm" id="storm" aria-hidden="true">
@@ -80,6 +81,7 @@
         <button type="button" role="radio" data-v="cast" aria-checked="true">The Cast</button><button type="button" role="radio" data-v="everyone" aria-checked="false">Everything</button></div>
       <div class="uf-lenses" id="lenses" role="group" aria-label="Lenses: light some names and fade the rest">
         <button type="button" class="uf-lens" data-lens="chapter" aria-pressed="false">This chapter</button>
+        <button type="button" class="uf-lens" data-lens="thread" aria-pressed="false" aria-haspopup="dialog" aria-expanded="false" aria-controls="threads"><span class="t">Threads</span><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
         <button type="button" class="uf-lens" data-lens="kin" aria-pressed="false" aria-haspopup="dialog" aria-expanded="false" aria-controls="kin"><span class="t">Kin &amp; crews</span><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
         <button type="button" class="uf-lens" data-lens="mind" aria-pressed="false">On Wade’s mind</button>
       </div>
@@ -114,7 +116,7 @@
   const shownUnits = P.units.filter((u) => P.visible(u.h));
   const LIM = P.limit();
   let current = LIM, sel = null;
-  let lens = null;      // { kind: "chapter" | "kin" | "mind", id } while a lens is on
+  let lens = null;      // { kind: "chapter" | "thread" | "kin" | "mind", id } while a lens is on
   let tracing = null;   // { a, b, res, i, back } while a path is traced
   const SWEEP = 1500, STEP = 2300;
   const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>';
@@ -198,7 +200,7 @@
     const q = new URLSearchParams(location.search);
     q.delete("play");
     if (tab === "lines") q.set("tab", "lines"); else q.delete("tab");
-    if (lens) q.set("lens", lens.kind === "kin" ? `kin:${lens.id}` : lens.kind); else q.delete("lens");
+    if (lens) q.set("lens", lens.id ? `${lens.kind}:${lens.id}` : lens.kind); else q.delete("lens");
     const s = q.toString().replace(/%3A/gi, ":");
     const pick = sel ? sel.id : pendingPick;
     history.replaceState(null, "", `${location.pathname}${s ? `?${s}` : ""}${pick ? `#${pick}` : ""}`);
@@ -366,6 +368,7 @@
     if (!filters.hidden && !filters.contains(ev.target) && !fBtn.contains(ev.target)) { filters.hidden = true; fBtn.setAttribute("aria-expanded", "false"); }
     if (!find.hidden && !find.contains(ev.target) && !findBtn.contains(ev.target)) setFind(false);
     if (!kin.hidden && !kin.contains(ev.target) && !kinBtn.contains(ev.target)) setKin(false);
+    if (!threads.hidden && !threads.contains(ev.target) && !thrBtn.contains(ev.target)) setThreads(false);
   });
 
   // ------------------------------------------------------------ find a name
@@ -387,7 +390,7 @@
     if (!on) return;
     filters.hidden = true;
     fBtn.setAttribute("aria-expanded", "false");
-    setKin(false);
+    closeSheets();
     fq.value = "";
     suggest();
     fq.focus();
@@ -473,6 +476,24 @@
     const who = id.startsWith("family:") ? id.slice(7) : id;
     return all.find((x) => x.key === id) || all.find((x) => x.key.startsWith("family:") && x.has.has(who)) || all.find((x) => x.key === who) || null;
   }
+  // the viewpoint characters at h, alphabetical (never by how many chapters they have)
+  const threadsAt = (h) => [...new Set(P.units.filter((u) => u.h <= h).flatMap((u) => u.pov))]
+    .filter((id) => P.entityById[id] && P.isPov(id, h)).sort((a, b) => plainName(a).localeCompare(plainName(b)));
+  // A thread at h: who's on stage in the units told through their eyes. The viewpoint, everyone
+  // in an interaction in a swept one of those units, and the places they're set; a unit not swept
+  // yet adds only its viewpoints and setting. Lines at rest follow its interactions, as under This
+  // chapter; it carries no "with", so picking anyone shows their whole ring.
+  function threadAt(id, h) {
+    if (!id || !P.isPov(id, h)) return { ids: [], name: "" };
+    const us = P.units.filter((u) => u.h <= h && u.pov.includes(id));
+    const ids = new Set([id]), pairs = new Set();
+    us.forEach((u) => {
+      u.setting.forEach((x) => ids.add(x));
+      if (!u.swept) { u.pov.forEach((x) => ids.add(x)); return; }
+      P.interactionsAt(u.h).forEach((x) => { ids.add(x.from); ids.add(x.to); pairs.add([x.from, x.to].sort().join("|")); });
+    });
+    return { ids: [...ids], pairs: us.some((u) => u.swept) ? [...pairs] : null, name: P.entName(id) };
+  }
   function lensAt(h) {
     if (!lens) return null;
     if (lens.kind === "chapter") {
@@ -485,19 +506,25 @@
       xs.forEach((x) => { pairs.push([x.from, x.to].sort().join("|")); add(x.from, x.to, x); add(x.to, x.from, x); });
       return { ids, pairs, with: meets };
     }
+    if (lens.kind === "thread") return threadAt(lens.id, h);
     if (lens.kind === "mind") return { ids: mindAt(h).flatMap((x) => x.about) };
     const k = kinPick(lens.id, h);
     return { ids: k ? k.ids : [], ring: k ? k.ring : null, name: k ? k.name : "" };
   }
   const lensBtns = [...document.querySelectorAll(".uf-lens")];
   const kinBtn = lensBtns.find((b) => b.dataset.lens === "kin"), kin = $("kin");
+  const thrBtn = lensBtns.find((b) => b.dataset.lens === "thread"), threads = $("threads");
   const forWeb = (l) => (l ? { kind: lens.kind, ids: l.ids, ring: l.ring, pairs: l.pairs, with: l.with } : null);
   function applyLens(o = {}) {
     const l = lensAt(current);
     if (!tracing) web.setLens(forWeb(l), o);
     lensBtns.forEach((b) => b.setAttribute("aria-pressed", String(!!lens && lens.kind === b.dataset.lens)));
     kinBtn.querySelector(".t").textContent = lens && lens.kind === "kin" && l.name ? `Kin & crews: ${l.name.replace(/^The /, "")}` : "Kin & crews";
+    thrBtn.querySelector(".t").textContent = lens && lens.kind === "thread" && l.name ? `Threads: ${l.name.replace(/^The /, "")}` : "Threads";
     stage.classList.toggle("lensing", !!lens);
+    // on a phone the row scrolls sideways: keep the chip that's on in view
+    const on = lensBtns.find((b) => b.getAttribute("aria-pressed") === "true");
+    if (on) on.scrollIntoView({ block: "nearest", inline: "nearest", behavior: o.auto || P.reducedMotion ? "auto" : "smooth" });
     if (sel) renderCard(sel);
     readout();
   }
@@ -507,10 +534,12 @@
     setURL();
     applyLens();
   }
+  function closeSheets() { setKin(false); setThreads(false); }
   function setKin(on) {
     kin.hidden = !on;
     kinBtn.setAttribute("aria-expanded", String(on));
     if (!on) return;
+    setThreads(false);
     filters.hidden = true;
     fBtn.setAttribute("aria-expanded", "false");
     const lists = kinAt(current).filter(([, xs]) => xs.length);
@@ -527,17 +556,41 @@
     const first = kin.querySelector("button[aria-pressed='true']") || kin.querySelector("button");
     if (first) first.focus({ preventScroll: true });
   }
+  // the Threads sheet: one button per viewpoint at the chapter shown, with their colour
+  function setThreads(on) {
+    threads.hidden = !on;
+    thrBtn.setAttribute("aria-expanded", String(on));
+    if (!on) return;
+    setKin(false);
+    filters.hidden = true;
+    fBtn.setAttribute("aria-expanded", "false");
+    const ids = threadsAt(current);
+    const picked = lens && lens.kind === "thread" ? lens.id : null;
+    threads.innerHTML = ids.length ? `<h2>Through whose eyes</h2><ul>${ids.map((id) =>
+      `<li><button type="button" data-k="${P.esc(id)}" aria-pressed="${id === picked}"><span class="dot" style="--c:${P.povColor(id, current)}" aria-hidden="true"></span>${P.esc(P.entName(id))}</button></li>`).join("")}</ul>`
+      : `<p>No chapters through anyone's eyes yet.</p>`;
+    threads.querySelectorAll("button").forEach((b) => b.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      setThreads(false);
+      setLens({ kind: "thread", id: b.dataset.k });
+      thrBtn.focus();
+    }));
+    const first = threads.querySelector("button[aria-pressed='true']") || threads.querySelector("button");
+    if (first) first.focus({ preventScroll: true });
+  }
   lensBtns.forEach((b) => b.addEventListener("click", (ev) => {
     ev.stopPropagation();
     const k = b.dataset.lens;
-    if (lens && lens.kind === k) { setKin(false); setLens(null); return; }   // the active chip turns it off
+    if (lens && lens.kind === k) { closeSheets(); setLens(null); return; }   // the active chip turns it off
     if (k === "kin") { setKin(kin.hidden); return; }
-    setKin(false);
+    if (k === "thread") { setThreads(threads.hidden); return; }
+    closeSheets();
     setLens({ kind: k });
   }));
   const lensQ = query.get("lens") || "";
   if (lensQ === "chapter" || lensQ === "mind") lens = { kind: lensQ };
   else if (lensQ.startsWith("kin:") && lensQ.length > 4) lens = { kind: "kin", id: lensQ.slice(4) };
+  else if (lensQ.startsWith("thread:") && lensQ.length > 7) lens = { kind: "thread", id: lensQ.slice(7) };
 
   // ------------------------------------------------------------ one more step (Ripples' second ring)
   const stepBtn = $("step");
@@ -563,7 +616,7 @@
   function runTrace(a, b) {
     const back = tracing ? tracing.back : { lens, sel: sel ? sel.id : null };
     tracing = { a, b, res: web.trace(a, b), i: 0, back };
-    setKin(false);
+    closeSheets();
     web.select(null);
     stage.classList.remove("focusing");
     renderPathCard();
@@ -726,7 +779,7 @@
         setFind(false);
         filters.hidden = true;
         fBtn.setAttribute("aria-expanded", "false");
-        setKin(false);
+        closeSheets();
       }
       // display: none pauses the map: its glows stop, and a zero size is never refit
       panelWeb.hidden = true;
@@ -854,9 +907,12 @@
       <div class="c-top">${P.sigil(e, { size: 46, h: current })}
         <div class="c-id"><p>A lane of POV Lines</p><h2>${P.esc(e.name)}</h2><p class="c-line">${count}</p></div>
         ${cardBtns(`Let go of ${e.name}'s lane`)}</div>
-      <div class="c-more"><div class="c-acts"><button type="button" class="cta" id="lc-pick">Pick on the map</button><a class="cta ghost" href="codex.html#${id}">Codex entry</a></div></div>`;
+      <div class="c-more"><div class="c-acts"><button type="button" class="cta" id="lc-pick">Pick on the map</button><a class="cta ghost" href="codex.html#${id}">Codex entry</a>${n ? `<button type="button" class="cta ghost" id="lc-thread">Light this thread on the map</button>` : ""}</div></div>`;
     wireLCard();
     lcard.querySelector("#lc-pick").addEventListener("click", (ev) => { ev.stopPropagation(); showTab("web"); web.select(id); });
+    // a lane is a thread: switch to Connections with its lens on, and nobody picked
+    const lt = lcard.querySelector("#lc-thread");
+    if (lt) lt.addEventListener("click", (ev) => { ev.stopPropagation(); showTab("web"); web.select(null); setLens({ kind: "thread", id }); });
   }
   function wireLCard() {
     setLState(lcard.dataset.state || "peek");
@@ -905,6 +961,7 @@
     if (tab === "lines") { if (ev.key === "Escape") closeLCard(); return; }
     if (ev.key === "Escape") {
       if (!kin.hidden) { setKin(false); kinBtn.focus(); }
+      else if (!threads.hidden) { setThreads(false); thrBtn.focus(); }
       else if (tracing) exitTrace(true);
       else web.select(null);
     }
