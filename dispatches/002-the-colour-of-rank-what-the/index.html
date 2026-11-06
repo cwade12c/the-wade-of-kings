@@ -182,7 +182,7 @@
     "pale grey": { h: 210, s: 8, l: 66 }, "light yellow": { h: 48, s: 70, l: 62 }, "blue": { h: 212, s: 66, l: 52 },
     "brown": { h: 28, s: 45, l: 28 }, "dark brown": { h: 24, s: 42, l: 20 }, "black": { h: 25, s: 15, l: 10 },
     "deep dark green": { h: 140, s: 30, l: 20 }, "dark green": { h: 145, s: 34, l: 24 }, "green": { h: 120, s: 45, l: 50 },
-    "yellow": { h: 50, s: 75, l: 58 }, "light grey": { h: 210, s: 8, l: 68 }, "sapphire": { h: 212, s: 90, l: 62 },
+    "yellow": { h: 50, s: 75, l: 58 }, "light grey": { h: 210, s: 8, l: 68 }, "sapphire": { h: 212, s: 90, l: 62 }, "violet": { h: 272, s: 50, l: 52 },
   };
   const swatchCol = (w) => ART.hsl(T[w].h, T[w].s, Math.max(T[w].l, 45));
 
@@ -210,6 +210,9 @@
     {"n": "Laral", "w": "pale green", "g": "light", "c": "wok:16", "note": "The citylord’s daughter, with bright, pale green eyes."},
     {"n": "a squadleader", "w": "brown", "g": "colour", "c": "wok:17", "note": "A solid, brown-eyed squadleader who calls out to Kaladin at a crossing."},
     {"n": "Gadol", "w": "black", "g": "colour", "c": "wok:17", "note": "A bridgeman; frenzied black eyes as Kaladin drags him clear."},
+    {"n": "Yis", "w": "yellow", "g": "colour", "c": "wok:18", "note": "A yellow-eyed Iriali leatherworker, with golden hair."},
+    {"n": "Teshav", "w": "violet", "g": "colour", "c": "wok:18", "note": "Dalinar’s scribe; violet eyes and a pinched, worried face."},
+    {"n": "Elhokar", "w": "blue", "g": "light", "c": "wok:18", "note": "On the balcony his blue eyes flash with suspicion."},
   ].filter((p) => seen(p.c));
 
   // ------------------------------------------------------------ hero
@@ -298,6 +301,9 @@
     {"h": "The King's Wit", "t": "Openly killing the King's Wit is legal, but costs the killer title and lands.", "c": "wok:15"},
     {"h": "Winning a Blade", "t": "Kal and Laral say a darkeyes who wins a Shardblade becomes a lighteyes, even if enslaved. Naget asks whether anyone knows a real example.", "c": "wok:16", "b": "said: Kaladin, Laral, Naget"},
     {"h": "Soulcasting", "t": "Soulcasting happens at night under strict guard, so that only ardents or very high-ranking lighteyes witness the holy rite.", "c": "wok:17"},
+    {"h": "Low-ranked lighteyes", "t": "The Cobalt Guard are lighteyes of low rank, able to carry swords for close fighting.", "c": "wok:18"},
+    {"h": "Glory by blood", "t": "The Almighty accepts anyone’s excellence, particularly a lighteyes’: the better your blood, the more innate Glory you already have.", "c": "wok:18"},
+    {"h": "A changed Calling", "t": "A lighteyes who was once a soldier is uncommon in the ardentia; Kadash changed his Calling, which is odd but not forbidden.", "c": "wok:18"},
   ].filter((f) => seen(f.c));
   document.getElementById("customs").innerHTML = CUSTOMS.map((f) => `<div class="custom"><h4>${f.h}</h4><p>${f.t} ${cite(f.c)}${basis(f.b)}</p></div>`).join("");
 
