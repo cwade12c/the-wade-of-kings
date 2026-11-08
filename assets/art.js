@@ -27,6 +27,8 @@
     ruby:       { h: 352, s: 82, l: 44, glow: "#ff5a6e" },
     emerald:    { h: 152, s: 72, l: 38, glow: "#46e39c" },
     smokestone: { h: 222, s: 10, l: 14, glow: "#cfd5e2" },
+    topaz:      { h: 32,  s: 78, l: 48, glow: "#ffad5c" },
+    heliodor:   { h: 52,  s: 86, l: 54, glow: "#ffe45c" },
   };
 
   // ------------------------------------------------------------ a round brilliant, seen from above

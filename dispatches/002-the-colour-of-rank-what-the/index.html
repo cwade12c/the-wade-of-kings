@@ -183,6 +183,7 @@
     "brown": { h: 28, s: 45, l: 28 }, "dark brown": { h: 24, s: 42, l: 20 }, "black": { h: 25, s: 15, l: 10 },
     "deep dark green": { h: 140, s: 30, l: 20 }, "dark green": { h: 145, s: 34, l: 24 }, "green": { h: 120, s: 45, l: 50 },
     "yellow": { h: 50, s: 75, l: 58 }, "light grey": { h: 210, s: 8, l: 68 }, "sapphire": { h: 212, s: 90, l: 62 }, "violet": { h: 272, s: 50, l: 52 },
+    "bright blue, almost white": { h: 205, s: 70, l: 84 }, "light tan": { h: 34, s: 42, l: 60 },
   };
   const swatchCol = (w) => ART.hsl(T[w].h, T[w].s, Math.max(T[w].l, 45));
 
@@ -213,6 +214,9 @@
     {"n": "Yis", "w": "yellow", "g": "colour", "c": "wok:18", "note": "A yellow-eyed Iriali leatherworker, with golden hair."},
     {"n": "Teshav", "w": "violet", "g": "colour", "c": "wok:18", "note": "Dalinar’s scribe; violet eyes and a pinched, worried face."},
     {"n": "Elhokar", "w": "blue", "g": "light", "c": "wok:18", "note": "On the balcony his blue eyes flash with suspicion."},
+    {"n": "a Radiant knight", "w": "bright blue, almost white", "g": "colour", "c": "wok:19", "note": "In Dalinar's vision; Dalinar wonders whether the eyes are glowing, leaking Stormlight."},
+    {"n": "a Radiant knight", "w": "light tan", "g": "colour", "c": "wok:19", "note": "In Dalinar's vision; light tan eyes that almost seem to glow in the night."},
+    {"n": "Taffa", "w": "brown", "g": "colour", "c": "wok:19", "note": "In Dalinar's vision; by starlight alone he can make out her brown eyes as the voice speaks through her."},
   ].filter((p) => seen(p.c));
 
   // ------------------------------------------------------------ hero
@@ -322,6 +326,7 @@
     { t: "In the Ten Essences the eyes go with crystal and glass, “the windows into a person's mind and spirit.” For Shallan, getting a portrait's eyes right is “the most important” part", c: "wok:7" },
     { t: "One of Ishikk's foreigners has eyes “the wrong shape,” and Easterners think the Shin, with their large, round eyes, look like children", c: ["wok:i1", "wok:i3"] },
     {"t": "Gallant's eyes are deep black", "c": "wok:15"},
+    {"t": "In Dalinar's vision, both Radiants' eyes seem to glow; he wonders if the man's are leaking Stormlight", "c": "wok:19"},
   ].filter((f) => seen(f.c));
   document.getElementById("devs").innerHTML = devs.join("") + `<ul class="facts">${MORE.map((f) => li(f, "#a9b3c1")).join("")}</ul>`;
   const summon = document.getElementById("summon");
