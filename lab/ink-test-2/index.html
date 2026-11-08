@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Test shot 2 · Lamplit ink · The Wade of Kings</title>
+<style>
+  :root { color-scheme: dark; --paper: #e6d9bd; --ink: #16131b; --seal: #a8281e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #07080b; color: #ece4d2; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 1.2rem 1rem 3rem; }
+  h1 { font: 400 clamp(1.6rem, 4vw, 2.4rem)/1.1 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; margin: .4rem 0 .3rem; }
+  .eyebrow { color: #7d8899; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; margin: 0; }
+  .lede { color: #a9b3c1; max-width: 62ch; margin: 0 0 1rem; }
+  .stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px; overflow: hidden; box-shadow: 0 30px 80px -30px rgba(0,0,0,.9); }
+  @media (max-width: 700px) { .stage { aspect-ratio: 4 / 5; border-radius: 10px; } }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .hud { position: absolute; top: .6rem; right: .7rem; font: 12px/1 ui-monospace, monospace; color: rgba(236,228,210,.55); pointer-events: none; }
+  .bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .9rem 0 0; }
+  .bar button { font: inherit; padding: .55rem 1rem; border-radius: 999px; border: 1px solid #2e3b4e; background: #121922; color: #ece4d2; cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+  .bar .sp { flex: 1; }
+  .notes { color: #a9b3c1; max-width: 70ch; margin-top: 1.4rem; }
+  .notes li { margin: .35rem 0; }
+  .notes b { color: #ece4d2; font-weight: 500; }
+</style>
+<script type="importmap">{ "imports": { "three": "../../assets/vendor/three/three.module.js" } }</script>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Test shot 2 · not a dispatch yet · unlisted</p>
+  <h1>The poker thrust, in lamplit ink</h1>
+  <p class="lede">The same ten seconds from Chapter 19, rebuilt: a beast sculpted and rigged in Blender, the farmhouse built to the page, and one look that combines the two from the first test. Darkness is ink; wherever light falls, the ink turns back into paper.</p>
+  <div class="stage" id="stage"><canvas id="cv"></canvas><div class="hud" id="hud">loading…</div></div>
+  <div class="bar">
+    <button type="button" id="lookA" aria-pressed="true">Lamplit ink</button>
+    <button type="button" id="lookB" aria-pressed="false">Raw light (for comparison)</button>
+    <span class="sp"></span>
+    <button type="button" id="pause">Pause</button>
+    <button type="button" id="replay">Replay</button>
+  </div>
+  <ul class="notes">
+    <li><b>The beast</b> is one sculpted body, rigged with 27 bones, so the neck coils, the head weaves, the legs step and the body empties out. The page gives six thin legs bent at the sides, a boneless neck, no eyes, black teeth and skin that reflects light like tar [ch 19]. The rest of its form is my staging.</li>
+    <li><b>The farmhouse</b> is built from the page: a stone floor, crem-brick walls, a fireless brick hearth with a rough iron pot hanging over it, a low table and a pair of stools, and a glassless window with a broken shutter [ch 19]. The rafters and the floor's flagstones are my staging.</li>
+    <li><b>The light</b> is Taffa's oil lamp and Salas's violet moonlight through the window. The ink look is drawn from it every frame.</li>
+    <li>Dalinar is still out of shot on purpose; the poker comes in from beyond the frame.</li>
+  </ul>
+</div>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "../../assets/vendor/three/loaders/GLTFLoader.js";
+
+const stage = document.getElementById("stage"), canvas = document.getElementById("cv"), hud = document.getElementById("hud");
+const phone = Math.min(screen.width, screen.height) < 600;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phone ? 1.5 : 1.75));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping; renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000);
+const camera = new THREE.PerspectiveCamera(36, 16 / 9, 0.05, 30);
+
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const sm = (a, b, x) => { const u = clamp((x - a) / (b - a)); return u * u * (3 - 2 * u); };
+const io = (u) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const hash = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7 + 0.5) * 43758.5453; return x - Math.floor(x); };
+function noise1(t, s = 0) { const i = Math.floor(t), f = t - i, u = f * f * (3 - 2 * f); return lerp(hash(i, s), hash(i + 1, s), u) * 2 - 1; }
+const up = V(0, 1, 0);
+
+// ------------------------------------------------------------ reflections: a dark room, the lamp, the window
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envScene = new THREE.Scene();
+envScene.add(new THREE.Mesh(new THREE.BoxGeometry(10, 6, 10), new THREE.MeshBasicMaterial({ color: 0x040306, side: THREE.BackSide })));
+const lampBall = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(9, 5.2, 2.2) })); lampBall.position.set(-3.2, 0.8, 1.6); envScene.add(lampBall);
+const winPane = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.0), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.4, 1.0, 3.0), side: THREE.DoubleSide })); winPane.position.set(3.5, 1.4, 0); winPane.lookAt(0, 1, 0); envScene.add(winPane);
+scene.environment = pmrem.fromScene(envScene, 0.03).texture;
+
+// ------------------------------------------------------------ light
+const lamp = new THREE.SpotLight(0xffa860, 30, 8, 0.75, 0.85, 2);
+lamp.position.set(-2.4, 1.0, 1.1); lamp.target.position.set(0.4, 0.7, -1.2); lamp.castShadow = true;
+lamp.shadow.mapSize.set(phone ? 1024 : 2048, phone ? 1024 : 2048); lamp.shadow.bias = -0.0003; lamp.shadow.normalBias = 0.02; lamp.shadow.camera.near = 0.3;
+scene.add(lamp, lamp.target);
+const lampFill = new THREE.PointLight(0xff9a50, 1.4, 6, 2); lampFill.position.set(-2.3, 1.0, 1.2); scene.add(lampFill);
+const moon = new THREE.SpotLight(0xa890ff, 90, 12, 0.36, 0.6, 2);
+moon.position.set(4.6, 2.5, -0.2); moon.target.position.set(0.2, 0.0, -0.6); moon.castShadow = true; moon.shadow.mapSize.set(1024, 1024); moon.shadow.bias = -0.0004; moon.shadow.normalBias = 0.02;
+scene.add(moon, moon.target);
+scene.add(new THREE.HemisphereLight(0x1a1824, 0x060504, 0.06));
+// the night beyond the glassless window
+const night = new THREE.Mesh(new THREE.PlaneGeometry(0.84, 0.76), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.32, 0.24, 0.62) }));
+night.position.set(2.5, 1.38, 0); night.rotation.y = -Math.PI / 2; scene.add(night);
+
+// ------------------------------------------------------------ the poker, from beyond the frame
+const iron = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.013, 1, 10), new THREE.MeshStandardMaterial({ color: 0x1a1918, metalness: 0.9, roughness: 0.45 }));
+const ash = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.09, 10), new THREE.MeshStandardMaterial({ color: 0xcfc8bc, roughness: 1 }));
+iron.castShadow = ash.castShadow = true; scene.add(iron, ash);
+const tmpQ = new THREE.Quaternion();
+function segment(mesh, a, b) {
+  const d = b.clone().sub(a), L = d.length();
+  mesh.position.copy(a).addScaledVector(d, 0.5); mesh.scale.set(1, L, 1); mesh.quaternion.copy(tmpQ.setFromUnitVectors(up, d.normalize()));
+}
+const CHEST = V(-0.3, 0.74, 0.06);
+function posePoker(s) {
+  const back = sm(3.4, 4.2, s) * (1 - sm(4.25, 4.45, s)), thrust = sm(4.25, 4.45, s), pull = sm(7.7, 8.2, s), sink = sm(4.7, 7.4, s);
+  const tremble = V(noise1(s * 7, 4), noise1(s * 6, 5), 0).multiplyScalar(0.006);
+  let tip = V(-0.8, 0.82, 0.25).add(V(-back * 0.22, back * 0.03, back * 0.08)).add(tremble);
+  tip.lerp(CHEST.clone().add(V(0.08, -sink * 0.5, 0)), thrust);
+  tip.lerp(V(-1.9, 0.75, 1.0), pull);
+  const dir = V(0.86, -0.12 - sink * 0.25 * (1 - pull), -0.42).normalize();
+  segment(iron, tip.clone().addScaledVector(dir, -1.8), tip);
+  ash.position.copy(tip).addScaledVector(dir, -0.04); ash.quaternion.setFromUnitVectors(up, dir); ash.visible = thrust < 0.95 || pull > 0.5;
+}
+
+// ------------------------------------------------------------ smoke: a GPU particle jet, from the clock alone
+function makeSmoke(n, o) {
+  const g = new THREE.BufferGeometry(), seed = new Float32Array(n * 4);
+  for (let i = 0; i < n * 4; i++) seed[i] = hash(i, o.seed);
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute("aSeed", new THREE.BufferAttribute(seed, 4));
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { uTime: { value: 0 }, uStart: { value: o.start }, uEnd: { value: o.end }, uLife: { value: o.life }, uSpeed: { value: o.speed }, uSize: { value: o.size }, uScale: { value: 400 },
+      uOrigin: { value: o.origin.clone() }, uDir: { value: o.dir.clone().normalize() }, uSpread: { value: o.spread || 0.32 }, uWarm: { value: new THREE.Color(1.0, 0.6, 0.32) } },
+    vertexShader: `
+      attribute vec4 aSeed; uniform float uTime, uStart, uEnd, uLife, uSpeed, uSize, uScale, uSpread; uniform vec3 uOrigin, uDir;
+      varying float vA; varying vec2 vR; varying float vU;
+      void main() {
+        float born = uStart + (uEnd - uStart) * aSeed.x * aSeed.x;
+        float age = uTime - born, life = uLife * (0.6 + 0.8 * aSeed.y);
+        if (age < 0.0 || age > life) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
+        float u = age / life;
+        vec3 rnd = aSeed.yzw * 2.0 - 1.0;
+        vec3 dir = normalize(uDir + rnd * uSpread);
+        vec3 p = uOrigin + dir * uSpeed * (1.0 - exp(-3.2 * age)) / 3.2;
+        p.y += 0.16 * age + 0.12 * age * age;
+        float a1 = age * 2.1 + aSeed.y * 6.28, a2 = age * 1.6 + aSeed.z * 6.28;
+        p += vec3(sin(a1) + 0.5 * sin(a2 * 2.3), 0.5 * cos(a2), cos(a1 * 0.8) + 0.5 * sin(a1 * 1.7)) * 0.11 * age;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = uSize * (0.12 + 2.0 * u) * (0.7 + 0.6 * aSeed.z) * uScale / -mv.z;
+        vA = (1.0 - u) * (1.0 - u) * smoothstep(0.0, 0.06, age); vR = aSeed.yw; vU = u;
+      }`,
+    fragmentShader: `
+      varying float vA; varying vec2 vR; varying float vU; uniform vec3 uWarm; uniform float uTime;
+      float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+      void main() {
+        vec2 c = gl_PointCoord * 2.0 - 1.0; float r = dot(c, c); if (r > 1.0) discard;
+        float w = n(c * 2.6 + vR * 17.0 + uTime * 0.25) * 0.65 + n(c * 5.5 - vR * 9.0) * 0.35;
+        float a = (1.0 - r) * (1.0 - r) * vA * smoothstep(0.3, 0.8, w) * 0.75;
+        vec3 col = mix(vec3(0.006, 0.0055, 0.007), uWarm * 0.07, clamp(0.2 - c.x * 0.45 + vU * 0.35, 0.0, 1.0));
+        gl_FragColor = vec4(col, a);
+      }`,
+  });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; scene.add(p); return p;
+}
+const jet = makeSmoke(phone ? 1100 : 1800, { seed: 3, start: 4.42, end: 7.2, life: 2.4, speed: 2.4, size: 0.2, origin: CHEST.clone().add(V(-0.06, 0, 0.06)), dir: V(-0.7, 0.45, 0.45) });
+const puff = makeSmoke(phone ? 220 : 340, { seed: 7, start: 7.7, end: 8.4, life: 2.2, speed: 0.5, size: 0.2, origin: V(-0.25, 0.3, 0.06), dir: V(-0.4, 0.9, 0.2) });
+const seep = makeSmoke(phone ? 300 : 460, { seed: 11, start: 5.2, end: 9.6, life: 3.0, speed: 0.15, size: 0.26, origin: V(0.2, 0.22, 0), dir: V(0.1, 1, 0), spread: 0.6 });
+const SMOKES = [jet, puff, seep];
+
+// ------------------------------------------------------------ the beast, rigged in Blender, posed from the clock
+let beast = null;
+const B = {};
+const tar = new THREE.MeshPhysicalMaterial({ color: 0x010102, roughness: 0.13, clearcoat: 1.0, clearcoatRoughness: 0.05, envMapIntensity: 1.1, specularIntensity: 1.0 });
+const qx = new THREE.Quaternion(), qz = new THREE.Quaternion(), AX = V(1, 0, 0), AZ = V(0, 0, 1);
+function bend(name, ax, az) {
+  const b = B[name]; if (!b) return;
+  b.quaternion.copy(b.userData.rest).multiply(qx.setFromAxisAngle(AX, ax)).multiply(qz.setFromAxisAngle(AZ, az));
+}
+function poseBeast(s) {
+  if (!beast) return;
+  const d = sm(4.7, 7.4, s), rear = sm(4.45, 4.75, s) * (1 - sm(5.0, 6.5, s)), lunge = sm(3.5, 4.2, s) * (1 - sm(4.4, 4.9, s));
+  const live = 1 - d, breathe = Math.sin(s * 2.6) * 0.02 * live;
+  beast.position.set(-lunge * 0.12, 0, 0);
+  beast.scale.set(1 + 0.12 * d + breathe, 1 - 0.74 * d + breathe, 1 + 0.38 * d + breathe);
+  for (let i = 1; i <= 4; i++) {
+    const w = noise1(s * 0.9 + i * 0.25, 1) * 0.07 * live, wz = noise1(s * 0.7 + i * 0.2, 2) * 0.09 * live;
+    bend(`neck${i}`, w + rear * (i < 3 ? -0.1 : 0.05) + lunge * 0.04 + d * 0.1, wz);
+  }
+  bend("head", noise1(s * 1.3, 3) * 0.12 * live - rear * 0.15 + d * 0.15, noise1(s, 4) * 0.1 * live);
+  bend("tail", noise1(s * 0.6, 5) * 0.15 * live, noise1(s * 0.5, 6) * 0.2 * live);
+  for (let i = 0; i < 6; i++) {
+    const step = Math.sin(s * 5.5 + i * 1.3) * 0.08 * live * (s < 4.2 ? 1 : 0.3);
+    bend(`leg${i}_a`, step, 0); bend(`leg${i}_b`, -step * 0.6, 0);
+  }
+}
+
+// ------------------------------------------------------------ the shot
+const REAL = 11.5;
+const shotTime = (r) => (r < 4.3 ? r : r < 6.3 ? 4.3 + (r - 4.3) * 0.25 : 4.8 + (r - 6.3));
+const CAMS = [
+  { until: 4.3, from: [V(-2.3, 0.62, 2.2), V(0.0, 0.85, 0.0)], to: [V(-1.95, 0.6, 1.9), V(-0.15, 0.86, 0.0)], fov: 40 },
+  { until: 6.6, from: [V(-1.15, 0.98, 1.45), V(-0.32, 0.86, 0.0)], to: [V(-1.2, 0.85, 1.5), V(-0.2, 0.5, 0.0)], fov: 36 },
+  { until: 99, from: [V(1.1, 1.2, 2.9), V(0.0, 0.3, 0.0)], to: [V(0.9, 1.3, 2.6), V(-0.05, 0.35, 0.0)], fov: 38 },
+];
+function placeCamera(s) {
+  let i = 0; while (s >= CAMS[i].until) i++;
+  const c = CAMS[i], t0 = i ? CAMS[i - 1].until : 0, u = io(clamp((s - t0) / (Math.min(c.until, 10) - t0)));
+  const pos = c.from[0].clone().lerp(c.to[0], u), look = c.from[1].clone().lerp(c.to[1], u);
+  const shake = sm(4.42, 4.46, s) * (1 - sm(4.46, 4.9, s)), hand = 0.008 + shake * 0.03;
+  pos.add(V(noise1(s * 1.3, 20), noise1(s * 1.1, 21), noise1(s * 0.9, 22)).multiplyScalar(hand));
+  look.add(V(noise1(s * 1.6, 23), noise1(s * 1.4, 24), 0).multiplyScalar(hand * 0.6));
+  const aspect = stage.clientWidth / stage.clientHeight;
+  camera.fov = c.fov * (aspect < 1 ? 1.45 : 1);
+  if (aspect < 1) pos.addScaledVector(pos.clone().sub(look).normalize(), 0.25);
+  camera.position.copy(pos); camera.lookAt(look); camera.updateProjectionMatrix();
+}
+
+// ------------------------------------------------------------ the finishing pass: lamplit ink
+const size = new THREE.Vector2();
+const rt = new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, samples: 4 });
+rt.depthTexture = new THREE.DepthTexture(2, 2); rt.depthTexture.type = THREE.UnsignedIntType;
+const post = new THREE.ShaderMaterial({
+  uniforms: { tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, uRes: { value: new THREE.Vector2() }, uTime: { value: 0 }, uLook: { value: 0 },
+    uNear: { value: camera.near }, uFar: { value: camera.far }, uFade: { value: 1 } },
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D tColor, tDepth; uniform vec2 uRes; uniform float uTime, uLook, uNear, uFar, uFade;
+    float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+    float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * n(p); p *= 2.03; a *= 0.5; } return v; }
+    vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+    float lin(vec2 uv) { float z = texture2D(tDepth, uv).x * 2.0 - 1.0; return 2.0 * uNear * uFar / (uFar + uNear - z * (uFar - uNear)); }
+    vec3 tone(vec2 uv) { return aces(texture2D(tColor, uv).rgb * 1.6); }
+    float lum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+    void main() {
+      vec2 px = 1.0 / uRes;
+      if (uLook > 0.5) {
+        vec3 c = tone(vUv);
+        c *= mix(0.55, 1.0, smoothstep(1.25, 0.35, length((vUv - 0.5) * vec2(1.25, 1.0))));
+        gl_FragColor = vec4(pow(c, vec3(1.0 / 2.2)) * uFade, 1.0);
+        return;
+      }
+      // the brush wobbles a little, and breathes slowly
+      vec2 wob = (vec2(fbm(vUv * 7.0 + uTime * 0.04), fbm(vUv * 7.0 + 5.1 - uTime * 0.03)) - 0.5) * 0.005;
+      vec2 uv = vUv + wob;
+      vec3 c = tone(uv);
+      float L = lum(c);
+      float g = fbm(vUv * vec2(uRes.x / uRes.y, 1.0) * 70.0);          // ink granulation
+      float fib = fbm(vUv * vec2(uRes.x / uRes.y, 1.0) * 260.0);       // paper fibre
+      // light turns ink back into paper, in three soft washes
+      float Lg = L + (g - 0.5) * 0.03;
+      float reveal = smoothstep(0.012, 0.045, Lg) * 0.3 + smoothstep(0.06, 0.14, Lg) * 0.33 + smoothstep(0.19, 0.36, Lg) * 0.37;
+      // outlines, from depth breaks and tone breaks, drawn only where there's paper to draw on
+      float d = lin(uv), e = 0.0, le = 0.0;
+      for (int i = 0; i < 4; i++) {
+        vec2 o = (i == 0 ? vec2(1, 0) : i == 1 ? vec2(-1, 0) : i == 2 ? vec2(0, 1) : vec2(0, -1)) * px * (1.3 + g);
+        e += abs(lin(uv + o) - d);
+        le += abs(lum(tone(uv + o)) - L);
+      }
+      float edge = clamp(smoothstep(0.06, 0.16, e / d) + smoothstep(0.1, 0.25, le) * 0.45, 0.0, 1.0);
+      // the paper takes the colour of the light that reveals it
+      vec3 paper = vec3(0.93, 0.88, 0.77) * (0.93 + 0.07 * fib);
+      vec3 hue = c / max(0.002, max(c.r, max(c.g, c.b)));
+      vec3 lit = paper * mix(vec3(1.0), hue, 0.55) * (0.82 + 0.25 * smoothstep(0.2, 0.7, L));
+      vec3 inkc = vec3(0.028, 0.024, 0.036) * (0.85 + 0.3 * g) + vec3(0.02, 0.018, 0.022) * fib;
+      vec3 col = mix(inkc, lit, reveal);
+      col = mix(col, inkc * 0.8, edge * smoothstep(0.05, 0.4, reveal) * 0.9);
+      // wet edges: ink pools darker where a wash meets paper
+      float rx = abs(dFdx(reveal)) + abs(dFdy(reveal));
+      col *= 1.0 - clamp(rx * 2.5, 0.0, 0.35);
+      col *= mix(0.7, 1.0, smoothstep(1.3, 0.4, length((vUv - 0.5) * vec2(1.2, 1.0))));
+      gl_FragColor = vec4(mix(inkc * 0.6, col, uFade), 1.0);
+    }`,
+  depthTest: false, depthWrite: false,
+});
+const postScene = new THREE.Scene(); postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post));
+const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); renderer.getDrawingBufferSize(size); rt.setSize(size.x, size.y);
+  post.uniforms.uRes.value.copy(size); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+// ------------------------------------------------------------ load the models
+const loader = new GLTFLoader();
+const [house, beastG] = await Promise.all([loader.loadAsync("house.glb"), loader.loadAsync("beast.glb")]);
+house.scene.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; if (o.material) { o.material.envMapIntensity = 0.05; o.material.color.multiplyScalar(0.6); } } });
+scene.add(house.scene);
+beast = beastG.scene;
+beast.traverse((o) => {
+  if (o.isSkinnedMesh || o.isMesh) { o.material = tar; o.castShadow = o.receiveShadow = true; o.frustumCulled = false; }
+  if (o.isBone) { B[o.name] = o; o.userData.rest = o.quaternion.clone(); }
+});
+scene.add(beast);
+
+// ------------------------------------------------------------ the clock and the controls
+let real = 0, last = performance.now(), paused = false, frames = 0, fpsT = 0, fps = 0;
+const qs = new URLSearchParams(location.search);
+if (qs.has("t")) { real = +qs.get("t"); paused = true; }
+const btnA = document.getElementById("lookA"), btnB = document.getElementById("lookB"), btnP = document.getElementById("pause");
+function setLook(b) { post.uniforms.uLook.value = b; btnA.setAttribute("aria-pressed", String(!b)); btnB.setAttribute("aria-pressed", String(!!b)); }
+setLook(qs.get("look") === "raw" ? 1 : 0);
+btnA.onclick = () => setLook(0); btnB.onclick = () => setLook(1);
+btnP.onclick = () => { paused = !paused; btnP.textContent = paused ? "Play" : "Pause"; };
+document.getElementById("replay").onclick = () => { real = 0; paused = false; btnP.textContent = "Pause"; };
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!paused) real = (real + dt) % REAL;
+  const s = shotTime(real);
+  poseBeast(s); posePoker(s); placeCamera(s);
+  const sc = size.y * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  for (const p of SMOKES) { p.material.uniforms.uTime.value = s; p.material.uniforms.uScale.value = sc; }
+  const flick = 1 + noise1(now / 90, 30) * 0.08 + noise1(now / 31, 31) * 0.04;
+  lamp.intensity = 30 * flick; lampFill.intensity = 0.6 * flick;
+  post.uniforms.uTime.value = now / 1000;
+  post.uniforms.uFade.value = sm(0.0, 0.7, s) * (1 - sm(9.4, 10.0, s));
+  renderer.setRenderTarget(rt); renderer.render(scene, camera);
+  renderer.setRenderTarget(null); renderer.render(postScene, postCam);
+  frames++; fpsT += dt; if (fpsT > 0.5) { fps = Math.round(frames / fpsT); frames = 0; fpsT = 0; }
+  hud.textContent = `${fps} fps · ${s.toFixed(1)}s`;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
