@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch #005 · Ink and Smoke · The Wade of Kings</title>
+<link rel="stylesheet" href="../../assets/palanaeum.css">
+<style>
+  .ik .page-head h1 { line-height: 1; }
+  .ik .page-head .subtitle { display: block; font-family: var(--display); font-style: italic; font-size: var(--step-2); color: var(--dusk); margin-top: .35rem; }
+  .ik section.block { margin: 3.5rem 0; }
+  .ik section.block > h2 { font-size: var(--step-2); margin-bottom: .35rem; }
+  .ik section.block > .sub { color: var(--dusk); max-width: 62ch; margin-bottom: 1.2rem; }
+
+  /* a hanging scroll: two wooden rollers and the paper between them */
+  .ik-scroll { position: relative; margin: 2rem auto 0; max-width: 1180px; }
+  .ik-rod { height: 18px; margin: 0 -14px; border-radius: 9px; background: linear-gradient(180deg, #5b4330, #2f2118 55%, #1b130d); box-shadow: 0 8px 18px -6px rgba(0,0,0,.8); position: relative; z-index: 2; }
+  .ik-rod::before, .ik-rod::after { content: ""; position: absolute; top: -3px; width: 14px; height: 24px; border-radius: 5px; background: linear-gradient(180deg, #8a6a43, #3c2a1b); }
+  .ik-rod::before { left: -6px; } .ik-rod::after { right: -6px; }
+  .ik-paper { position: relative; background: #e6d9bd; box-shadow: 0 40px 80px -40px rgba(0,0,0,.9), inset 0 0 0 1px rgba(60,40,20,.25); }
+  .ik-stage { position: relative; aspect-ratio: 16 / 9; overflow: hidden; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .ik-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .ik-title { position: absolute; left: 4%; bottom: 6%; max-width: 70%; margin: 0; z-index: 3; font: italic 400 clamp(1.15rem, 3.2vw, 2.3rem)/1.1 var(--display); color: #f4ead6; text-shadow: 0 1px 2px rgba(0,0,0,.65), 0 0 22px rgba(0,0,0,.55); transition: opacity .6s; pointer-events: none; }
+  .ik-title.book::before { content: "\201C"; } .ik-title.book::after { content: "\201D"; }
+  .ik-start { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; border: 0; padding: 0; cursor: pointer; color: #f4ead6; background: radial-gradient(60% 70% at 50% 50%, rgba(20,16,24,.15), rgba(20,16,24,.6)); font: inherit; }
+  .ik-start[hidden] { display: none; }
+  .ik-start span { display: grid; justify-items: center; gap: .6rem; font: 400 var(--step-1) var(--display); text-shadow: 0 2px 10px rgba(0,0,0,.7); }
+  .ik-start b { display: grid; place-items: center; width: 4.4rem; height: 4.4rem; border-radius: 50%; background: #a8281e; color: #f4ead6; box-shadow: 0 0 0 3px rgba(244,234,214,.35), 0 10px 30px rgba(0,0,0,.5); transition: transform .3s; font: 400 1.6rem var(--display); }
+  .ik-start:hover b, .ik-start:focus-visible b { transform: scale(1.07) rotate(-3deg); }
+  .ik-start small { font: 400 var(--step--1) var(--text); color: #e6dccb; }
+  .ik-veil { position: absolute; inset: 0; z-index: 9; display: none; place-items: center; text-align: center; padding: 2rem; background: rgba(12, 17, 24, .95); color: var(--parchment); }
+  .ik-veil.on { display: grid; }
+  .ik-veil strong { display: block; font: 400 var(--step-2) var(--display); margin-bottom: .4rem; }
+
+  /* controls: a brush-line timeline and a row of seals */
+  .ik-deck { display: grid; grid-template-columns: auto 1fr auto; gap: .9rem; align-items: center; padding: .8rem 1.1rem .9rem; background: #e6d9bd; border-top: 1px solid rgba(60,40,20,.25); color: #2a2018; }
+  .ik-play { width: 2.9rem; height: 2.9rem; border-radius: 50%; border: 0; background: #1c1820; color: #e6d9bd; display: grid; place-items: center; cursor: pointer; }
+  .ik-play svg { width: 1.1rem; height: 1.1rem; }
+  .ik-line { position: relative; height: 2.6rem; display: grid; align-items: center; }
+  .ik-line .wash { position: absolute; left: 0; right: 0; top: 50%; height: 3px; transform: translateY(-50%); background: rgba(40,30,25,.18); border-radius: 2px; }
+  .ik-line .done { position: absolute; left: 0; top: 50%; height: 5px; transform: translateY(-50%); background: #1c1820; border-radius: 3px 6px 6px 3px; width: 0; }
+  .ik-line .tk { position: absolute; top: 50%; width: 2px; height: 12px; margin-left: -1px; transform: translateY(-50%); background: rgba(40,30,25,.35); }
+  .ik-line input { position: relative; z-index: 2; width: 100%; margin: 0; opacity: 0; height: 2.6rem; cursor: pointer; }
+  .ik-time { font: 400 var(--step--1) var(--text); font-variant-numeric: tabular-nums; color: #5a4a3c; min-width: 3.2rem; text-align: right; }
+  .ik-seals { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center; padding: .9rem 1rem 1.2rem; background: #e6d9bd; }
+  .ik-seals button { min-width: 2.35rem; padding: 0 .3rem; height: 2.35rem; border-radius: 6px; border: 2px solid #a8281e; background: transparent; color: #a8281e; font: 400 1.05rem var(--display); cursor: pointer; display: grid; place-items: center; transition: background .25s, color .25s, transform .25s; }
+  .ik-seals button:hover { transform: rotate(-4deg); }
+  .ik-seals button[aria-current="true"] { background: #a8281e; color: #f4ead6; }
+
+  .ik-card { max-width: 1180px; margin: 1.6rem auto 0; display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 1.4rem; align-items: start; }
+  .ik-card .n { font: 400 4.2rem/1 var(--display); color: #a8281e; text-align: right; }
+  .ik-card h3 { font-size: var(--step-2); margin: .1rem 0 .45rem; }
+  .ik-card h3.book { font-style: italic; }
+  .ik-card p { margin: 0 0 .5rem; max-width: 64ch; }
+  .ik-card .basis { color: var(--mist); font-size: var(--step--1); }
+
+  .ik-notes { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; max-width: 72ch; }
+  .ik-notes li { padding-left: 1.2rem; position: relative; }
+  .ik-notes li::before { content: ""; position: absolute; left: 0; top: .62em; width: .5rem; height: .5rem; background: #a8281e; border-radius: 2px; transform: rotate(8deg); }
+  .ik-dark { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .9rem; }
+  .ik-dark li { border: 1px solid var(--rule); border-radius: 16px; padding: .9rem 1rem; background: var(--deep); color: var(--dusk); }
+  .ik-dark li b { display: block; font: 400 var(--step-1) var(--display); color: var(--parchment); margin-bottom: .2rem; }
+  .ik-dark a { color: var(--ink); }
+  .ik-coda { max-width: 62ch; margin: 3rem auto 0; text-align: center; }
+  .ik-coda p { color: var(--mist); font-size: var(--step--1); }
+
+  @media (max-width: 700px) {
+    .ik-stage { aspect-ratio: 4 / 3.4; }
+    .ik-rod { margin: 0 -6px; height: 14px; }
+    .ik-deck { padding: .6rem .7rem; gap: .6rem; }
+    .ik-seals button { min-width: 2.1rem; height: 2.1rem; font-size: .95rem; }
+    .ik-card { grid-template-columns: 1fr; gap: .2rem; }
+    .ik-card .n { text-align: left; font-size: 2.6rem; }
+  }
+</style>
+</head>
+<body data-page="dispatch" data-horizon="wok:19" data-root="../../">
+<main class="wrap dispatch-page ik">
+  <header class="page-head">
+    <p class="eyebrow">Dispatch #005 · safe through <span class="stamp" id="safe"></span></p>
+    <h1>Ink and Smoke<span class="subtitle">a night in the Eighth Epoch</span></h1>
+    <p class="lede">Dalinar's twelfth vision, painted in eleven scenes. The beasts are the ink, and when they're struck, the ink turns to smoke. Press the seal, or tap a scene below.</p>
+  </header>
+
+  <section class="ik-scroll" aria-label="Painted replay of the fight in Dalinar's vision">
+    <div class="ik-rod" aria-hidden="true"></div>
+    <div class="ik-paper">
+      <div class="ik-stage" id="stage">
+        <canvas id="cv" role="img" aria-label="Ink painting of the fight with the Midnight Essence"></canvas>
+        <p class="ik-title" id="title" aria-hidden="true"></p>
+        <button type="button" class="ik-start" id="start"><span><b aria-hidden="true">19</b>Unroll the night<small id="startnote">about 80 seconds · no sound</small></span></button>
+        <div class="ik-veil" id="veil"><div><strong>Past your bookmark</strong><p class="muted">This painting covers Chapter 19. Read that far, then come back.</p></div></div>
+      </div>
+      <div class="ik-deck">
+        <button type="button" class="ik-play" id="play" aria-label="Play"></button>
+        <div class="ik-line"><div class="wash"></div><div id="ticks"></div><div class="done" id="done"></div><input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Move through the night"></div>
+        <span class="ik-time" id="time">0:00</span>
+      </div>
+      <div class="ik-seals" id="seals" aria-label="Scenes"></div>
+    </div>
+    <div class="ik-rod" aria-hidden="true"></div>
+  </section>
+
+  <article class="ik-card" id="card" aria-live="polite"></article>
+
+  <section class="block">
+    <h2>How this was painted</h2>
+    <ul class="ik-notes" id="notes"></ul>
+  </section>
+
+  <section class="block">
+    <h2>Still dark</h2>
+    <p class="sub">What the night leaves open, as of this chapter.</p>
+    <ul class="ik-dark" id="dark"></ul>
+  </section>
+
+  <div class="ik-coda" id="coda"></div>
+</main>
+<script src="../../data/palanaeum.js"></script>
+<script src="../../assets/palanaeum.js"></script>
+<script>
+(function () {
+  "use strict";
+  const U = (id) => P.unitById[id];
+  const cite = (c) => [].concat(c).map((id) => `<a class="cite" href="../../journal.html#${P.unitAnchor(id)}" title="${P.esc(U(id).full)}">${P.esc(U(id).short)}</a>`).join(" ");
+  document.getElementById("safe").innerHTML = cite("wok:19");
+  const allowed = P.visible(U("wok:19").h);
+  if (!allowed) document.getElementById("veil").classList.add("on");
+
+  // ------------------------------------------------------------ small maths
+  const TAU = Math.PI * 2;
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const sm = (a, b, x) => { const u = clamp((x - a) / (b - a)); return u * u * (3 - 2 * u); };
+  const io = (u) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
+  const out = (u) => 1 - Math.pow(1 - u, 3);
+  const hash = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7 + 0.5) * 43758.5453; return x - Math.floor(x); };
+
+  // Tracks: lists of [t, value] keys, eased between. Everything drawn is a pure function of the clock.
+  function track(keys) {
+    return (T) => {
+      if (T <= keys[0][0]) return keys[0][1];
+      for (let i = 1; i < keys.length; i++) {
+        const [t1, v1, e] = keys[i], [t0, v0] = keys[i - 1];
+        if (T <= t1) {
+          const u = (e || io)(clamp((T - t0) / (t1 - t0)));
+          return Array.isArray(v0) ? v0.map((a, j) => lerp(a, v1[j], u)) : lerp(v0, v1, u);
+        }
+      }
+      return keys[keys.length - 1][1];
+    };
+  }
+  const lin = (u) => u;
+
+  // ------------------------------------------------------------ the scenes (all from Chapter 19)
+  const BEATS = [
+    { t0: 0, title: "In the dark", text: "Dalinar's twelfth vision opens in a barn at night. He wears homespun and sandals, and his Blade won't come. A frightened girl clings to him, calling him Father, and something scratches at the far wall." },
+    { t0: 7000, title: "The wall gives way", text: "The wall bursts inward. A black thing bigger than an axehound leaps for the girl, and he rolls her clear." },
+    { t0: 12000, title: "A cloud of lavis", text: "He tears open a grain sack and flings the dust into the air. The beast hunts by smell, and the dust confuses it. He carries the girl past it and out through the broken wall." },
+    { t0: 18000, title: "A poker for a sword", text: "At the farmhouse a beast crashes through the window and cuts him. Taffa uncovers a lamp, and he takes up the fire poker, falling into Smokestance: better with an imperfect weapon than the Windstance he was trained in." },
+    { t0: 25000, title: "The wound bled smoke.", book: true, text: "Six thin legs, no eyes, skin that shines like tar. Staying in motion, he spins between two of them; when the poker breaks through, smoke jets out and the body deflates like a leaking wineskin." },
+    { t0: 32000, title: "Through the back", text: "The other beast bites deep into his shoulder. He kicks it over his head, trips it, and drives the poker down through its back into the stone floor." },
+    { t0: 38000, title: "The hillside", text: "Heading for a river to wash away their scent, they meet a dozen more, behind and ahead. He puts his back to a flat rock face. Taffa throws the lamp; the fire doesn't seem to bother them." },
+    { t0: 45000, title: "Windstance", text: "He falls into Windstance, the most familiar: sweeping strikes. They drag him down anyway, and he wraps himself around Seeli as claws slice his back." },
+    { t0: 52500, title: "Starfall", text: "A brilliant blue light falls like a star rock and cracks the stone. It stands: a man in glowing blue Shardplate, Stormlight rising from him. The beasts turn on him, and his Blade shears them in half." },
+    { t0: 61000, title: "Regrowth", text: "A woman in Plate glowing amber touches Dalinar's forehead, and the pain is gone. Taffa's torn flesh regrows. Dalinar picks up his poker again, and the three fight in a triangle until the last beast falls." },
+    { t0: 69000, title: "Act with honor, and honor will aid you.", book: true, text: "More lights fall over the village. The voice speaks through Taffa: unite them, and keep trusting Sadeas. Then he's back in the barrack, in the rain, held down by soldiers." },
+  ];
+  const TOTAL = 79000;
+  BEATS.forEach((b, i) => { b.t1 = i + 1 < BEATS.length ? BEATS[i + 1].t0 : TOTAL; });
+  const PANELS = [[0, 18000], [18000, 38000], [38000, 69000], [69000, TOTAL]];
+  const beatAt = (x) => { for (let i = BEATS.length - 1; i >= 0; i--) if (x >= BEATS[i].t0) return i; return 0; };
+
+  // ------------------------------------------------------------ canvas
+  const stage = document.getElementById("stage"), cv = document.getElementById("cv");
+  const G = cv.getContext("2d");
+  const FC = document.createElement("canvas"), FX = FC.getContext("2d", { willReadFrequently: true });
+  const IC = document.createElement("canvas"), IX = IC.getContext("2d");
+  const WC = document.createElement("canvas"), WX = WC.getContext("2d");
+  let W = 2, H = 2, S = 1, S0 = 1, OX = 0, OY = 0, FS = 1 / 4, PAPER = null, IMG = null, MOTTLE = null;
+  const X = (x) => OX + x * S, Y = (y) => OY + y * S;
+  const INK = "#18151d", INKRGB = [24, 21, 29];
+
+  function fit() {
+    const r = stage.getBoundingClientRect();
+    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+    W = Math.max(2, Math.round(r.width * dpr)); H = Math.max(2, Math.round(r.height * dpr));
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    S0 = Math.min(H / 900, W / 1150); cam(800, 450, 1);
+    FS = Math.min(0.5, 720 / W);
+    const fw = Math.ceil(W * FS), fh = Math.ceil(H * FS);
+    for (const c of [FC, IC, WC]) { c.width = fw; c.height = fh; }
+    IMG = IX.createImageData(fw, fh);
+    MOTTLE = makeMottle(fw, fh);
+    PAPER = makePaper(W, H);
+    dirty = true;
+  }
+
+  // the camera: each scene is framed closer than the whole sheet
+  function cam(cx, cy, z) { S = S0 * z; OX = W / 2 - cx * S; OY = H / 2 - cy * S; }
+  // a cloudy alpha mask, so the night wash pools unevenly like real ink on wet paper
+  function makeMottle(w, h) {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const x = c.getContext("2d"), id = x.createImageData(w, h), d = id.data;
+    const OCT = [[5, 0.5], [11, 0.3], [23, 0.2]];
+    const grids = OCT.map(([n], k) => Float32Array.from({ length: (n + 1) * (n + 1) }, (_, i) => hash(i, 90 + k)));
+    const smf = (f) => f * f * (3 - 2 * f);
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+      let v = 0;
+      for (let k = 0; k < OCT.length; k++) {
+        const [n, wt] = OCT[k], g = grids[k], gx = xx / w * n, gy = yy / h * n, x0 = Math.floor(gx), y0 = Math.floor(gy), fx = smf(gx - x0), fy = smf(gy - y0), r = n + 1;
+        const a = g[y0 * r + x0], b = g[y0 * r + x0 + 1], c2 = g[(y0 + 1) * r + x0], e = g[(y0 + 1) * r + x0 + 1];
+        v += wt * lerp(lerp(a, b, fx), lerp(c2, e, fx), fy);
+      }
+      const i = (yy * w + xx) * 4;
+      d[i] = d[i + 1] = d[i + 2] = 0; d[i + 3] = 255 * (0.62 + 0.38 * clamp((v - 0.25) / 0.55)) * (0.85 + 0.15 * (1 - yy / h));
+    }
+    x.putImageData(id, 0, 0);
+    return c;
+  }
+
+  // paper: warm ground, fibres and a soft, uneven edge. Made once per size.
+  function makePaper(w, h) {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const x = c.getContext("2d");
+    const g = x.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, "#ebdfc5"); g.addColorStop(1, "#e0d1b2");
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    const N = 192, t = document.createElement("canvas"); t.width = t.height = N;
+    const tx = t.getContext("2d"), id = tx.createImageData(N, N);
+    for (let i = 0; i < N * N; i++) { const v = hash(i, 3); id.data[i * 4] = 90; id.data[i * 4 + 1] = 70; id.data[i * 4 + 2] = 45; id.data[i * 4 + 3] = v * 22; }
+    tx.putImageData(id, 0, 0);
+    x.fillStyle = x.createPattern(t, "repeat"); x.fillRect(0, 0, w, h);
+    x.lineCap = "round";
+    for (let i = 0; i < 260; i++) {
+      const px = hash(i, 7) * w, py = hash(i, 8) * h, a = hash(i, 9) * TAU, l = (8 + hash(i, 10) * 26) * (w / 1400);
+      x.strokeStyle = `rgba(110,85,55,${0.05 + hash(i, 11) * 0.07})`; x.lineWidth = Math.max(0.6, w / 1600);
+      x.beginPath(); x.moveTo(px, py); x.quadraticCurveTo(px + Math.cos(a) * l * 0.6 + 3, py + Math.sin(a) * l * 0.6, px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke();
+    }
+    const v = x.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.75);
+    v.addColorStop(0, "rgba(90,60,30,0)"); v.addColorStop(1, "rgba(90,60,30,.28)");
+    x.fillStyle = v; x.fillRect(0, 0, w, h);
+    return c;
+  }
+
+  // sprites, made once: a soft white dot (for the ink field) and coloured glows
+  function radial(size, stops) {
+    const c = document.createElement("canvas"); c.width = c.height = size;
+    const x = c.getContext("2d"), g = x.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    for (const [o, col] of stops) g.addColorStop(o, col);
+    x.fillStyle = g; x.fillRect(0, 0, size, size);
+    return c;
+  }
+  const DOT = radial(64, [[0, "rgba(255,255,255,1)"], [0.4, "rgba(255,255,255,.75)"], [1, "rgba(255,255,255,0)"]]);
+  const SMOKE = radial(64, [[0, "rgba(70,66,78,.55)"], [0.5, "rgba(80,76,88,.25)"], [1, "rgba(90,86,98,0)"]]);
+  const GLOWS = {};
+  const glowOf = (col) => GLOWS[col] || (GLOWS[col] = radial(128, [[0, col.replace("A", "1")], [0.35, col.replace("A", ".45")], [1, col.replace("A", "0")]]));
+  const BLUE = "rgba(110,170,255,A)", AMBER = "rgba(255,186,90,A)", LAMP = "rgba(255,190,110,A)", VIOLET = "rgba(170,130,230,A)", FIRE = "rgba(255,120,40,A)", DUST = "rgba(245,236,214,A)";
+  function glow(col, x, y, r, a) {
+    if (a <= 0.003) return;
+    G.globalAlpha = Math.min(1, a); const R = r * S;
+    G.drawImage(glowOf(col), X(x) - R, Y(y) - R, R * 2, R * 2); G.globalAlpha = 1;
+  }
+
+  // ------------------------------------------------------------ brushwork
+  // A tapered stroke along a polyline, revealed up to `prog`.
+  function brush(pts, w, col = INK, prog = 1, alpha = 1, taper = 0.85) {
+    if (prog <= 0 || alpha <= 0.003 || pts.length < 2) return;
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const L = cum[cum.length - 1] || 1, upto = L * clamp(prog);
+    G.strokeStyle = col; G.lineCap = "round"; G.lineJoin = "round"; G.globalAlpha = alpha;
+    if (alpha < 0.99) {
+      // translucent: one path, so overlapping segments don't bead
+      G.lineWidth = Math.max(0.7, w * S * (1 - taper * 0.4));
+      G.beginPath(); G.moveTo(X(pts[0][0]), Y(pts[0][1]));
+      for (let i = 1; i < pts.length; i++) {
+        if (cum[i - 1] >= upto) break;
+        const f = cum[i] > upto ? (upto - cum[i - 1]) / (cum[i] - cum[i - 1]) : 1;
+        G.lineTo(X(lerp(pts[i - 1][0], pts[i][0], f)), Y(lerp(pts[i - 1][1], pts[i][1], f)));
+      }
+      G.stroke(); G.globalAlpha = 1; return;
+    }
+    for (let i = 1; i < pts.length; i++) {
+      if (cum[i - 1] >= upto) break;
+      const a = pts[i - 1], b0 = pts[i], f = cum[i] > upto ? (upto - cum[i - 1]) / (cum[i] - cum[i - 1]) : 1;
+      const b = [lerp(a[0], b0[0], f), lerp(a[1], b0[1], f)];
+      const u = (cum[i - 1] + (cum[i] - cum[i - 1]) * f * 0.5) / L;
+      G.lineWidth = Math.max(0.7, w * S * (1 - taper + taper * Math.pow(Math.sin(Math.PI * clamp(u * 0.94 + 0.03)), 0.55)));
+      G.beginPath(); G.moveTo(X(a[0]), Y(a[1])); G.lineTo(X(b[0]), Y(b[1])); G.stroke();
+    }
+    G.globalAlpha = 1;
+  }
+  const quad = (p0, p1, p2, n = 12) => Array.from({ length: n + 1 }, (_, i) => { const u = i / n, m = 1 - u; return [m * m * p0[0] + 2 * m * u * p1[0] + u * u * p2[0], m * m * p0[1] + 2 * m * u * p1[1] + u * u * p2[1]]; });
+  const arc = (cx, cy, r, a0, a1, n = 24, squash = 1) => Array.from({ length: n + 1 }, (_, i) => { const a = lerp(a0, a1, i / n); return [cx + Math.cos(a) * r, cy + Math.sin(a) * r * squash]; });
+  function dab(x, y, r, col = INK, a = 1) { G.globalAlpha = a; G.fillStyle = col; G.beginPath(); G.arc(X(x), Y(y), Math.max(0.6, r * S), 0, TAU); G.fill(); G.globalAlpha = 1; }
+
+  // A figure in a few strokes. face: 1 right, -1 left. arm/arm2: angles of the two forearms.
+  function figure(o) {
+    const s = o.s || 1, f = o.face || 1, c = o.col || INK, al = o.alpha === undefined ? 1 : o.alpha;
+    if (al <= 0.003) return;
+    const cr = o.crouch || 0, lean = o.lean || 0;
+    const hip = [o.x - lean * 10 * s * f, o.y - 64 * s * (1 - 0.38 * cr)];
+    const neck = [hip[0] + lean * 34 * s * f, hip[1] - 50 * s * (1 - 0.15 * cr)];
+    const head = [neck[0] + lean * 8 * s * f, neck[1] - 15 * s];
+    if (o.dress) {
+      G.globalAlpha = al * 0.9; G.fillStyle = c; G.beginPath();
+      G.moveTo(X(hip[0] - 8 * s), Y(hip[1] - 14 * s)); G.lineTo(X(hip[0] + 8 * s), Y(hip[1] - 14 * s));
+      G.lineTo(X(o.x + 20 * s), Y(o.y - 4 * s)); G.lineTo(X(o.x - 20 * s), Y(o.y - 4 * s)); G.closePath(); G.fill(); G.globalAlpha = 1;
+    }
+    if (!o.dress) {
+      const hem = [hip[0] + (hip[0] - neck[0]) * 0.3, hip[1] + 16 * s];
+      G.globalAlpha = al * 0.92; G.fillStyle = c; G.beginPath();
+      G.moveTo(X(neck[0] - 9 * s), Y(neck[1] + 4 * s)); G.lineTo(X(neck[0] + 9 * s), Y(neck[1] + 4 * s));
+      G.quadraticCurveTo(X(hip[0] + 15 * s), Y(lerp(neck[1], hip[1], 0.6)), X(hem[0] + 13 * s), Y(hem[1]));
+      G.lineTo(X(hem[0] - 13 * s), Y(hem[1]));
+      G.quadraticCurveTo(X(hip[0] - 15 * s), Y(lerp(neck[1], hip[1], 0.6)), X(neck[0] - 9 * s), Y(neck[1] + 4 * s));
+      G.fill(); G.globalAlpha = 1;
+      brush([[hip[0] - 13 * s, hip[1] - 4 * s], [hip[0] + 13 * s, hip[1] - 4 * s]], 2.4 * s, "#cbbd9f", 1, al * 0.5, 0);
+    }
+    brush([neck, [lerp(neck[0], hip[0], 0.5) - 3 * s * f, lerp(neck[1], hip[1], 0.5)], hip], 10 * s, c, 1, al, 0.35);
+    const sp = (o.spread === undefined ? 22 : o.spread) * s, kneeY = lerp(hip[1], o.y, 0.5);
+    if (!o.dress) {
+      brush([hip, [hip[0] + sp * 0.55 * f, kneeY - cr * 8 * s], [o.x + sp * f, o.y]], 8 * s, c, 1, al, 0.3);
+      brush([hip, [hip[0] - sp * 0.25 * f, kneeY + cr * 4 * s], [o.x - sp * 0.8 * f, o.y]], 8 * s, c, 1, al, 0.3);
+    }
+    const sh = [neck[0], neck[1] + 7 * s];
+    const a1 = o.arm === undefined ? (f > 0 ? 1.1 : Math.PI - 1.1) : o.arm, a2 = o.arm2 === undefined ? (f > 0 ? 1.9 : Math.PI - 1.9) : o.arm2;
+    const hand = [sh[0] + Math.cos(a1) * 44 * s, sh[1] + Math.sin(a1) * 44 * s];
+    const hand2 = [sh[0] + Math.cos(a2) * 40 * s, sh[1] + Math.sin(a2) * 40 * s];
+    brush([sh, [lerp(sh[0], hand[0], 0.5) + 4 * s, lerp(sh[1], hand[1], 0.5)], hand], 5.5 * s, c, 1, al, 0.3);
+    brush([sh, [lerp(sh[0], hand2[0], 0.5) - 4 * s, lerp(sh[1], hand2[1], 0.5)], hand2], 5.5 * s, c, 1, al, 0.3);
+    G.globalAlpha = al; G.fillStyle = c; G.beginPath(); G.ellipse(X(head[0]), Y(head[1]), 10.5 * s * S, 12 * s * S, 0, 0, TAU); G.fill(); G.globalAlpha = 1;
+    if (o.weapon) {
+      const wa = o.wAng === undefined ? a1 : o.wAng, len = (o.weapon === "blade" ? 120 : 82) * s;
+      const tip = [hand[0] + Math.cos(wa) * len, hand[1] + Math.sin(wa) * len];
+      if (o.weapon === "poker") {
+        brush([hand, tip], 3.6 * s, c, 1, al, 0.1);
+        brush([[lerp(hand[0], tip[0], 0.86), lerp(hand[1], tip[1], 0.86)], tip], 3.6 * s, "#cfc6b6", 1, al, 0);
+      } else brush([hand, tip], 5 * s, o.blade || c, 1, al, 0.5);
+    }
+    return { head, hand, neck, hip };
+  }
+
+  // ------------------------------------------------------------ the beasts
+  // Each beast is a cluster of ink dots that the field below melts together, plus six thin legs.
+  let BLOBS = [], SHEEN = [];
+  function beast(o) {
+    const s = o.s || 1, f = o.face || 1, T = o.T || 0, d = clamp(o.deflate || 0), al = o.alpha === undefined ? 1 : o.alpha;
+    if (al <= 0.01) return;
+    const k = 1 - 0.78 * d, drop = d * 26 * s, wob = Math.sin(T / 260 + (o.seed || 0)) * (1 - d);
+    const x = o.x, y = o.y - 78 * s * (1 - 0.7 * d) + drop;
+    const body = [[-58, 6, 17], [-38, 2, 23], [-14, -2, 27], [12, -1, 26], [34, 2, 21], [50, 2, 15]];
+    for (const [bx, by, r] of body) BLOBS.push([x + bx * s * f, y + by * s * (1 - d * 0.5), r * s * k * al]);
+    // neck and head: a sinuous chain
+    const look = o.look === undefined ? 0 : o.look, rise = (1 - d) * (1 - (o.low || 0));
+    const hx = x + f * (120 + (o.lunge || 0)) * s + look * 34 * s, hy = y - (66 * rise - 14) * s + wob * 8 * s;
+    for (let i = 1; i <= 9; i++) {
+      const u = i / 10, cx = lerp(x + 52 * s * f, hx, u) + Math.sin(u * 5 + T / 300 + (o.seed || 0)) * 5 * s * rise, cy = lerp(y - 4 * s, hy, u) - Math.sin(u * Math.PI) * 26 * s * rise;
+      BLOBS.push([cx, cy, (11 - u * 3.5) * s * k * al]);
+    }
+    BLOBS.push([hx, hy, 15 * s * k * al], [hx + f * 16 * s, hy + 3 * s, 11 * s * k * al], [hx + f * 30 * s, hy + 6 * s, 7 * s * k * al]);
+    // teeth: black, knifelike, catching a little light
+    if (d < 0.5 && al > 0.5) for (let i = 0; i < 3; i++) brush([[hx + f * (14 + i * 7) * s, hy + 10 * s], [hx + f * (16 + i * 7) * s, hy + 19 * s]], 2.2 * s, INK, 1, al, 0.6);
+    // legs: slender and bent out at the sides
+    const hips = [-46, -6, 34];
+    hips.forEach((hxo, i) => {
+      for (const side of [-1, 1]) {
+        const ph = T / (o.gait || 170) + i * 2.1 + (side > 0 ? Math.PI : 0) + (o.seed || 0);
+        const step = Math.sin(ph) * (o.moving ? 10 : 2) * s;
+        const hip = [x + hxo * s * f, y + 8 * s];
+        const foot = [hip[0] + side * 4 * s + step * f + side * d * 30 * s, o.y + (side > 0 ? 2 : -6) * s - Math.max(0, Math.cos(ph)) * (o.moving ? 6 : 0) * s];
+        const knee = [hip[0] + side * 34 * s * (1 + d) + step * 0.5 * f, lerp(hip[1], foot[1], 0.3) - 34 * s * (1 - d)];
+        brush([hip, knee, foot], 2.4 * s * (1 - 0.6 * d), INK, 1, al, 0.5);
+      }
+    });
+    if (d < 0.9) SHEEN.push([x - 10 * s * f, y - 12 * s, 30 * s, al * (1 - d)], [x + 24 * s * f, y - 10 * s, 18 * s, al * (1 - d)], [hx - f * 2 * s, hy - 4 * s, 9 * s, al * (1 - d)]);
+  }
+  // A beast cut in two: halves drift apart and empty out.
+  function halves(o) {
+    const u = clamp(o.u), s = o.s || 1;
+    if (u <= 0) return beast(o);
+    const gap = out(u) * 40 * s, d = clamp(u * 1.2), al = 1 - sm(0.6, 1, u);
+    for (const side of [-1, 1]) {
+      const y = o.y - 40 * s * (1 - d) + d * 20 * s;
+      BLOBS.push([o.x + side * (24 * s + gap), y, 32 * s * (1 - 0.8 * d) * al], [o.x + side * (52 * s + gap * 1.3), y + 4 * s, 22 * s * (1 - 0.8 * d) * al]);
+      brush([[o.x + side * (30 * s + gap), y + 10 * s], [o.x + side * (50 * s + gap), o.y]], 3 * s * (1 - d), INK, 1, al, 0.4);
+    }
+  }
+
+  // ------------------------------------------------------------ smoke, dust, sparks
+  // Particles are worked out from the clock (no state), so scrubbing lands anywhere.
+  function smoke(T, e) {
+    const per = 1000 / e.rate, first = Math.max(0, Math.floor((T - e.t0 - e.life) / per)), last = Math.floor((Math.min(T, e.t1) - e.t0) / per);
+    for (let i = first; i <= last; i++) {
+      const born = e.t0 + i * per, age = (T - born) / 1000;
+      if (age < 0 || age * 1000 > e.life) continue;
+      const u = age * 1000 / e.life, h1 = hash(i, e.seed), h2 = hash(i, e.seed + 1);
+      const vx = e.vx + (h1 - 0.5) * e.spread, vy = e.vy + (h2 - 0.5) * e.spread * 0.4;
+      const x = e.x + vx * age * (1 - u * 0.4) + Math.sin(age * 2 + h1 * 6) * 10;
+      const y = e.y + vy * age - 40 * age * age;
+      const r = (e.size * (0.4 + u * 1.6)) * S, a = (1 - u) * (1 - u) * (e.a || 0.8);
+      G.globalAlpha = a; G.drawImage(SMOKE, X(x) - r, Y(y) - r, r * 2, r * 2);
+    }
+    G.globalAlpha = 1;
+  }
+  function specks(T, e) {
+    for (let i = 0; i < e.n; i++) {
+      const age = (T - e.t0 - hash(i, e.seed) * 300) / 1000;
+      if (age < 0 || age > e.life) continue;
+      const a = hash(i, e.seed + 1) * TAU, sp = e.speed * (0.3 + hash(i, e.seed + 2));
+      const dist = sp * (1 - Math.exp(-age * 2.2)) / 2.2;
+      const x = e.x + Math.cos(a) * dist, y = e.y + Math.sin(a) * dist * 0.6 + age * age * e.fall;
+      const al = (1 - age / e.life) * e.a;
+      G.globalAlpha = al; G.fillStyle = e.col;
+      G.fillRect(X(x), Y(y), Math.max(1, e.r * S), Math.max(1, e.r * S));
+    }
+    G.globalAlpha = 1;
+  }
+
+  // the wash: night laid over the paper, with holes where light falls
+  function wash(a, lights) {
+    const fw = WC.width, fh = WC.height;
+    WX.globalCompositeOperation = "source-over"; WX.clearRect(0, 0, fw, fh);
+    WX.fillStyle = `rgba(26,20,36,${a})`; WX.fillRect(0, 0, fw, fh);
+    WX.globalCompositeOperation = "destination-in"; WX.drawImage(MOTTLE, 0, 0);
+    WX.globalCompositeOperation = "destination-out";
+    for (const [x, y, r, k] of lights) {
+      if (k <= 0) continue;
+      const cx = X(x) * FS, cy = Y(y) * FS, R = r * S * FS;
+      const g = WX.createRadialGradient(cx, cy, 0, cx, cy, R);
+      g.addColorStop(0, `rgba(0,0,0,${clamp(k)})`); g.addColorStop(1, "rgba(0,0,0,0)");
+      WX.fillStyle = g; WX.fillRect(cx - R, cy - R, R * 2, R * 2);
+    }
+    WX.globalCompositeOperation = "source-over";
+    G.drawImage(WC, 0, 0, W, H);
+  }
+
+  // the ink field: dots summed at low resolution, then cut at a threshold so they melt together
+  function inkField() {
+    const fw = FC.width, fh = FC.height;
+    FX.globalCompositeOperation = "source-over"; FX.fillStyle = "#000"; FX.fillRect(0, 0, fw, fh);
+    FX.globalCompositeOperation = "lighter";
+    for (const [x, y, r] of BLOBS) {
+      if (r <= 0.5) continue;
+      const R = r * 1.5 * S * FS;
+      FX.drawImage(DOT, X(x) * FS - R, Y(y) * FS - R, R * 2, R * 2);
+    }
+    const src = FX.getImageData(0, 0, fw, fh).data, dst = IMG.data;
+    for (let i = 0, n = fw * fh * 4; i < n; i += 4) {
+      const v = src[i];
+      if (v < 22) { dst[i + 3] = 0; continue; }
+      const core = clamp((v - 104) / 30), halo = clamp((v - 40) / 90) * 0.07;
+      dst[i] = INKRGB[0]; dst[i + 1] = INKRGB[1]; dst[i + 2] = INKRGB[2];
+      dst[i + 3] = 255 * Math.max(core * 0.96, halo);
+    }
+    IX.putImageData(IMG, 0, 0);
+    G.imageSmoothingEnabled = true; G.imageSmoothingQuality = "high";
+    G.drawImage(IC, 0, 0, W, H);
+    for (const [x, y, r, a] of SHEEN) brush(arc(x, y, r, -2.6, -1.5, 8), 2.6, "rgba(236,226,206,.95)", 1, 0.55 * a, 0.95);
+  }
+
+  function wound(x, y, ang, T, t0, healAt) {
+    const a = sm(t0, t0 + 300, T) * (1 - sm(healAt, healAt + 1200, T));
+    if (a <= 0) return;
+    brush([[x - Math.cos(ang) * 9, y - Math.sin(ang) * 9], [x + Math.cos(ang) * 9, y + Math.sin(ang) * 9]], 4, "#a8281e", sm(t0, t0 + 200, T), a * 0.9, 0.9);
+  }
+
+  // ------------------------------------------------------------ panel 1: the barn
+  const dBarn = track([[0, [640, 760]], [7700, [640, 760]], [8300, [480, 770], out], [12300, [480, 770]], [13000, [470, 770]], [16800, [1560, 770], lin]]);
+  const bBarn = track([[7000, [1330, 760]], [7600, [1060, 765], out], [8250, [650, 770]], [10500, [760, 770]], [12200, [860, 770]], [18000, [900, 770]]]);
+  function barn(T) {
+    const open = sm(7000, 7300, T);
+    const lights = [[1330, 560, 520, open * 0.75]];
+    // boards and floor
+    for (let i = 0; i < 9; i++) {
+      const x = 170 + i * 150;
+      const broken = x > 1200 ? open : 0;
+      brush([[x + hash(i, 1) * 10, 260], [x + 6, 520], [x + hash(i, 2) * 10, 790]], 3 + hash(i, 3) * 2, INK, 1, 0.5 * (1 - broken), 0.6);
+    }
+    brush([[110, 800], [800, 794], [1500, 802]], 4, INK, 1, 0.55, 0.5);
+    // grain sacks
+    const torn = sm(12000, 12400, T);
+    for (let i = 0; i < 3; i++) brush(arc(800 + i * 70, 790, 34, Math.PI, TAU, 10, 0.9), 3, INK, 1, 0.6 * (1 - (i === 1 ? torn : 0)), 0.5);
+    wash(0.7 - open * 0.12, lights);
+    glow(VIOLET, 1340, 560, 360, open * 0.35);
+    // scratches on the far wall
+    for (let i = 0; i < 4; i++) brush([[1250 + i * 14, 560 + i * 18], [1290 + i * 10, 620 + i * 20]], 1.6, "#cfc3ad", sm(2600 + i * 900, 3300 + i * 900, T), 0.55 * (1 - open), 0.6);
+    // the wall bursts: splinters and spattered ink
+    if (T > 7000 && T < 9000) {
+      const u = (T - 7000) / 2000;
+      for (let i = 0; i < 14; i++) {
+        const a = Math.PI * 0.6 + hash(i, 4) * Math.PI * 0.8, d = out(u) * (160 + hash(i, 5) * 260);
+        const x = 1300 + Math.cos(a) * d, y = 560 + Math.sin(a) * d * 0.6 + u * u * 160, rot = a + u * 6 * (hash(i, 6) - 0.5);
+        brush([[x, y], [x + Math.cos(rot) * 26, y + Math.sin(rot) * 26]], 3, INK, 1, 1 - u, 0.3);
+        BLOBS.push([1310 + Math.cos(a) * d * 0.7, 600 + Math.sin(a) * d * 0.4, (16 - u * 16) * hash(i, 7)]);
+      }
+    }
+    // Dalinar and Seeli
+    const [dx, dy] = dBarn(T), run = T > 13000, roll = sm(7700, 8300, T) * (1 - sm(8300, 9000, T)), throwU = sm(12000, 12500, T) * (1 - sm(12600, 13100, T));
+    figure({ x: dx, y: dy, face: T > 12900 ? 1 : 1, crouch: run ? 0.15 : 0.45 + roll * 0.5, lean: run ? 0.55 : 0.1 + roll, arm: throwU ? lerp(1.1, -1.2, throwU) : run ? 0.4 : 1.5, arm2: run ? 2.6 : 2.2, spread: run ? 30 + Math.sin(T / 90) * 12 : 22 });
+    const kid = T < 12900 ? [dx - 50, dy] : [dx + 4, dy - 92];
+    figure({ x: kid[0], y: kid[1], s: 0.5, face: 1, dress: true, alpha: T > 12900 && T < 13000 ? 0 : 1, arm: 0.2, arm2: 0.6, crouch: T > 12900 ? 0 : 0.3 });
+    // the beast
+    if (T > 7000) {
+      const [bx, by] = bBarn(T), leap = sm(7600, 7900, T) * (1 - sm(7950, 8250, T));
+      const conf = sm(12300, 12900, T);
+      beast({ x: bx, y: by - leap * 130, face: T < 10000 ? -1 : 1, T, s: 1.05, moving: T < 12200, lunge: leap * 30, look: conf * Math.sin(T / 330) * 1.4, seed: 1, alpha: sm(7000, 7400, T) });
+    }
+    // lavis dust
+    specks(T, { t0: 12250, n: 170, x: 840, y: 720, speed: 520, life: 5.5, fall: 18, r: 3, a: 0.85, col: "#efe4cc", seed: 20 });
+    if (T > 12250) glow(DUST, 860, 700, 300 * sm(12250, 13500, T), 0.32 * (1 - sm(14500, 17500, T)));
+  }
+
+  // ------------------------------------------------------------ panel 2: the farmhouse
+  const dHouse = track([[18000, [1060, 770]], [19700, [1060, 770]], [20300, [1000, 790], out], [21600, [1000, 790]], [22300, [640, 770]], [25000, [640, 770]], [26000, [1080, 770]], [27200, [1040, 770]], [28200, [1130, 770]], [31800, [1100, 770]], [32400, [1040, 790]], [33600, [980, 770]], [35200, [900, 770]], [38000, [900, 770]]]);
+  const b1House = track([[19300, [1330, 600]], [19700, [1080, 760], out], [21600, [1080, 760]], [22000, [1300, 770], out], [25000, [880, 770]], [26200, [900, 770]], [32000, [830, 770]], [32300, [1040, 740]], [33200, [1260, 770], out], [34200, [1210, 770]], [35300, [1000, 790]], [38000, [1000, 790]]]);
+  const b2House = track([[23500, [1320, 560]], [24600, [1340, 770], out], [27600, [1280, 770]], [28300, [1240, 770]], [38000, [1240, 770]]]);
+  function house(T) {
+    const lamp = sm(21600, 22000, T), flick = 0.92 + Math.sin(T / 70) * 0.04 + Math.sin(T / 23) * 0.03;
+    const lights = [[420, 600, 820, lamp * 0.95 * flick], [1260, 440, 380, 0.45]];
+    // the house: floor, hearth, window
+    brush([[90, 800], [900, 796], [1520, 804]], 4, INK, 1, 0.6, 0.5);
+    brush(arc(560, 790, 80, Math.PI, TAU, 14), 5, INK, 1, 0.6, 0.4);
+    const shatter = sm(19300, 20200, T);
+    const fr = [[1160, 360], [1380, 360], [1380, 560], [1160, 560], [1160, 360]];
+    for (let i = 0; i < 4; i++) {
+      const a = fr[i], b = fr[i + 1], k = i === 2 ? shatter : shatter * 0.6;
+      const ox = k * (i - 1.5) * 90, oy = k * k * 240;
+      brush([[a[0] + ox, a[1] + oy], [b[0] + ox, b[1] + oy]], 4.5, INK, 1, 0.65 * (1 - sm(19800, 21000, T) * (i === 2 ? 1 : 0.2)), 0.4);
+    }
+    // the poker by the hearth, until he takes it
+    if (T < 21700) brush([[650, 700], [672, 790]], 3.5, INK, 1, 0.8, 0.1);
+    wash(0.62 - lamp * 0.14, lights);
+    glow(LAMP, 420, 600, 360, lamp * 0.5 * flick);
+    glow(VIOLET, 1270, 450, 230, 0.25);
+    // Taffa with the lamp, Seeli at her side
+    figure({ x: 390, y: 790, face: 1, dress: true, arm: lamp ? -0.5 : 1.3, arm2: 1.9, alpha: 1 });
+    figure({ x: 340, y: 790, s: 0.52, face: 1, dress: true });
+    if (lamp) dab(390 + Math.cos(-0.5) * 46, 790 - 64 - 50 + 7 + Math.sin(-0.5) * 46, 6, "#f3c46a", 1);
+    // Dalinar
+    const [dx, dy] = dHouse(T);
+    const down = sm(19700, 20000, T) * (1 - sm(20300, 20900, T));
+    const holds = T > 21900, smoke1 = T > 24500;
+    const thrust = sm(27900, 28200, T) * (1 - sm(29000, 29600, T)), slam = sm(34400, 34700, T);
+    const spin = T > 25000 && T < 26100 ? Math.sin((T - 25000) / 1100 * TAU) : 0;
+    let face = T < 22000 ? -1 : T < 25000 ? 1 : T < 27200 ? -1 : T < 31800 ? 1 : T < 33600 ? -1 : 1;
+    if (T > 33600 && T < 34400) face = 1;
+    const fx = dx, fy = dy;
+    if (T >= 34000) {
+      const raise = sm(33800, 34300, T) * (1 - slam);
+      figure({ x: fx, y: fy, face: 1, crouch: 0.2 + slam * 0.3, lean: slam * 0.5, arm: lerp(1.0, -1.4, raise), arm2: lerp(0.9, -1.3, raise), weapon: T < 35600 ? "poker" : null, wAng: lerp(1.25, -1.6, raise) });
+    } else {
+      figure({ x: fx, y: fy, face, crouch: down ? 0.6 * down : holds ? 0.32 : 0.1, lean: down ? -0.6 * down : holds ? 0.3 + thrust * 0.5 + spin * 0.3 : 0.1, arm: holds ? (face > 0 ? -0.15 + thrust * 0.2 : Math.PI + 0.15 - thrust * 0.2) : undefined, arm2: holds ? (face > 0 ? 2.3 : Math.PI - 2.3) : undefined, weapon: holds ? "poker" : null, spread: holds ? 34 : 22 });
+    }
+    // the stance, drawn as a teaching diagram: one foot forward, one behind, tip toward the heart
+    const diag = sm(22300, 22800, T) * (1 - sm(24400, 25000, T));
+    if (diag > 0) {
+      dab(640 + 34, 778, 7, "#a8281e", diag * 0.9); dab(640 - 27, 778, 7, "#a8281e", diag * 0.9);
+      for (let i = 0; i < 9; i++) dab(lerp(760, 1240, i / 8), lerp(660, 700, i / 8), 2.5, "#a8281e", diag * 0.7 * sm(22500 + i * 120, 22700 + i * 120, T));
+    }
+    // the beasts
+    const d2 = sm(28200, 30600, T), d1 = sm(34700, 37000, T);
+    if (T > 19300) {
+      const [x, y] = b1House(T), leap = (T < 19800 ? sm(19300, 19700, T) : 0) + sm(32000, 32150, T) * (1 - sm(32250, 33100, T));
+      const flip = sm(32300, 33200, T);
+      beast({ x, y: y - leap * 80 - flip * Math.sin(flip * Math.PI) * 180, face: T < 21700 ? -1 : T < 32300 ? (T < 26200 ? -1 : 1) : -1, T, s: 1, moving: (T > 21700 && T < 25000) || (T > 26200 && T < 32000), deflate: d1, low: sm(35300, 35600, T), seed: 2, lunge: T > 31800 && T < 32300 ? 30 : 0 });
+    }
+    if (T > 23500) beast({ x: b2House(T)[0], y: b2House(T)[1], face: -1, T, s: 0.98, moving: T < 27600, deflate: d2, seed: 4, lunge: T > 26400 && T < 27200 ? 40 : 0 });
+    // smoke: the gash, the thrust, the slam
+    smoke(T, { t0: 25600, t1: 27600, rate: 14, life: 1800, x: 900, y: 700, vx: -20, vy: -50, spread: 50, size: 22, seed: 30, a: 0.6 });
+    smoke(T, { t0: 28100, t1: 30300, rate: 38, life: 2600, x: 1230, y: 715, vx: 60, vy: -110, spread: 140, size: 34, seed: 31 });
+    smoke(T, { t0: 34600, t1: 36800, rate: 34, life: 2600, x: 960, y: 740, vx: 0, vy: -150, spread: 120, size: 32, seed: 32 });
+    // his wounds
+    wound(dx - 6, dy - 128, 0.6, T, 19750, 99999);
+    wound(dx + 14, dy - 82, -0.4, T, 20000, 99999);
+    wound(dx - 18, dy - 108, 0.3, T, 32050, 99999);
+  }
+
+  // ------------------------------------------------------------ panels 3 and 4: the hillside and the starfall
+  const HERD = Array.from({ length: 12 }, (_, i) => {
+    const left = i % 4 === 0;
+    return { i, sx: left ? -160 - hash(i, 41) * 120 : 1250 + hash(i, 42) * 320, sy: 770 + (hash(i, 43) - 0.5) * 60,
+      ring: 200 + hash(i, 44) * 360, ang: left ? -0.2 : 0, s: 0.62 + hash(i, 45) * 0.22, seed: i * 1.7,
+      cut: i < 7 ? 56600 + i * 520 : 63300 + (i - 7) * 650, by: i < 7 ? "blue" : i === 9 ? "dalinar" : "amber" };
+  });
+  const dHill = track([[38000, [560, 780]], [45000, [560, 780]], [46000, [640, 780]], [47000, [520, 780]], [48500, [600, 780]], [49400, [360, 790]], [61600, [360, 790]], [62700, [800, 790]], [69000, [800, 790]]]);
+  const kBlue = track([[54600, [1000, 790]], [56400, [1000, 790]], [57200, [1120, 790]], [58200, [880, 790]], [59400, [1050, 790]], [62500, [1000, 790]], [63500, [960, 790]], [69000, [960, 790]]]);
+  const kAmber = track([[60600, [460, 790]], [62000, [460, 790]], [62900, [1180, 760]], [69000, [1180, 760]]]);
+  function hill(T) {
+    const lampOn = T < 42600, fire = sm(42700, 42900, T) * (1 - sm(48000, 52000, T));
+    const blueOn = sm(54500, 54800, T), amberOn = sm(60500, 61000, T);
+    const [kx] = kBlue(T), [ax, ay] = kAmber(T);
+    const lights = [[1220, 330, 360, 0.9], [300, 700, 420, lampOn ? 0.8 : 0], [760, 760, 380, fire * 0.7], [kx, 700, 760, blueOn * 0.85], [ax, ay - 60, 560, amberOn * 0.8]];
+    // Salas, the rock face and the ground
+    G.globalAlpha = 0.5; G.fillStyle = "#b9a3d6"; G.beginPath(); G.arc(X(1220), Y(330), 30 * S, 0, TAU); G.fill(); G.globalAlpha = 1;
+    // the rock: tall and flat, laid in with a wet brush and a few dry streaks
+    G.globalAlpha = 0.78; G.fillStyle = INK; G.beginPath();
+    G.moveTo(X(-60), Y(810)); G.lineTo(X(-60), Y(300)); G.lineTo(X(40), Y(282)); G.lineTo(X(120), Y(300)); G.lineTo(X(190), Y(286));
+    G.quadraticCurveTo(X(232), Y(420), X(224), Y(560)); G.quadraticCurveTo(X(238), Y(700), X(250), Y(810)); G.closePath(); G.fill(); G.globalAlpha = 1;
+    for (let i = 0; i < 7; i++) brush([[20 + i * 28, 310 + hash(i, 54) * 40], [14 + i * 30 + hash(i, 55) * 10, 520], [26 + i * 30, 640 + hash(i, 56) * 120]], 3 + hash(i, 57) * 4, "#cbbd9f", 1, 0.12 + hash(i, 58) * 0.12, 0.8);
+    brush([[80, 810], [600, 802], [1100, 812], [1560, 800]], 5, INK, 1, 0.55, 0.5);
+    for (let i = 0; i < 7; i++) brush(arc(420 + i * 170 + hash(i, 50) * 50, 812, 18 + hash(i, 51) * 16, Math.PI, TAU, 8, 0.7), 3, INK, 1, 0.45, 0.6);
+    // the crack where the light lands
+    const crack = sm(54600, 54900, T);
+    for (let i = 0; i < 9; i++) {
+      const a = Math.PI + (i / 8) * Math.PI, l = 60 + hash(i, 52) * 140;
+      brush([[1000, 800], [1000 + Math.cos(a) * l * 0.5 + 10, 800 + Math.sin(a) * l * 0.18 + 6], [1000 + Math.cos(a) * l, 800 + Math.abs(Math.sin(a)) * 18]], 3.2, INK, crack, 0.75, 0.7);
+    }
+    wash(0.58 - blueOn * 0.1, lights);
+    glow(VIOLET, 1220, 330, 220, 0.4);
+    if (lampOn) glow(LAMP, 300, 690, 220, 0.5);
+    for (let i = 0; i < 5; i++) glow(FIRE, 740 + i * 22 + Math.sin(T / 60 + i) * 8, 790 - 20 - hash(i, 53) * 30 - Math.abs(Math.sin(T / 110 + i)) * 26, 70, fire * 0.55);
+    // the thrown lamp
+    if (T > 42100 && T < 42800) { const u = (T - 42100) / 700; dab(lerp(300, 760, u), lerp(690, 790, u) - Math.sin(u * Math.PI) * 140, 6, "#f3c46a", 1); }
+    // the starfall
+    if (T > 53300 && T < 54700) {
+      const u = sm(53300, 54600, T), y = lerp(-80, 790, u * u);
+      for (let k = 0; k < 10; k++) glow(BLUE, 1000 + (1 - u) * 60 - k * 0.6, y - k * 40, 70 - k * 4, 0.9 - k * 0.08);
+      brush([[1000 + (1 - u) * 60, y], [1000 + (1 - u) * 60 + 6, y - 300]], 7, "#eef6ff", 1, 0.95, 0.9);
+      glow("rgba(235,245,255,A)", 1000 + (1 - u) * 60, y, 40, 1);
+    }
+    glow(BLUE, 1000, 780, 900 * out(clamp((T - 54600) / 1200)), 0.8 * (1 - sm(54700, 56500, T)) * sm(54500, 54650, T));
+    glow("rgba(240,248,255,A)", 1000, 790, 260, (1 - sm(54650, 55300, T)) * sm(54550, 54620, T));
+    specks(T, { t0: 54600, n: 40, x: 1000, y: 790, speed: 700, life: 1.6, fall: 500, r: 4, a: 0.9, col: INK, seed: 140 });
+    // Taffa and Seeli against the rock
+    const healed = sm(61000, 61800, T), mauled = sm(50000, 50400, T) * (1 - healed);
+    figure({ x: 300, y: 800, face: 1, dress: true, crouch: mauled * 0.6, lean: mauled * -0.4, arm: lampOn ? -0.6 : 1.4, arm2: 1.9 });
+    if (lampOn) dab(300 + Math.cos(-0.6) * 46, 800 - 64 - 50 + 7 + Math.sin(-0.6) * 46, 6, "#f3c46a", 1);
+    const shield = sm(49200, 49600, T) * (1 - sm(61600, 62000, T));
+    figure({ x: 250 + shield * 120, y: 800, s: 0.52, face: 1, dress: true });
+    // Dalinar
+    const [dx, dy] = dHill(T);
+    const sweep = T > 45000 && T < 48600 ? Math.sin((T - 45000) / 600) : 0;
+    const looking = sm(52800, 53300, T) * (1 - sm(56000, 57000, T));
+    figure({ x: dx, y: dy, face: T > 49400 && T < 61600 ? -1 : 1, crouch: shield * 0.75 + 0.1, lean: shield * 0.7 - looking * 0.5, arm: shield ? Math.PI - 1.0 : -0.6 + sweep * 1.1, arm2: shield ? Math.PI - 1.6 : 2.4, weapon: shield ? null : "poker", wAng: shield ? undefined : -0.9 + sweep * 1.5, spread: 30 });
+    if (shield && T < 61600) brush([[dx - 10, dy - 6], [dx + 40, dy - 4]], 7, INK, 1, 0.9, 0.2);
+    // Windstance: wide, sweeping arcs
+    for (let k = 0; k < 3; k++) {
+      const t0 = 45200 + k * 1100, u = sm(t0, t0 + 700, T), fade = 1 - sm(t0 + 900, t0 + 1800, T);
+      brush(arc(dx + 10, dy - 110, 120 + k * 14, -2.6 + k * 0.5, -2.6 + k * 0.5 + 3.4, 26, 0.55), 7, INK, u, 0.55 * fade, 0.95);
+    }
+    // the knights
+    if (blueOn > 0) {
+      const rise = sm(54900, 55700, T), slash = Math.sin(T / 140);
+      glow(BLUE, kx, 700, 170, 0.55 * blueOn);
+      figure({ x: kx, y: 800, s: 1.12, face: T > 58200 && T < 59400 ? -1 : 1, crouch: 0.9 - rise * 0.7, col: "#2f5fb8", weapon: "blade", blade: "#9cc6ff", arm: T > 56000 && T < 63000 ? -0.8 + slash * 1.2 : -1.1, wAng: T > 56000 && T < 63000 ? -1 + slash * 1.6 : -1.3, alpha: blueOn });
+      for (let k = 0; k < 6; k++) { const yy = 600 - ((T / 6 + k * 70) % 260); glow(BLUE, kx + Math.sin(T / 300 + k) * 20, yy, 22, 0.35 * blueOn * (1 - sm(560, 340, yy))); }
+    }
+    if (amberOn > 0) {
+      glow(AMBER, ax, ay - 70, 150, 0.6 * amberOn);
+      figure({ x: ax, y: ay, s: 1.0, face: T < 62000 ? -1 : -1, crouch: T < 62000 ? 0.6 : 0.2, col: "#9a5c14", weapon: T > 62000 ? "blade" : null, blade: "#ffd49a", arm: T < 62000 ? Math.PI + 0.5 : -0.7 + Math.sin(T / 150) * 1.1, wAng: -0.9 + Math.sin(T / 150) * 1.5, alpha: amberOn });
+      if (T < 62000) glow(AMBER, ax - 40, ay - 130, 60, 0.9 * sm(60800, 61100, T));
+    }
+    // the triangle
+    const tri = sm(63000, 63600, T) * (1 - sm(67000, 68500, T));
+    if (tri > 0) { const pts = [[dx, dy - 130], [kx, 660], [ax, ay - 130], [dx, dy - 130]]; for (let i = 0; i < 3; i++) for (let k = 0; k < 12; k++) dab(lerp(pts[i][0], pts[i + 1][0], k / 12), lerp(pts[i][1], pts[i + 1][1], k / 12), 2.2, "#a8281e", tri * 0.6); }
+    // the herd
+    for (const h of HERD) {
+      const arrive = sm(38300 + h.i * 160, 41200 + h.i * 180, T);
+      const close = sm(45500, 49400, T) * (h.i % 3 === 0 ? 1 : 0.55);
+      const recoil = sm(54600, 55100, T);
+      const a = h.ang + (h.i / 12) * 0.9 - 0.45;
+      let tx = 560 + (h.sx < 0 ? -1 : 1) * h.ring * Math.cos(a * 0.3), ty = h.sy;
+      tx = lerp(tx, (h.sx < 0 ? 250 : 470) + (h.i % 5) * 34, close);
+      tx = lerp(tx, tx + (tx < 1000 ? -1 : 1) * 60, recoil * (1 - sm(55400, 56000, T)));
+      // after the fall they turn on the blue knight
+      // the page: they throw themselves at him, ignoring Dalinar and the others
+      const target = h.by === "blue" ? kx + (h.i % 2 ? 90 : -90) : [1070, 1290, 900, 1360, 1010][h.i - 7];
+      const rush = h.by === "blue" ? sm(55500, Math.max(55600, h.cut - 200), T) : sm(55500, 57500, T);
+      let x = lerp(lerp(h.sx, tx, arrive), target, rush), y = lerp(h.sy, 790, rush);
+      const u = sm(h.cut, h.cut + 1400, T);
+      const face = x < (rush > 0.5 ? target : dx) ? 1 : -1;
+      if (u <= 0) beast({ x, y, s: h.s, face, T, moving: arrive < 1 || rush > 0, seed: h.seed, alpha: sm(38300 + h.i * 160, 39000 + h.i * 160, T), lunge: close * 20 });
+      else if (h.by === "dalinar") { beast({ x, y, s: h.s, face, T, deflate: u, seed: h.seed }); }
+      else halves({ x, y, s: h.s, u });
+      if (h.by !== "dalinar") {
+        const sw = sm(h.cut - 160, h.cut + 40, T) * (1 - sm(h.cut + 200, h.cut + 700, T));
+        if (sw > 0) brush(arc(x, y - 50 * h.s, 80 * h.s, -2.2, 0.6, 18, 0.5), 5, h.by === "blue" ? "#8fc0ff" : "#ffcf8a", sw, 0.9, 0.95);
+      }
+      smoke(T, { t0: h.cut, t1: h.cut + 900, rate: 26, life: 2000, x, y: y - 40 * h.s, vx: 0, vy: -90, spread: 120, size: 24 * h.s, seed: 60 + h.i * 3, a: 0.7 });
+    }
+    // his wounds, healed by Regrowth
+    wound(dx + 12, dy - 120, 0.5, T, 38000, 60800);
+    wound(dx - 16, dy - 104, -0.3, T, 38000, 60800);
+    wound(dx + 2, dy - 90, 1.2, T, 46900, 60800);
+    wound(dx - 10, dy - 96, 0.2, T, 49800, 60800);
+  }
+
+  // ------------------------------------------------------------ panel 5: the voice, and the barrack
+  function voice(T) {
+    const rain = sm(74500, 75500, T);
+    brush([[80, 700], [700, 690], [1500, 705]], 3, INK, 1, 0.5 * (1 - rain), 0.5);
+    // the village in its hollow, under a rock shaped like a wave
+    G.globalAlpha = 0.6 * (1 - rain); G.fillStyle = INK; G.beginPath();
+    G.moveTo(X(860), Y(702)); G.quadraticCurveTo(X(1100), Y(420), X(1420), Y(450)); G.quadraticCurveTo(X(1520), Y(470), X(1460), Y(560));
+    G.quadraticCurveTo(X(1420), Y(500), X(1340), Y(520)); G.quadraticCurveTo(X(1100), Y(560), X(940), Y(702)); G.closePath(); G.fill(); G.globalAlpha = 1;
+    for (let i = 0; i < 10; i++) {
+      const hx = 900 + i * 52 + hash(i, 76) * 20, hw = 26 + hash(i, 77) * 14, hh = 18 + hash(i, 78) * 10;
+      G.globalAlpha = 0.6 * (1 - rain); G.fillStyle = INK;
+      G.fillRect(X(hx), Y(700 - hh), hw * S, hh * S);
+      G.beginPath(); G.moveTo(X(hx - 4), Y(700 - hh)); G.lineTo(X(hx + hw / 2), Y(700 - hh - 14)); G.lineTo(X(hx + hw + 4), Y(700 - hh)); G.fill(); G.globalAlpha = 1;
+      if (hash(i, 79) > 0.5) glow(FIRE, hx + hw / 2, 690 - hh, 30, 0.35 * (1 - rain) * (0.8 + Math.sin(T / 90 + i) * 0.2));
+    }
+    wash(0.62 - rain * 0.3, [[1250, 260, 300, 0.8 * (1 - rain)]]);
+    glow(VIOLET, 1250, 260, 200, 0.35 * (1 - rain));
+    for (let i = 0; i < 9; i++) {
+      const t0 = 69400 + i * 520 + hash(i, 71) * 300, u = clamp((T - t0) / 900), x = 900 + hash(i, 72) * 520;
+      if (u > 0 && u < 1) for (let k = 0; k < 6; k++) glow(BLUE, x + k * 2, lerp(-40, 690, u * u) - k * 24, 30 - k * 3, (0.85 - k * 0.12) * (1 - rain));
+      if (u >= 1) glow(BLUE, x, 690, 40, 0.5 * (1 - sm(t0 + 900, t0 + 3500, T)) * (1 - rain));
+    }
+    figure({ x: 560, y: 700, s: 0.9, face: 1, alpha: 1 - rain });
+    figure({ x: 650, y: 700, s: 0.9, face: -1, dress: true, alpha: 1 - rain });
+    figure({ x: 690, y: 700, s: 0.48, face: -1, dress: true, alpha: 1 - rain });
+    if (rain > 0) for (let i = 0; i < 70; i++) {
+      const x = hash(i, 73) * 1700 - 50, y = ((T - 74500) * (0.9 + hash(i, 74) * 0.4) + hash(i, 75) * 900) % 960 - 40;
+      brush([[x, y], [x - 8, y + 34]], 1.6, INK, 1, 0.35 * rain, 0.3);
+    }
+    if (rain > 0) {
+      brush([[220, 380], [800, 250], [1380, 380]], 6, INK, sm(75000, 76200, T), 0.6, 0.4);
+      brush([[260, 380], [260, 790]], 5, INK, sm(75300, 76400, T), 0.55, 0.4);
+      brush([[1340, 380], [1340, 790]], 5, INK, sm(75300, 76400, T), 0.55, 0.4);
+      figure({ x: 800, y: 780, s: 0.9, face: 1, crouch: 0.5, alpha: sm(75600, 76400, T), arm: 2.5, arm2: 0.6 });
+      for (const [x, f] of [[700, 1], [905, -1], [640, 1]]) figure({ x, y: 780, s: 0.85, face: f, lean: 0.3, alpha: sm(75800, 76600, T), arm: f > 0 ? 0.3 : Math.PI - 0.3, arm2: f > 0 ? 0.6 : Math.PI - 0.6 });
+    }
+  }
+
+  // ------------------------------------------------------------ one frame
+  function seal() {
+    const s = 52 * S0, x = W - s - 20 * S0, y = 20 * S0;
+    G.globalAlpha = 0.88; G.fillStyle = "#a8281e"; G.fillRect(x, y, s, s);
+    G.fillStyle = "#efe2c8"; G.font = `${Math.round(26 * S0)}px Fell, Georgia, serif`; G.textAlign = "center"; G.textBaseline = "middle";
+    G.fillText("19", x + s / 2, y + s / 2 + 2 * S0); G.globalAlpha = 1;
+  }
+  function draw(T) {
+    BLOBS = []; SHEEN = [];
+    G.globalAlpha = 1; G.globalCompositeOperation = "source-over";
+    G.drawImage(PAPER, 0, 0);
+    let pa = 1, panel = 0;
+    for (let i = 0; i < PANELS.length; i++) if (T >= PANELS[i][0]) panel = i;
+    const [p0, p1] = PANELS[panel];
+    if (panel > 0) pa = Math.min(pa, sm(p0, p0 + 700, T));
+    if (panel < PANELS.length - 1) pa = Math.min(pa, 1 - sm(p1 - 500, p1, T));
+    const narrow = W / H < 1.5 ? 0.84 : 1, CAMS = [[880, 610, 1.7], [narrow < 1 ? 780 : 820, 630, 1.45], [narrow < 1 ? 790 : 700, 620, 1.3], [800, 560, 1.2]];
+    cam(CAMS[panel][0], CAMS[panel][1], CAMS[panel][2] * narrow);
+    [barn, house, hill, voice][panel](T);
+    inkField();
+    if (panel === 1) {
+      // keep the smoke above the ink
+      smoke(T, { t0: 28100, t1: 30300, rate: 12, life: 2200, x: 1230, y: 700, vx: 40, vy: -140, spread: 90, size: 26, seed: 81, a: 0.5 });
+      smoke(T, { t0: 34600, t1: 36800, rate: 12, life: 2200, x: 960, y: 720, vx: 0, vy: -160, spread: 90, size: 26, seed: 82, a: 0.5 });
+    }
+    if (pa < 1) { G.globalAlpha = 1 - pa; G.drawImage(PAPER, 0, 0); G.globalAlpha = 1; }
+    seal();
+  }
+
+  // ------------------------------------------------------------ the clock and the controls
+  const titleEl = document.getElementById("title"), card = document.getElementById("card"), seals = document.getElementById("seals");
+  const scrub = document.getElementById("scrub"), done = document.getElementById("done"), timeEl = document.getElementById("time");
+  const playBtn = document.getElementById("play"), startBtn = document.getElementById("start");
+  const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15L19.5 12z"/></svg>';
+  const PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg>';
+  const REPLAY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4.5 12a7.5 7.5 0 107.5-7.5H8"/><path d="M10.5 1.8L7.6 4.6l2.9 2.8"/></svg>';
+  const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"];
+  scrub.max = String(TOTAL);
+  document.getElementById("ticks").innerHTML = BEATS.slice(1).map((b) => `<i class="tk" style="left:${(b.t0 / TOTAL * 100).toFixed(2)}%"></i>`).join("");
+  seals.innerHTML = BEATS.map((b, i) => `<button type="button" data-i="${i}" aria-label="Scene ${i + 1}: ${P.esc(b.title)}">${ROMAN[i]}</button>`).join("");
+  const mmss = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  // with reduced motion, each scene is shown as one still: its settled moment
+  const rmT = (x) => (P.reducedMotion ? Math.max(BEATS[beatAt(x)].t0, BEATS[beatAt(x)].t1 - 900) : x);
+
+  let t = 0, playing = false, last = 0, dirty = true, shown = -1, started = false;
+  const POSTER = 56900;
+  function setPlaying(v) {
+    playing = v;
+    if (v) { if (t >= TOTAL - 1) t = 0; startBtn.hidden = true; started = true; titleEl.style.opacity = 1; }
+    const end = !v && t >= TOTAL - 1;
+    playBtn.innerHTML = v ? PAUSE : end ? REPLAY : PLAY;
+    playBtn.setAttribute("aria-label", v ? "Pause" : end ? "Replay" : "Play");
+    last = performance.now(); dirty = true;
+  }
+  function seek(ms) { t = clamp(ms, 0, TOTAL); startBtn.hidden = true; started = true; titleEl.style.opacity = 1; dirty = true; }
+  function showBeat(i) {
+    if (i === shown) return;
+    shown = i;
+    const b = BEATS[i];
+    titleEl.textContent = b.title; titleEl.classList.toggle("book", !!b.book);
+    seals.querySelectorAll("button").forEach((el, j) => el.setAttribute("aria-current", String(j === i)));
+    card.innerHTML = `<div class="n">${ROMAN[i]}</div><div><h3 class="${b.book ? "book" : ""}">${b.book ? "“" + P.esc(b.title) + "”" : P.esc(b.title)}</h3><p>${P.esc(b.text)} ${cite("wok:19")}</p>${b.book ? `<p class="basis">The title is the book's own line.</p>` : ""}</div>`;
+  }
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+  startBtn.addEventListener("click", () => { t = 0; setPlaying(true); });
+  scrub.addEventListener("input", () => { seek(+scrub.value); });
+  seals.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; seek(BEATS[+b.dataset.i].t0 + 1); if (!playing) setPlaying(true); });
+  document.addEventListener("keydown", (e) => {
+    if (e.target.closest("input, textarea")) return;
+    if (e.key === " " && e.target === document.body) { e.preventDefault(); setPlaying(!playing); }
+    if (e.key === "ArrowRight") seek(BEATS[Math.min(BEATS.length - 1, beatAt(t) + 1)].t0 + 1);
+    if (e.key === "ArrowLeft") seek(BEATS[Math.max(0, beatAt(t) - (t - BEATS[beatAt(t)].t0 < 1200 ? 1 : 0))].t0 + 1);
+  });
+
+  // a still for the Dispatches wall and for checking: ?t=56900
+  const qs = new URLSearchParams(location.search);
+  if (qs.has("t")) { t = +qs.get("t"); started = true; startBtn.hidden = qs.has("hidestart"); }
+  if (!started) titleEl.style.opacity = 0;
+
+  function loop(now) {
+    if (playing) {
+      t += now - last;
+      if (t >= TOTAL) { t = TOTAL; setPlaying(false); }
+      dirty = true;
+    }
+    last = now;
+    if (dirty && allowed) {
+      draw(started ? rmT(t) : POSTER);
+      showBeat(beatAt(t));
+      scrub.value = String(Math.round(t));
+      done.style.width = `${(t / TOTAL * 100).toFixed(2)}%`;
+      timeEl.textContent = mmss(t);
+      dirty = false;
+    }
+    requestAnimationFrame(loop);
+  }
+  new ResizeObserver(fit).observe(stage);
+  fit();
+  setPlaying(false);
+  playBtn.innerHTML = PLAY;
+  requestAnimationFrame(loop);
+
+  // ------------------------------------------------------------ below the scroll
+  document.getElementById("notes").innerHTML = [
+    `The order of events is the page's. Where everyone stands, and how they move, is my staging: the chapter gives rooms, a hillside and moments, not a map. ${cite("wok:19")}`,
+    `Why ink: the page says the beasts have skin that reflects light like tar and an inklike body, and that their wounds bleed smoke. So in this painting the beasts are the only true ink; everyone else is drawn in brush lines. ${cite("wok:19")}`,
+    `The colours come from the page: Salas's violet light, the oil lamp, the fire, the blue knight's glow and the woman's amber light. The red marks are Dalinar's wounds, which go when she heals him. The red seal and the dotted lines are my own marks. ${cite("wok:19")}`,
+    `Only two lines here are the book's: the titles of scenes V and XI. Everything else is in my words. ${cite("wok:19")}`,
+    `No sound this time; this one is meant to be watched in quiet.`,
+  ].map((n) => `<li>${n}</li>`).join("");
+  document.getElementById("dark").innerHTML = [
+    ["Who released it", `The woman knight calls the beasts Midnight Essence, not Voidbringers, and says who released it is still a mystery. ${cite("wok:19")}`],
+    ["The Ten Deaths", `She says fighting the Ten Deaths changes a person. How they tie to the Desolations is your <a href="../../ledger.html">Q-042</a>.`],
+    ["Regrowth", `What it is, and how the topaz and heliodor come into it, is your <a href="../../ledger.html">Q-045</a>.`],
+    ["Heb", `Dalinar is seen as Heb the whole night. Where Heb himself was is your <a href="../../ledger.html">Q-041</a>.`],
+  ].map(([h, p]) => `<li><b>${h}</b>${p}</li>`).join("");
+  const wadeLine = (() => {
+    const u = U("wok:19"), sec = (u.sections || []).find((s) => s.title === "Wade");
+    const html = sec && sec.items[0] && sec.items[0].html;
+    if (!html) return "";
+    const tmp = document.createElement("div"); tmp.innerHTML = html;
+    const q = tmp.querySelector("blockquote.wade"); if (!q) return "";
+    return (q.querySelector("p") || q).textContent.trim();
+  })();
+  if (wadeLine) document.getElementById("coda").innerHTML = `<blockquote class="wade">${P.esc(wadeLine)}</blockquote><p>Wade, on finishing ${cite("wok:19")}</p>`;
+})();
+</script>
+</body>
+</html>
