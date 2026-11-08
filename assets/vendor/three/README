@@ -1,2 +1,3 @@
 three.js r187 (MIT), from the npm package 'three@0.187.0'. MarchingCubes.js is from examples/jsm/objects.
 GLTFLoader.js, BufferGeometryUtils.js and SkeletonUtils.js are from examples/jsm (MIT).
+postprocessing/ and shaders/ (bloom and output passes) are from examples/jsm (MIT).
