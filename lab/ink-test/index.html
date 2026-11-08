@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Test shot · Ink and Smoke in 3D · The Wade of Kings</title>
+<style>
+  :root { color-scheme: dark; --paper: #e6d9bd; --ink: #16131b; --seal: #a8281e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #07080b; color: #ece4d2; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 1.2rem 1rem 3rem; }
+  h1 { font: 400 clamp(1.6rem, 4vw, 2.4rem)/1.1 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; margin: .4rem 0 .3rem; }
+  .eyebrow { color: #7d8899; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; margin: 0; }
+  .lede { color: #a9b3c1; max-width: 62ch; margin: 0 0 1rem; }
+  .stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px; overflow: hidden; box-shadow: 0 30px 80px -30px rgba(0,0,0,.9); }
+  @media (max-width: 700px) { .stage { aspect-ratio: 4 / 5; border-radius: 10px; } }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .hud { position: absolute; top: .6rem; right: .7rem; font: 12px/1 ui-monospace, monospace; color: rgba(236,228,210,.55); pointer-events: none; }
+  .bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .9rem 0 0; }
+  .bar button { font: inherit; padding: .55rem 1rem; border-radius: 999px; border: 1px solid #2e3b4e; background: #121922; color: #ece4d2; cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+  .bar .sp { flex: 1; }
+  .notes { color: #a9b3c1; max-width: 70ch; margin-top: 1.4rem; }
+  .notes li { margin: .35rem 0; }
+  .notes b { color: #ece4d2; font-weight: 500; }
+</style>
+<script type="importmap">{ "imports": { "three": "../../assets/vendor/three/three.module.js" } }</script>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Test shot · not a dispatch yet · unlisted</p>
+  <h1>The poker thrust, in 3D</h1>
+  <p class="lede">Ten seconds from the farmhouse in Chapter 19, built in three.js to compare two looks before the full dispatch. Watch it on your phone too, and tell me which look, and how smooth it ran.</p>
+  <div class="stage" id="stage"><canvas id="cv"></canvas><div class="hud" id="hud"></div></div>
+  <div class="bar">
+    <button type="button" id="lookA" aria-pressed="true">A · Lamplight</button>
+    <button type="button" id="lookB" aria-pressed="false">B · Ink painting</button>
+    <span class="sp"></span>
+    <button type="button" id="pause">Pause</button>
+    <button type="button" id="replay">Replay</button>
+  </div>
+  <ul class="notes">
+    <li><b>A · Lamplight</b>: lit like film. Taffa's oil lamp is the main light, and Salas's violet moonlight comes through the broken window behind the beast.</li>
+    <li><b>B · Ink painting</b>: the same scene, the same light, re-drawn every frame as ink washes and brush outlines on paper.</li>
+    <li>In both, the beast is one liquid surface that flows as it moves, with a glossy skin, and the smoke is a GPU particle jet. The page gives six thin legs, no eyes, black teeth, skin that reflects light like tar, and a wound that bleeds smoke [ch 19]. The rest is my staging.</li>
+    <li>Dalinar is only an arm and the poker here, on purpose: a test of the medium, not of people. The full piece would use real motion capture for him.</li>
+  </ul>
+</div>
+<script type="module">
+import * as THREE from "three";
+import { MarchingCubes } from "../../assets/vendor/three/MarchingCubes.js";
+
+const stage = document.getElementById("stage"), canvas = document.getElementById("cv"), hud = document.getElementById("hud");
+const phone = Math.min(screen.width, screen.height) < 600;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phone ? 1.5 : 1.75));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+const camera = new THREE.PerspectiveCamera(34, 16 / 9, 0.05, 30);
+
+// ------------------------------------------------------------ small maths
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const sm = (a, b, x) => { const u = clamp((x - a) / (b - a)); return u * u * (3 - 2 * u); };
+const io = (u) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const hash = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7 + 0.5) * 43758.5453; return x - Math.floor(x); };
+function noise1(t, s = 0) { const i = Math.floor(t), f = t - i, u = f * f * (3 - 2 * f); return lerp(hash(i, s), hash(i + 1, s), u) * 2 - 1; }
+
+// ------------------------------------------------------------ textures made in code
+function canvasTex(w, h, paint, repeat = 1) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  paint(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat, repeat);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+const stoneTex = canvasTex(512, 512, (x, w, h) => {
+  x.fillStyle = "#3a352f"; x.fillRect(0, 0, w, h);
+  const id = x.getImageData(0, 0, w, h);
+  for (let i = 0; i < w * h; i++) { const v = (hash(i, 2) - 0.5) * 26; id.data[i * 4] += v; id.data[i * 4 + 1] += v; id.data[i * 4 + 2] += v * 0.9; }
+  x.putImageData(id, 0, 0);
+  x.strokeStyle = "rgba(20,16,12,.3)"; x.lineWidth = 2;
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+    const ox = (r % 2) * 64; x.strokeRect(c * 128 + ox + hash(r * 4 + c, 3) * 6, r * 128 + hash(r * 4 + c, 4) * 6, 124, 124);
+  }
+}, 3);
+const brickTex = canvasTex(512, 512, (x, w, h) => {
+  x.fillStyle = "#2d2622"; x.fillRect(0, 0, w, h);
+  for (let r = 0; r < 16; r++) for (let c = 0; c < 5; c++) {
+    const l = 30 + hash(r * 5 + c, 6) * 18;
+    x.fillStyle = `rgb(${l + 6},${l - 2},${l - 8})`;
+    x.fillRect(c * 104 + (r % 2) * 52 - 52, r * 32 + 2, 100, 28);
+  }
+}, 2);
+
+// ------------------------------------------------------------ environment for reflections: a dark room, a warm lamp, a violet window
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envScene = new THREE.Scene();
+envScene.add(new THREE.Mesh(new THREE.BoxGeometry(10, 6, 10), new THREE.MeshBasicMaterial({ color: 0x050407, side: THREE.BackSide })));
+const lampPanel = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(9, 5.2, 2.2) }));
+lampPanel.position.set(-3.2, 0.6, 2.4); envScene.add(lampPanel);
+const winPanel = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.2), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.0, 3.2), side: THREE.DoubleSide }));
+winPanel.position.set(3.5, 1.6, -2.5); winPanel.lookAt(0, 1, 0); envScene.add(winPanel);
+scene.environment = pmrem.fromScene(envScene, 0.03).texture;
+
+// ------------------------------------------------------------ the room
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.92, envMapIntensity: 0.15 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const wallMat = new THREE.MeshStandardMaterial({ map: brickTex, roughness: 0.95, envMapIntensity: 0.1 });
+const back = new THREE.Mesh(new THREE.PlaneGeometry(12, 4), wallMat); back.position.set(0, 2, -1.7); back.receiveShadow = true; scene.add(back);
+// the broken window in a side wall behind the beast: two walls around a gap, and a hanging shutter
+const side = new THREE.Group(); side.position.set(2.4, 0, 0); side.rotation.y = -Math.PI / 2; scene.add(side);
+for (const [w, x] of [[2.2, -2.0], [2.2, 1.9]]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, 4), wallMat); m.position.set(x, 2, 0); m.receiveShadow = true; side.add(m); }
+const low = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.0), wallMat); low.position.set(-0.05, 0.5, 0); side.add(low);
+const high = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.8), wallMat); high.position.set(-0.05, 3.1, 0); side.add(high);
+const wood = new THREE.MeshStandardMaterial({ color: 0x2a1c12, roughness: 0.8 });
+const shutter = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.0, 0.7), wood); shutter.position.set(2.35, 1.5, 0.75); shutter.rotation.set(0.15, 0.6, 0.35); shutter.castShadow = true; scene.add(shutter);
+for (let i = 0; i < 7; i++) {
+  const s = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.18 + hash(i, 9) * 0.3), wood);
+  s.position.set(1.3 + hash(i, 10) * 1.0, 0.015, -0.6 + hash(i, 11) * 1.5); s.rotation.y = hash(i, 12) * 3; s.castShadow = true; scene.add(s);
+}
+
+// ------------------------------------------------------------ light: the lamp and the moon
+const lamp = new THREE.SpotLight(0xffa860, 40, 9, 0.95, 0.9, 2);
+lamp.position.set(-2.5, 1.05, 1.0); lamp.target.position.set(0.1, 0.5, 0); lamp.castShadow = true;
+lamp.shadow.mapSize.set(phone ? 1024 : 2048, phone ? 1024 : 2048); lamp.shadow.bias = -0.0004; lamp.shadow.radius = 4; lamp.shadow.camera.near = 0.3;
+scene.add(lamp, lamp.target);
+const lampFill = new THREE.PointLight(0xff9a50, 0.8, 6, 2); lampFill.position.set(-2.4, 1.0, 1.1); scene.add(lampFill);
+const moon = new THREE.SpotLight(0xb4a6ff, 12, 10, 0.5, 0.8, 2);
+moon.position.set(4.2, 2.4, 0.1); moon.target.position.set(0.0, 0.5, 0); moon.castShadow = true; moon.shadow.mapSize.set(1024, 1024); moon.shadow.bias = -0.0005;
+scene.add(moon, moon.target);
+scene.add(new THREE.HemisphereLight(0x1c1a26, 0x070605, 0.18));
+
+// ------------------------------------------------------------ the beast: one liquid surface of metaballs, six thin legs, black teeth
+const tar = new THREE.MeshPhysicalMaterial({ color: 0x010102, roughness: 0.14, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.05, envMapIntensity: 1.1, specularIntensity: 1.0 });
+const RES = phone ? 44 : 60;
+const blob = new MarchingCubes(RES, tar, false, false, 60000);
+const BOX = 1.15; blob.scale.set(BOX, BOX, BOX); blob.position.set(0.05, 0.95, 0); blob.isolation = 80; blob.castShadow = true; blob.receiveShadow = true;
+scene.add(blob);
+function ball(p, r) {
+  const lx = ((p.x - blob.position.x) / BOX + 1) / 2, ly = ((p.y - blob.position.y) / BOX + 1) / 2, lz = ((p.z - blob.position.z) / BOX + 1) / 2;
+  const rl = r / (2 * BOX); if (rl <= 0.002) return;
+  blob.addBall(lx, ly, lz, 92 * rl * rl, 12);
+}
+const legMat = new THREE.MeshPhysicalMaterial({ color: 0x010102, roughness: 0.75, clearcoat: 0.25, clearcoatRoughness: 0.15, envMapIntensity: 0.25, specularIntensity: 0.12 });
+const LEGS = Array.from({ length: 6 }, () => {
+  const a = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.022, 1, 8), legMat), b = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.013, 1, 8), legMat);
+  a.castShadow = b.castShadow = true; scene.add(a, b); return [a, b];
+});
+const TEETH = new THREE.Group(); scene.add(TEETH);
+for (let i = 0; i < 8; i++) {
+  const t = new THREE.Mesh(new THREE.ConeGeometry(0.009, 0.06, 5), tar);
+  const side = i < 4 ? 1 : -1, k = i % 4;
+  t.position.set(-0.02 - k * 0.028, -0.03, side * (0.035 - k * 0.006)); t.rotation.set(0, 0, Math.PI); TEETH.add(t);
+}
+const up = V(0, 1, 0), tmpQ = new THREE.Quaternion();
+function segment(mesh, a, b) {
+  const d = b.clone().sub(a), L = d.length();
+  mesh.position.copy(a).addScaledVector(d, 0.5);
+  mesh.scale.set(1, L, 1);
+  mesh.quaternion.copy(tmpQ.setFromUnitVectors(up, d.normalize()));
+}
+function bez(a, c, b, u) { const m = 1 - u; return V(m * m * a.x + 2 * m * u * c.x + u * u * b.x, m * m * a.y + 2 * m * u * c.y + u * u * b.y, m * m * a.z + 2 * m * u * c.z + u * u * b.z); }
+
+// shot-time state shared by the beast, the poker and the smoke
+const CHEST = V(-0.16, 0.7, 0.04);
+function poseBeast(s) {
+  const d = sm(4.7, 7.4, s);                    // deflating
+  const rear = sm(4.45, 4.75, s) * (1 - sm(5.0, 6.5, s));
+  const lunge = sm(3.5, 4.2, s) * (1 - sm(4.4, 4.9, s));
+  const breathe = Math.sin(s * 2.6) * 0.025 * (1 - d);
+  const weave = noise1(s * 0.9, 1) * 0.14 * (1 - d), weaveZ = noise1(s * 0.7, 2) * 0.18 * (1 - d);
+  const k = 1 - 0.45 * d;
+  blob.reset();
+  // body: a long, low, smooth trunk, sinking to a flat sack as it empties
+  const body = [[0.95, 0.66, 0.10], [0.72, 0.7, 0.15], [0.47, 0.73, 0.19], [0.22, 0.74, 0.205], [-0.02, 0.73, 0.19], [-0.2, 0.72, 0.15]];
+  const bodyPts = [];
+  for (const [x, y, r] of body) {
+    const rr = r * k * (1 + breathe), yy = lerp(y + breathe * 0.5 - lunge * 0.04, 0.04 + rr * 0.6, d);
+    const p = V(x - lunge * 0.12, yy, Math.sin(x * 3 + s) * 0.02 * (1 - d));
+    ball(p, rr); bodyPts.push(p);
+    if (d > 0.02) for (const z of [-1, 1]) ball(V(p.x, yy * 0.8, z * rr * 0.9 * d), rr * 0.8 * d);
+  }
+  if (d > 0.02) for (let i = 1; i < bodyPts.length; i++) { const m = bodyPts[i - 1].clone().lerp(bodyPts[i], 0.5); ball(m, body[i][2] * k * d * 0.95); }
+  // neck: sinuous and boneless, rising from the chest to the head
+  const neckBase = V(-0.24 - lunge * 0.12, lerp(0.8, 0.12, d), 0);
+  const head = V(lerp(-0.66 - lunge * 0.3 + rear * 0.12, -0.6, d), lerp(1.12 + weave + rear * 0.25 - lunge * 0.12, 0.08, d), weaveZ * (1 - d));
+  const ctrl = V(-0.32, lerp(1.22, 0.1, d), weaveZ * 0.4);
+  for (let i = 1; i <= 10; i++) { const u = i / 11; ball(bez(neckBase, ctrl, head, u), (0.085 - u * 0.03) * k); }
+  ball(head, 0.088 * k);
+  const jawDir = V(-1, -0.25 - rear * 0.5, 0).normalize();
+  ball(head.clone().addScaledVector(jawDir, 0.09), 0.062 * k);
+  ball(head.clone().addScaledVector(jawDir, 0.16), 0.04 * k);
+  blob.update();
+  TEETH.position.copy(head).addScaledVector(jawDir, 0.1); TEETH.lookAt(TEETH.position.clone().add(V(0, 0, 1).cross(jawDir)));
+  TEETH.quaternion.setFromUnitVectors(V(-1, 0, 0), jawDir);
+  TEETH.scale.setScalar(1 - d);
+  // legs: three hips a side, knees bent out to the sides, too thin for the body
+  const hips = [0.7, 0.3, -0.06];
+  LEGS.forEach(([a, b], i) => {
+    const sideZ = i % 2 ? 1 : -1, hx = hips[i >> 1] - lunge * 0.12;
+    const step = Math.sin(s * 5.5 + i * 1.3) * 0.03 * (1 - d) * (s < 4.2 ? 1 : 0.3);
+    const hip = V(hx, lerp(0.66, 0.08, d), sideZ * 0.1 * k);
+    const knee = V(hx + step + (i >> 1 === 2 ? -0.1 : 0.05), lerp(1.02, 0.12, d), sideZ * lerp(0.4, 0.55, d));
+    const foot = V(hx + step * 1.4 + (i >> 1 === 2 ? -0.2 : 0.1), 0.0, sideZ * lerp(0.62, 0.85, d));
+    segment(a, hip, knee); segment(b, knee, foot);
+  });
+}
+
+// ------------------------------------------------------------ Dalinar: an arm and the poker
+const sleeve = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 1, 6, 12), new THREE.MeshStandardMaterial({ color: 0x3a2c20, roughness: 0.95 }));
+const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), new THREE.MeshStandardMaterial({ color: 0x8a5a3e, roughness: 0.7 }));
+hand.scale.set(1.25, 0.9, 1);
+const iron = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.013, 1, 10), new THREE.MeshStandardMaterial({ color: 0x1a1918, metalness: 0.9, roughness: 0.45 }));
+const ash = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.09, 10), new THREE.MeshStandardMaterial({ color: 0xcfc8bc, roughness: 1 }));
+for (const m of [iron, ash]) { m.castShadow = true; scene.add(m); }
+const POKER = 1.8;
+function posePoker(s) {
+  const back = sm(3.4, 4.2, s) * (1 - sm(4.25, 4.45, s));
+  const thrust = sm(4.25, 4.45, s);
+  const pull = sm(7.7, 8.2, s);
+  const sink = sm(4.7, 7.4, s);
+  const tremble = V(noise1(s * 7, 4), noise1(s * 6, 5), 0).multiplyScalar(0.006);
+  const rest = V(-0.62, 0.78, 0.2), inside = CHEST.clone().add(V(0.08, -sink * 0.42, 0));
+  let tip = rest.clone().add(V(-back * 0.22, back * 0.03, back * 0.08)).add(tremble);
+  tip.lerp(inside, thrust);
+  tip.lerp(V(-1.9, 0.75, 1.0), pull);
+  const dir = V(0.86, -0.12 - sink * 0.25 * (1 - pull), -0.42).normalize();
+  const h = tip.clone().addScaledVector(dir, -POKER);
+  segment(iron, h, tip);
+  ash.position.copy(tip).addScaledVector(dir, -0.04); ash.quaternion.setFromUnitVectors(up, dir); ash.visible = thrust < 0.95 || pull > 0.5;
+  return tip;
+}
+
+// ------------------------------------------------------------ smoke: a GPU particle jet, worked out from the clock alone
+function makeSmoke(n, opts) {
+  const g = new THREE.BufferGeometry();
+  const seed = new Float32Array(n * 4);
+  for (let i = 0; i < n * 4; i++) seed[i] = hash(i, opts.seed);
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute("aSeed", new THREE.BufferAttribute(seed, 4));
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { uTime: { value: 0 }, uStart: { value: opts.start }, uEnd: { value: opts.end }, uLife: { value: opts.life }, uSpeed: { value: opts.speed },
+      uSize: { value: opts.size }, uScale: { value: 400 }, uOrigin: { value: opts.origin.clone() }, uDir: { value: opts.dir.clone().normalize() }, uWarm: { value: new THREE.Color(1.0, 0.6, 0.32) } },
+    vertexShader: `
+      attribute vec4 aSeed; uniform float uTime, uStart, uEnd, uLife, uSpeed, uSize, uScale; uniform vec3 uOrigin, uDir;
+      varying float vA; varying vec2 vR; varying float vU;
+      void main() {
+        float born = uStart + (uEnd - uStart) * aSeed.x * aSeed.x;
+        float age = uTime - born, life = uLife * (0.6 + 0.8 * aSeed.y);
+        if (age < 0.0 || age > life) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
+        float u = age / life;
+        vec3 rnd = aSeed.yzw * 2.0 - 1.0;
+        vec3 dir = normalize(uDir + rnd * 0.32);
+        vec3 p = uOrigin + dir * uSpeed * (1.0 - exp(-3.2 * age)) / 3.2;
+        p.y += 0.18 * age + 0.12 * age * age;
+        p += vec3(sin(age * 2.3 + aSeed.y * 6.28), cos(age * 1.7 + aSeed.z * 6.28) * 0.5, sin(age * 1.9 + aSeed.w * 6.28)) * 0.13 * age;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = uSize * (0.12 + 2.0 * u) * (0.7 + 0.6 * aSeed.z) * uScale / -mv.z;
+        vA = (1.0 - u) * (1.0 - u) * smoothstep(0.0, 0.06, age);
+        vR = aSeed.yw; vU = u;
+      }`,
+    fragmentShader: `
+      varying float vA; varying vec2 vR; varying float vU; uniform vec3 uWarm; uniform float uTime;
+      float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+      void main() {
+        vec2 c = gl_PointCoord * 2.0 - 1.0; float r = dot(c, c); if (r > 1.0) discard;
+        float w = n(c * 2.6 + vR * 17.0 + uTime * 0.25) * 0.65 + n(c * 5.5 - vR * 9.0) * 0.35;
+        float a = (1.0 - r) * (1.0 - r) * vA * smoothstep(0.3, 0.8, w) * 0.7;
+        vec3 col = mix(vec3(0.012, 0.011, 0.013), uWarm * 0.11, clamp(0.25 - c.x * 0.45 + vU * 0.35, 0.0, 1.0));
+        gl_FragColor = vec4(col, a);
+      }`,
+  });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; scene.add(p);
+  return p;
+}
+const jet = makeSmoke(phone ? 1100 : 1800, { seed: 3, start: 4.42, end: 7.2, life: 2.4, speed: 2.4, size: 0.2, origin: CHEST.clone().add(V(-0.04, 0.0, 0.05)), dir: V(-0.7, 0.45, 0.45) });
+const puff = makeSmoke(phone ? 220 : 340, { seed: 7, start: 7.7, end: 8.4, life: 2.2, speed: 0.5, size: 0.2, origin: V(-0.1, 0.35, 0.05), dir: V(-0.4, 0.9, 0.2) });
+const seep = makeSmoke(phone ? 260 : 400, { seed: 11, start: 5.2, end: 9.6, life: 3.0, speed: 0.15, size: 0.26, origin: V(0.25, 0.25, 0), dir: V(0.1, 1, 0) });
+
+// ------------------------------------------------------------ the shot: three set-ups, a slow-motion strike, and a time warp
+const REAL = 11.5;
+const shotTime = (r) => (r < 4.3 ? r : r < 6.3 ? 4.3 + (r - 4.3) * 0.25 : 4.8 + (r - 6.3));
+const CAMS = [
+  { until: 4.3, from: [V(-2.4, 0.62, 2.3), V(0.05, 0.8, 0.0)], to: [V(-2.0, 0.6, 1.95), V(-0.1, 0.82, 0.0)], fov: 38 },
+  { until: 6.6, from: [V(-1.05, 0.95, 1.55), V(-0.25, 0.8, 0.0)], to: [V(-0.95, 0.9, 1.4), V(-0.2, 0.72, 0.0)], fov: 34 },
+  { until: 99, from: [V(0.55, 0.9, 2.0), V(0.2, 0.35, 0.0)], to: [V(0.4, 1.05, 1.8), V(0.15, 0.4, 0.0)], fov: 36 },
+];
+function placeCamera(s) {
+  let i = 0; while (s >= CAMS[i].until) i++;
+  const c = CAMS[i], t0 = i ? CAMS[i - 1].until : 0, u = io(clamp((s - t0) / (Math.min(c.until, 10) - t0)));
+  const pos = c.from[0].clone().lerp(c.to[0], u), look = c.from[1].clone().lerp(c.to[1], u);
+  const shake = sm(4.42, 4.46, s) * (1 - sm(4.46, 4.9, s));
+  const hand = 0.008 + shake * 0.03;
+  pos.add(V(noise1(s * 1.3, 20), noise1(s * 1.1, 21), noise1(s * 0.9, 22)).multiplyScalar(hand));
+  look.add(V(noise1(s * 1.6, 23), noise1(s * 1.4, 24), 0).multiplyScalar(hand * 0.6));
+  const aspect = stage.clientWidth / stage.clientHeight;
+  camera.fov = c.fov * (aspect < 1 ? 1.45 : 1);
+  if (aspect < 1) pos.addScaledVector(pos.clone().sub(look).normalize(), 0.25);
+  camera.position.copy(pos); camera.lookAt(look); camera.updateProjectionMatrix();
+}
+
+// ------------------------------------------------------------ the finishing pass: two looks from one render
+const size = new THREE.Vector2();
+const rt = new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, samples: 4 });
+rt.depthTexture = new THREE.DepthTexture(2, 2); rt.depthTexture.type = THREE.UnsignedIntType;
+const post = new THREE.ShaderMaterial({
+  uniforms: { tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, uRes: { value: new THREE.Vector2() }, uTime: { value: 0 }, uLook: { value: 0 },
+    uNear: { value: camera.near }, uFar: { value: camera.far }, uFade: { value: 1 }, uFlash: { value: 0 } },
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D tColor, tDepth; uniform vec2 uRes; uniform float uTime, uLook, uNear, uFar, uFade, uFlash;
+    float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+    float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * n(p); p *= 2.03; a *= 0.5; } return v; }
+    vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+    float lin(vec2 uv) { float z = texture2D(tDepth, uv).x * 2.0 - 1.0; return 2.0 * uNear * uFar / (uFar + uNear - z * (uFar - uNear)); }
+    vec3 tone(vec2 uv) { return aces(texture2D(tColor, uv).rgb * 1.6); }
+    void main() {
+      vec2 px = 1.0 / uRes;
+      if (uLook < 0.5) {
+        // A: lamplight. Filmic tone, a touch of warm and cool split, grain, vignette.
+        vec3 c = tone(vUv);
+        float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        c = mix(c * vec3(0.92, 0.95, 1.08), c * vec3(1.06, 0.99, 0.9), smoothstep(0.05, 0.5, l));
+        c += vec3(0.008, 0.007, 0.014);
+        float v = smoothstep(1.25, 0.35, length((vUv - 0.5) * vec2(1.25, 1.0)));
+        c *= mix(0.55, 1.0, v);
+        c += (h(vUv * uRes + fract(uTime * 37.0)) - 0.5) * 0.018;
+        c = pow(max(c, 0.0), vec3(1.0 / 2.2));
+        c = mix(c, vec3(0.94, 0.96, 1.0), uFlash);
+        gl_FragColor = vec4(c * uFade, 1.0);
+      } else {
+        // B: ink painting. Wobbled sampling, washes from light, outlines from depth and tone, paper grain.
+        vec2 wob = (vec2(fbm(vUv * 9.0 + uTime * 0.05), fbm(vUv * 9.0 + 7.3 - uTime * 0.04)) - 0.5) * 0.006;
+        vec2 uv = vUv + wob;
+        vec3 c = tone(uv);
+        float l = pow(clamp(dot(c, vec3(0.2126, 0.7152, 0.0722)) * 3.2, 0.0, 1.0), 0.75);
+        float d = lin(uv);
+        float near = 1.0 - smoothstep(2.4, 4.6, d);
+        float e = 0.0, le = 0.0;
+        for (int i = 0; i < 4; i++) {
+          vec2 o = (i == 0 ? vec2(1, 0) : i == 1 ? vec2(-1, 0) : i == 2 ? vec2(0, 1) : vec2(0, -1)) * px * 1.6;
+          e += abs(lin(uv + o) - d);
+          le += abs(dot(tone(uv + o), vec3(0.333)) - dot(c, vec3(0.333)));
+        }
+        float edge = smoothstep(0.04, 0.12, e / d) + smoothstep(0.1, 0.3, le) * 0.6;
+        float g = fbm(vUv * vec2(uRes.x / uRes.y, 1.0) * 60.0);
+        float wash = 1.0 - smoothstep(0.0, 0.62, l + (g - 0.5) * 0.08);
+        float bands = smoothstep(0.12, 0.2, wash) * 0.28 + smoothstep(0.45, 0.55, wash) * 0.34 + smoothstep(0.78, 0.86, wash) * 0.33;
+        float ink = clamp(bands * mix(0.18, 1.0, near) + edge * 0.85 * mix(0.3, 1.0, near), 0.0, 0.97);
+        vec3 paper = vec3(0.91, 0.86, 0.75) * (0.94 + 0.06 * fbm(vUv * 220.0));
+        paper *= 1.0 - 0.12 * smoothstep(0.35, 1.0, length(vUv - 0.5));
+        vec3 inkc = vec3(0.07, 0.06, 0.09);
+        vec3 tint = c / max(0.001, max(c.r, max(c.g, c.b)));
+        vec3 col = mix(paper, inkc, ink);
+        col = mix(col, col * mix(vec3(1.0), tint, 0.55), (1.0 - ink) * 0.5);
+        col = mix(col, paper, uFlash);
+        gl_FragColor = vec4(mix(paper * 0.08, col, uFade), 1.0);
+      }
+    }`,
+  depthTest: false, depthWrite: false,
+});
+const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post);
+const postScene = new THREE.Scene(); postScene.add(quad);
+const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  renderer.getDrawingBufferSize(size);
+  rt.setSize(size.x, size.y);
+  post.uniforms.uRes.value.copy(size);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  for (const p of [jet, puff, seep]) p.material.uniforms.uScale.value = size.y * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+// ------------------------------------------------------------ the clock, the controls
+let real = 0, last = performance.now(), paused = false, frames = 0, fpsT = 0, fps = 0;
+const qs = new URLSearchParams(location.search);
+if (qs.has("t")) { real = +qs.get("t"); paused = true; }
+if (qs.get("look") === "b") post.uniforms.uLook.value = 1;
+const btnA = document.getElementById("lookA"), btnB = document.getElementById("lookB"), btnP = document.getElementById("pause");
+function setLook(b) { post.uniforms.uLook.value = b; btnA.setAttribute("aria-pressed", String(!b)); btnB.setAttribute("aria-pressed", String(!!b)); }
+setLook(post.uniforms.uLook.value);
+btnA.onclick = () => setLook(0); btnB.onclick = () => setLook(1);
+btnP.onclick = () => { paused = !paused; btnP.textContent = paused ? "Play" : "Pause"; };
+document.getElementById("replay").onclick = () => { real = 0; paused = false; btnP.textContent = "Pause"; };
+
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!paused) real = (real + dt) % REAL;
+  const s = shotTime(real);
+  poseBeast(s);
+  posePoker(s);
+  placeCamera(s);
+  for (const p of [jet, puff, seep]) { p.material.uniforms.uTime.value = s; p.material.uniforms.uScale.value = size.y * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)); }
+  const flick = 1 + noise1(now / 90, 30) * 0.08 + noise1(now / 31, 31) * 0.04;
+  lamp.intensity = 40 * flick; lampFill.intensity = 1.6 * flick;
+  post.uniforms.uTime.value = now / 1000;
+  post.uniforms.uFade.value = sm(0.0, 0.7, s) * (1 - sm(9.4, 10.0, s));
+  post.uniforms.uFlash.value = 0.0;
+  renderer.setRenderTarget(rt); renderer.render(scene, camera);
+  renderer.setRenderTarget(null); renderer.render(postScene, postCam);
+  frames++; fpsT += dt; if (fpsT > 0.5) { fps = Math.round(frames / fpsT); frames = 0; fpsT = 0; }
+  hud.textContent = `${fps} fps · ${s.toFixed(1)}s`;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
