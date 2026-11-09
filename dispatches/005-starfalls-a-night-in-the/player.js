@@ -1,109 +1,3 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex">
-<title>Starfalls · a living painting · The Wade of Kings</title>
-<link rel="stylesheet" href="../../assets/palanaeum.css">
-<style>
-  .sf .page-head h1 { line-height: 1; }
-  .sf .page-head .subtitle { display: block; font-family: var(--display); font-style: italic; font-size: var(--step-2); color: var(--dusk); margin-top: .35rem; }
-  .sf section.block { margin: 3.2rem 0; }
-  .sf section.block > h2 { font-size: var(--step-2); margin-bottom: .35rem; }
-  .sf section.block > .sub { color: var(--dusk); max-width: 62ch; margin-bottom: 1.2rem; }
-
-  .sf-frame { position: relative; margin: 1.6rem auto 0; max-width: 1280px; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 40px 90px -40px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.05); }
-  .sf-stage { position: relative; aspect-ratio: 3 / 2; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
-  .sf-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  .sf-cap { position: absolute; left: 4.5%; bottom: 7%; margin: 0; max-width: 70%; z-index: 3; pointer-events: none; color: #f4ead6; opacity: 0; transition: opacity 1.1s ease, transform 1.1s ease; transform: translateY(6px); text-shadow: 0 2px 3px rgba(0,0,0,.7), 0 0 28px rgba(0,0,0,.6); }
-  .sf-cap.on { opacity: 1; transform: none; }
-  .sf-cap b { display: block; font: italic 400 clamp(1.2rem, 3.4vw, 2.5rem)/1.05 var(--display); }
-  .sf-cap span { display: block; font: 400 clamp(.7rem, 1.4vw, .85rem) var(--text); letter-spacing: .16em; text-transform: uppercase; color: #d9cdb6; margin-top: .45rem; }
-  .sf-end { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; text-align: center; padding: 6%; pointer-events: none; opacity: 0; transition: opacity 2.2s ease; }
-  .sf-end.on { opacity: 1; }
-  .sf-end q { font: italic 400 clamp(1.3rem, 4vw, 3rem)/1.15 var(--display); color: #f4ead6; quotes: "\201C" "\201D"; text-shadow: 0 0 30px rgba(0,0,0,.8); }
-  .sf-end small { display: block; margin-top: 1rem; font: 400 clamp(.7rem, 1.4vw, .85rem) var(--text); letter-spacing: .16em; text-transform: uppercase; color: #b9ad97; }
-  .sf-start { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; border: 0; padding: 0; cursor: pointer; color: #f4ead6; font: inherit; background: radial-gradient(70% 70% at 50% 50%, rgba(8,6,16,.1), rgba(8,6,16,.72)); }
-  .sf-start[hidden] { display: none; }
-  .sf-start span { display: grid; justify-items: center; gap: .7rem; font: 400 clamp(1.1rem, 2.6vw, 1.6rem) var(--display); text-shadow: 0 2px 12px rgba(0,0,0,.8); }
-  .sf-start i { display: grid; place-items: center; width: 4.6rem; height: 4.6rem; border-radius: 50%; background: rgba(110,160,255,.14); border: 1px solid rgba(170,200,255,.6); box-shadow: 0 0 40px rgba(90,150,255,.45), inset 0 0 20px rgba(120,170,255,.25); transition: transform .3s; }
-  .sf-start:hover i, .sf-start:focus-visible i { transform: scale(1.07); }
-  .sf-start svg { width: 1.6rem; height: 1.6rem; margin-left: .25rem; }
-  .sf-start small { font: 400 var(--step--1) var(--text); color: #cfc4b1; }
-  .sf-veil { position: absolute; inset: 0; z-index: 9; display: none; place-items: center; text-align: center; padding: 2rem; background: rgba(8,10,16,.96); color: var(--parchment); }
-  .sf-veil.on { display: grid; }
-  .sf-veil strong { display: block; font: 400 var(--step-2) var(--display); margin-bottom: .4rem; }
-  .sf-load { position: absolute; left: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, #6aa0ff, #c9a0ff); z-index: 5; transition: width .3s, opacity .6s; }
-
-  .sf-deck { display: grid; grid-template-columns: auto 1fr auto auto; gap: .8rem; align-items: center; padding: .7rem 1rem; background: #0b0d14; border-top: 1px solid rgba(255,255,255,.06); }
-  .sf-deck button { display: inline-grid; place-items: center; min-width: 2.6rem; height: 2.6rem; border-radius: 999px; border: 1px solid var(--rule); background: var(--deep); color: var(--parchment); cursor: pointer; padding: 0 .7rem; }
-  .sf-deck button.play { width: 3rem; height: 3rem; background: var(--parchment); color: var(--abyss); border: 0; }
-  .sf-deck svg { width: 1.05rem; height: 1.05rem; }
-  .sf-line { position: relative; height: 2.6rem; display: grid; align-items: center; }
-  .sf-line .track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; transform: translateY(-50%); border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
-  .sf-line .done { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #8f7bd8, #6aa0ff); }
-  .sf-line .tk { position: absolute; top: 50%; width: 2px; height: 10px; margin-left: -1px; transform: translateY(-50%); background: rgba(255,255,255,.22); }
-  .sf-line input { position: relative; z-index: 2; width: 100%; margin: 0; opacity: 0; height: 2.6rem; cursor: pointer; }
-  .sf-time { font: 400 var(--step--1) var(--text); font-variant-numeric: tabular-nums; color: var(--mist); min-width: 6.4rem; text-align: right; }
-
-  .sf-scenes { list-style: none; margin: 1.2rem auto 0; padding: 0; max-width: 1280px; display: grid; grid-template-columns: repeat(7, 1fr); gap: .5rem; }
-  .sf-scenes button { width: 100%; padding: 0; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; background: #000; cursor: pointer; display: block; position: relative; aspect-ratio: 3 / 2; }
-  .sf-scenes img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: .62; transition: opacity .3s, transform .4s; }
-  .sf-scenes button:hover img, .sf-scenes button[aria-current="true"] img { opacity: 1; transform: scale(1.04); }
-  .sf-scenes button[aria-current="true"] { border-color: #8fb4ff; box-shadow: 0 0 0 1px #8fb4ff, 0 0 18px rgba(110,160,255,.35); }
-  .sf-scenes em { position: absolute; left: .4rem; bottom: .3rem; font: italic 400 .8rem var(--display); color: #f4ead6; text-shadow: 0 1px 4px #000; }
-  @media (max-width: 760px) { .sf-scenes { grid-template-columns: repeat(4, 1fr); } .sf-scenes em { display: none; } .sf-time { min-width: 0; } }
-
-  .sf-notes { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; max-width: 72ch; }
-  .sf-notes li { padding-left: 1.2rem; position: relative; color: var(--parchment); }
-  .sf-notes li::before { content: ""; position: absolute; left: 0; top: .6em; width: .45rem; height: .45rem; border-radius: 50%; background: #6aa0ff; box-shadow: 0 0 8px #6aa0ff; }
-  .sf-credits { color: var(--dusk); font-size: var(--step--1); }
-  .sf-credits li { margin: .25rem 0; }
-  .sf-credits a { color: var(--sphere); }
-</style>
-<script type="importmap">{ "imports": { "three": "../../assets/vendor/three/three.module.js" } }</script>
-</head>
-<body data-page="dispatch" data-horizon="wok:19" data-root="../../">
-<main class="wrap dispatch-page sf">
-  <header class="page-head">
-    <p class="eyebrow">Living painting · safe through <span class="stamp" id="safe"></span></p>
-    <h1>Starfalls<span class="subtitle">a night in the Eighth Epoch</span></h1>
-    <p class="lede">Dalinar's twelfth vision, from the dark barn to the lights falling over the village: fourteen paintings, brought to life and cut to an orchestral score. Sound on.</p>
-  </header>
-
-  <section class="sf-frame" aria-label="Animated paintings of the night in Chapter 19">
-    <div class="sf-stage" id="stage">
-      <canvas id="cv" role="img" aria-label="An animated painting of the scene"></canvas>
-      <p class="sf-cap" id="cap" aria-live="polite"><b></b><span></span></p>
-      <div class="sf-end" id="end"><div><q>Act with honor, and honor will aid you.</q><small id="endcite">The voice, at the end of the vision</small></div></div>
-      <button type="button" class="sf-start" id="start"><span><i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3.8v16.4L20 12z"/></svg></i>Begin the night<small>2 min 48 s · sound on</small></span></button>
-      <div class="sf-load" id="load"></div>
-      <div class="sf-veil" id="veil"><div><strong>Past your bookmark</strong><p class="muted">This covers Chapter 19. Read that far, then come back.</p></div></div>
-    </div>
-    <div class="sf-deck">
-      <button type="button" class="play" id="play" aria-label="Play"></button>
-      <div class="sf-line"><div class="track"><div class="done" id="done"></div></div><div id="ticks"></div><input type="range" id="scrub" min="0" max="168" step="0.1" value="0" aria-label="Move through the night"></div>
-      <span class="sf-time" id="time">0:00 / 2:48</span>
-      <button type="button" id="mute" aria-label="Mute" aria-pressed="false"></button>
-    </div>
-  </section>
-  <ol class="sf-scenes" id="scenes" aria-label="Scenes"></ol>
-
-  <section class="block">
-    <h2>How it was made</h2>
-    <ul class="sf-notes" id="notes"></ul>
-  </section>
-  <section class="block">
-    <h2>Sound</h2>
-    <p class="sub">Every sound is an openly licensed recording, found through Openverse, trimmed and mixed for this night.</p>
-    <ol class="sf-credits" id="credits"></ol>
-  </section>
-</main>
-<script src="../../data/palanaeum.js"></script>
-<script src="../../assets/palanaeum.js"></script>
-<script src="scenes.js"></script>
-<script type="module">
 import * as THREE from "three";
 const P = window.P;
 const U = (id) => P.unitById[id];
@@ -125,7 +19,8 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPrefere
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.autoClear = false;
-const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, 1.5, 0.1, 50);
+const paneScenes = [new THREE.Scene(), new THREE.Scene()], cams = [new THREE.PerspectiveCamera(30, 1.5, 0.1, 50), new THREE.PerspectiveCamera(30, 1.5, 0.1, 50)];
+const camera = cams[1];
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, u) => a + (b - a) * u;
 const sm = (a, b, x) => { const u = clamp((x - a) / (b - a)); return u * u * (3 - 2 * u); };
@@ -134,7 +29,7 @@ const hash = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7 + 0.5) * 4
 function noise1(t, s = 0) { const i = Math.floor(t), f = t - i, u = f * f * (3 - 2 * f); return lerp(hash(i, s), hash(i + 1, s), u) * 2 - 1; }
 
 const PW = 3.0 * 1.06, PH = 2.0 * 1.06, DZ = 0.75, FOV_D = 4.55;
-const GEO = new THREE.PlaneGeometry(PW, PH, 300, 200);
+const paneGeo = new THREE.PlaneGeometry(PW, PH, 300, 200);
 const MAXS = 3, MAXF = 3, MAXB = 3;
 const vec4s = (n) => Array.from({ length: n }, () => new THREE.Vector4(0, 0, 0, 0));
 const vec2s = (n) => Array.from({ length: n }, () => new THREE.Vector2(0, 0));
@@ -222,7 +117,10 @@ function paintingMaterial() {
       }`,
   });
 }
-const layers = [0, 1].map(() => { const m = new THREE.Mesh(GEO, paintingMaterial()); scene.add(m); return m; });
+const layers = [0, 1].map((k) => {
+  const pane = new THREE.Mesh(paneGeo, paintingMaterial());
+  paneScenes[k].add(pane); return pane;
+});
 
 // ------------------------------------------------------------ particles: screen-space layers worked out from the clock
 const pScene = new THREE.Scene(), pCam = new THREE.OrthographicCamera(0, 1, 1, 0, -1, 1);
@@ -316,8 +214,9 @@ function applyScene(mesh, s, lt, alpha, rec, seed) {
   const fl2 = s.flash ? s.flash(lt) : null; u.uFlash.value.setRGB(fl2 ? fl2[0] : 0, fl2 ? fl2[1] : 0, fl2 ? fl2[2] : 0);
   const gl = s.glow ? s.glow(lt) : null; if (gl) { u.uGlow.value.set(gl[0], gl[1], gl[2], gl[3]); u.uGlowC.value.setRGB(gl[4], gl[5], gl[6]); } else u.uGlow.value.w = 0;
 }
-function placeCamera(s, lt) {
-  const dur = s.t1 - s.t0, u = io(clamp(lt / dur));
+// a steady glide: linear, and it keeps going past the scene's end so a painting never snaps back while it dissolves away
+function placeCamera(camera, s, lt) {
+  const dur = s.t1 - s.t0, u = lt / dur;
   const [a, b] = s.cam || [[0, 0, 0], [0, 0, -0.25]];
   const x = lerp(a[0], b[0], u), y = lerp(a[1], b[1], u), z = FOV_D + lerp(a[2], b[2], u);
   let shake = 0; if (s.shake) for (const [st, amp, len] of s.shake) shake += amp * sm(st - 0.02, st, lt) * (1 - sm(st, st + len, lt));
@@ -335,23 +234,25 @@ function render(T) {
   const lt = T - s.t0;
   const rec = TEX[i];
   if (!rec || !rec.paint) { renderer.clear(); return; }
-  placeCamera(s, lt);
   // the previous painting dissolves into this one, unless this is a hard cut
   const inDur = s.cut ? 0.0001 : (s.dissolve || 1.6);
   const a = clamp(lt / inDur);
   const prev = SCENES[i - 1], prec = TEX[i - 1];
   layers[0].visible = layers[1].visible = false;
-  if (i > 0 && a < 1 && prec && prec.paint) { applyScene(layers[0], prev, T - prev.t0, 1, prec, 0); layers[0].visible = true; }
+  renderer.clear();
+  if (i > 0 && a < 1 && prec && prec.paint) {
+    applyScene(layers[0], prev, T - prev.t0, 1, prec, 0); layers[0].visible = true;
+    placeCamera(cams[0], prev, T - prev.t0); renderer.render(paneScenes[0], cams[0]);
+  }
   applyScene(layers[1], s, lt, i > 0 ? io(a) : 1, rec, i * 3.1);
   layers[1].visible = true;
-  layers[0].renderOrder = 0; layers[1].renderOrder = 1;
-  renderer.clear(); renderer.render(scene, camera);
+  placeCamera(cams[1], s, lt); renderer.render(paneScenes[1], cams[1]);
   for (const k of Object.keys(FX)) FX[k].visible = false;
   if (s.fx) for (const f of s.fx) setFx(f[0], typeof f[1] === "function" ? f[1](lt) : f[1], f[2], lt + (f[3] || 0));
   renderer.render(pScene, pCam);
   // captions and the end card
   const showCap = lt > (s.capAt ?? (s.cut ? 0.8 : (s.dissolve || 1.6) + 0.3)) && lt < (s.t1 - s.t0 - 0.9) && T < END_CARD;
-  if (i !== capShown) { cap.querySelector("b").textContent = s.title; cap.querySelector("span").textContent = s.kicker || ""; capShown = i; cap.classList.remove("on"); }
+  if (i !== capShown) { const b = cap.querySelector("b"); b.textContent = s.quote; b.classList.toggle("long", s.quote.length > 110); cap.querySelector("span").textContent = s.title + (s.kicker ? " · " + s.kicker : ""); capShown = i; cap.classList.remove("on"); }
   cap.classList.toggle("on", showCap && !poster);
   endEl.classList.toggle("on", T > END_CARD + 0.5 && !poster);
   sceneBtns.forEach((b, j) => b.setAttribute("aria-current", String(j === i)));
@@ -393,7 +294,7 @@ setIcons();
 const qs = new URLSearchParams(location.search);
 if (qs.has("t")) { t = +qs.get("t"); poster = false; startBtn.hidden = true; }
 
-function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); for (const c of cams) { c.aspect = w / h; c.updateProjectionMatrix(); }
   for (const k of Object.keys(FX)) FX[k].material.uniforms.uH.value = h * renderer.getPixelRatio(); }
 new ResizeObserver(resize).observe(stage); resize();
 function frame(now) {
@@ -407,15 +308,7 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ------------------------------------------------------------ below the painting
-document.getElementById("notes").innerHTML = [
-  `Fourteen paintings, one for each beat of the night, in the order the page tells it. ${cite("wok:19")}`,
-  `Each painting was generated from a prompt written from the page: six thin legs bent at the sides, no eyes, black teeth, skin that shines like tar, wounds that bleed smoke; a fireless hearth, a glassless window, crem bricks; one small violet moon. Every image was checked against the chapter before it was kept, and the ones that strayed were made again.`,
-  `Faces the book hasn't described aren't drawn: figures are seen from behind, in shadow, or helmed.`,
-  `A depth model read each painting, so the camera moves through it with real parallax. The painted smoke flows, flames breathe light, necks weave, and dust, embers and Stormlight drift over the top.`,
-  `Only one line here is the book's own: the words on the last card.`,
-].map((x) => `<li>${x}</li>`).join("");
+
+document.querySelectorAll("[data-cite]").forEach((e) => { e.innerHTML = cite(e.dataset.cite); });
 document.getElementById("endcite").innerHTML = `The voice, at the end of the vision · ${cite("wok:19")}`;
 document.getElementById("credits").innerHTML = window.STARFALL_CREDITS.map(([t, a, l, u]) => `<li><a href="${u}">${P.esc(t)}</a> by ${P.esc(a)}, ${P.esc(l)}</li>`).join("");
-</script>
-</body>
-</html>
