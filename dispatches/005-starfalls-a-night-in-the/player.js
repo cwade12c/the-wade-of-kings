@@ -11,7 +11,7 @@ if (!allowed) document.getElementById("veil").classList.add("on");
 // cam: [x, y, z] start and end offsets for the camera; smoke: segments [x0,y0,x1,y1,w0,w1];
 // flame: [x,y,radius,r,g,b]; breathe: [x,y,rx,ry,amp]; fx: particle layers.
 const SCENES = window.STARFALL_SCENES;
-const END = 168, END_CARD = 156.5;
+const END = 186, END_CARD = 172;
 
 // ------------------------------------------------------------ renderer
 const stage = document.getElementById("stage"), canvas = document.getElementById("cv");
@@ -193,7 +193,7 @@ function loadScene(i) {
 
 // ------------------------------------------------------------ sound: the score and effects are one mixed track; it is the clock
 const audio = new Audio("starfalls.m4a"); audio.preload = "auto";
-let playing = false, t = SCENES[9].t0 + 1.2, poster = true, last = performance.now();
+let playing = false, t = SCENES.find((x) => x.id === "s10").t0 + 1.2, poster = true, last = performance.now();
 const sceneAt = (x) => { let k = 0; for (let i = 0; i < SCENES.length; i++) if (x >= SCENES[i].t0) k = i; return k; };
 function clock() { return playing && !audio.paused ? audio.currentTime : t; }
 
