@@ -114,6 +114,8 @@
     const width = (l) => (faint(l) ? 1.1 : 2), flowWidth = (l) => (faint(l) ? 1.2 : 2.2);
 
     // ------------------------------------------------------------ state
+    // how often the costly steps have run, for the speed gate's profile (tools/shots/perf.mjs)
+    const calls = { refresh: 0, secondRing: 0, restyleCast: 0, trace: 0, placeNames: 0 };
     const state = {
       h: lim, types: new Set(Object.keys(P.TYPES)), styles: new Set(Object.keys(P.STYLES)), selected: null,
       view: opts.view || "everyone", layers: new Set(), tier: "all", rankBy: "named",
@@ -124,6 +126,8 @@
     };
     if (opts.spacing === "spacious" || opts.spacing === "compact") state.spacing[state.view] = opts.spacing;
     const cast = () => state.view === "cast";
+    // everything a tie's showing, the view and Show depend on: work kept for a pick is kept for this
+    const stateKey = () => `${state.h}|${state.view}|${state.tier}|${state.rankBy}|${[...state.types]}|${[...state.styles]}|${[...state.layers]}`;
     const styleOf = (l) => (P.BASES[l.basis] || P.BASES.seen).style;
     const shown = (l) => l.on <= state.h && state.types.has(l.type) && state.styles.has(styleOf(l));
     // in the current view: The Cast holds people, groups and the layers switched on
@@ -177,7 +181,7 @@
       const r = { v, to: v, from: v, t0: 0, ms: 0 };
       r.set = (to, dur = ms) => {
         if (to === r.to) return;
-        r.from = r.now(); r.to = to; r.t0 = performance.now(); r.ms = P.reducedMotion ? 0 : dur;
+        r.from = r.now(); r.to = to; r.ms = P.reducedMotion ? 0 : dur; r.t0 = r.ms ? performance.now() : 0;   // no clock for a jump
         invalidate();
       };
       r.jump = (to) => { r.to = to; r.ms = 0; };
@@ -296,9 +300,13 @@
       castPairs.forEach((p) => {
         const best = p.ties.slice().sort((x, y) => (faint(x) - faint(y)) || PRIORITY.indexOf(x.type) - PRIORITY.indexOf(y.type))[0];
         Object.assign(p, { type: best.type, basis: best.basis, from: best.from, to: best.to, label: best.label, source: best.source, target: best.target });
+        p.on = Math.min(...p.ties.map((l) => l.on));
         tieLooks(p);
       });
     }
+    // each name's lines in either view: its pairs, and its ties
+    const pairsOf = new Map(nodes.map((n) => [n.id, []]));
+    castPairs.forEach((p) => { pairsOf.get(p.a).push(p); if (p.b !== p.a) pairsOf.get(p.b).push(p); });
     let link = cast() ? castPairs : links;
     // a traced path: its own ties, one straight line per step, drawn over the rest with labels
     let pathTies = [];
@@ -314,13 +322,22 @@
       if (!p.ties.some((l) => !faint(l) && l.on <= state.h) && on.length) return on[0];      // implied, and nothing stated
       return null;
     }
+    // A pair's line hangs on what's shown and on who is picked, and only a picked member's own
+    // pairs hang on the pick: so when only the pick changes, only the old and new pick's pairs
+    // are worked out again.
+    let styled = null;   // { key, sel }: what the pairs were last worked out for
     function restyleCast() {
-      castPairs.forEach((p) => {
+      calls.restyleCast += 1;
+      const key = stateKey(), sel = state.selected;
+      const restyle = (p) => {
         const t = pairTie(p);
         p.tie = t;
-        p.on = Math.min(...p.ties.map((l) => l.on));
         if (t) Object.assign(p, { type: t.type, basis: t.basis, from: t.from, to: t.to, label: t.label, source: t.source, target: t.target });
-      });
+      };
+      if (styled && styled.key === key) {
+        if (styled.sel !== sel) [styled.sel, sel].forEach((n) => n && pairsOf.get(n.id).forEach(restyle));
+      } else castPairs.forEach(restyle);
+      styled = { key, sel };
     }
 
     const major = (n) => P.isPov(n.id, lim) || n.degree >= 3;
@@ -396,31 +413,58 @@
       const key = [k, coarse ? 1 : 0, ...ms.flatMap((c) => [c.x, c.y, c.R]), "|", ...others.flatMap((c) => [c.x, c.y, c.R])].join(",");
       if (key === t.key) return;
       t.key = key;
+      calls.trace += 1;
       const nx = Math.ceil((x1 - x0) / cell), ny = Math.ceil((y1 - y0) / cell);
+      // Each term is skipped when a cheap bound shows it can't change the value so far (a distance
+      // is at least its larger side, and a bar's at least its box's), so the value is the same
+      // number, worked out with fewer square roots. A blend term counts only within blend of it.
+      const reach = blend * 1.001;
+      const bx = bars.map((b) => [Math.min(b[0], b[2]), Math.max(b[0], b[2]), Math.min(b[1], b[3]), Math.max(b[1], b[3])]);
       const at = (px, py) => {
         let d = Infinity;
-        for (const c of ms) d = smin(d, dist(px - c.x, py - c.y) - c.R, blend);
-        for (const b of bars) d = smin(d, segDist(px, py, b[0], b[1], b[2], b[3]) - bar, blend);
+        for (const c of ms) {
+          const dx = px - c.x, dy = py - c.y;
+          if ((dx < 0 ? -dx : dx) - c.R < d + reach && (dy < 0 ? -dy : dy) - c.R < d + reach) d = smin(d, dist(dx, dy) - c.R, blend);
+        }
+        for (let i = 0; i < bars.length; i++) {
+          const q = bx[i];
+          if (q[0] - px - bar < d + reach && px - q[1] - bar < d + reach && q[2] - py - bar < d + reach && py - q[3] - bar < d + reach) {
+            const b = bars[i];
+            d = smin(d, segDist(px, py, b[0], b[1], b[2], b[3]) - bar, blend);
+          }
+        }
         if (d > 0) return -d;   // outside every member: nothing below can bring it in
         let v = -d;
-        for (const c of others) v = Math.min(v, dist(px - c.x, py - c.y) - c.R);
-        for (const c of ms) v = Math.max(v, c.core - dist(px - c.x, py - c.y));        // a member's own sphere is always in
-        for (const c of others) v = Math.min(v, dist(px - c.x, py - c.y) - c.core);    // anyone else's never is
+        for (const c of others) {
+          const dx = px - c.x, dy = py - c.y;
+          if ((dx < 0 ? -dx : dx) - c.R < v && (dy < 0 ? -dy : dy) - c.R < v) v = Math.min(v, dist(dx, dy) - c.R);
+        }
+        for (const c of ms) {   // a member's own sphere is always in
+          const dx = px - c.x, dy = py - c.y;
+          if (c.core - (dx < 0 ? -dx : dx) > v && c.core - (dy < 0 ? -dy : dy) > v) v = Math.max(v, c.core - dist(dx, dy));
+        }
+        for (const c of others) {   // anyone else's never is
+          const dx = px - c.x, dy = py - c.y;
+          if ((dx < 0 ? -dx : dx) - c.core < v && (dy < 0 ? -dy : dy) - c.core < v) v = Math.min(v, dist(dx, dy) - c.core);
+        }
         return v;
       };
       // The field changes by at most one unit per unit of distance, so it's first read every 4th
-      // cell: a cell near a reading far from zero lies on the same side of the edge and isn't
-      // beside it, and its value only matters for its sign. Only cells near the edge are worked
-      // out exactly (the contour runs between those).
-      const C = 4, cx = Math.ceil(nx / C) + 1, cy = Math.ceil(ny / C) + 1, far = 4.4 * cell;
+      // cell. A cell whose reading is further from zero than its distance from that reading plus
+      // one cell lies on the same side of the edge and isn't beside it: its value only matters for
+      // its sign, and the contour only runs between cells within a cell of the edge. Only cells
+      // near the edge are worked out exactly, and a cell that is a reading keeps it.
+      const C = 4, cx = Math.ceil(nx / C) + 1, cy = Math.ceil(ny / C) + 1;
       const rough = new Float64Array(cx * cy);
       for (let J = 0; J < cy; J++) for (let I = 0; I < cx; I++) rough[J * cx + I] = at(x0 + (I * C + 0.5) * cell, y0 + (J * C + 0.5) * cell);
       const f = new Float64Array(nx * ny);
+      const Is = Array.from({ length: nx }, (_, i) => Math.min(cx - 1, Math.round(i / C)));
       for (let j = 0; j < ny; j++) {
-        const J = Math.min(cy - 1, Math.round(j / C));
+        const J = Math.min(cy - 1, Math.round(j / C)), dj = j - J * C;
         for (let i = 0; i < nx; i++) {
-          const c = rough[J * cx + Math.min(cx - 1, Math.round(i / C))];
-          f[j * nx + i] = c > far || c < -far ? c : at(x0 + (i + 0.5) * cell, y0 + (j + 0.5) * cell);
+          const I = Is[i], di = i - I * C, c = rough[J * cx + I];
+          const far = (Math.sqrt(di * di + dj * dj) + 1) * cell * 1.01;
+          f[j * nx + i] = c > far || c < -far || (!di && !dj) ? c : at(x0 + (i + 0.5) * cell, y0 + (j + 0.5) * cell);
         }
       }
       // grid value i sits at contour coordinate i + 0.5, which is x0 + (i + 0.5) × cell
@@ -536,6 +580,7 @@
     // Asking only marks the names: they're placed once, just before the next frame is drawn.
     function layoutLabels() { needPlace = true; invalidate(); }
     function placeNames() {
+      calls.placeNames += 1;
       placedAt = performance.now();
       needPlace = false;
       if (!named) return;
@@ -861,8 +906,14 @@
     }
     // drawn at rest: met by the chapter, in the view and in the tier on Show
     const atRest = (m) => m.h <= state.h && inView(m) && (!tierSet || tierSet.has(m.id));
+    // kept for the pick and everything it's worked out from (the chapter, the view, Show, the layers)
+    let ring2Kept = null;
     function secondRing(n, ring1) {
+      const key = `${n.id}|${stateKey()}`;
+      if (ring2Kept && ring2Kept.key === key) return ring2Kept.out;
+      calls.secondRing += 1;
       const out = new Map();
+      ring2Kept = { key, out };
       links.forEach((l) => {
         if (!shown(l)) return;
         [[l.source, l.target], [l.target, l.source]].forEach(([a, b]) => {
@@ -1035,7 +1086,8 @@
         d.alpha = near ? (near.has(d.id) ? (quiet(d.id) ? FADE.node : 1) : two(d) ? RIPPLE.node2 : rest) : lit && !lit.has(d.id) ? FADE.node : 1;
         d.lg = near ? (near.has(d.id) ? (quiet(d.id) ? RIPPLE.name2 : 1) : two(d) ? RIPPLE.name2 : rest) : 1;
       });
-      const touches = (l) => !!n && (l.source.id === n.id || l.target.id === n.id);
+      const own = n ? new Set(cast() ? pairsOf.get(n.id) : adj.get(n.id)) : null;   // n's own lines, in the view shown
+      const touches = (l) => !!own && own.has(l);
       const other = (l) => (l.source.id === n.id ? l.target.id : l.source.id);
       // nobody picked: a line between two lit names is at full strength only if they interact
       const pairs = !n && state.lens && state.lens.pairs;
@@ -1232,6 +1284,7 @@
     // On the map: met by the chapter shown, in the view, in the tier on Show. Whoever is picked
     // and everyone tied to them are always drawn, whatever the tier.
     function refresh() {
+      calls.refresh += 1;
       const sel = state.selected;
       const ring = new Set(sel ? ringOf(sel).map((m) => m.id) : state.path ? state.path.ids : []);
       drawn = new Set(nodes.filter((n) => atRest(n) || (ring.has(n.id) && n.h <= state.h)).map((n) => n.id));
@@ -1681,7 +1734,8 @@
         const n = id ? byId[id] : null;
         if (n && state.path) showPath(null);
         state.selected = n && n.h <= state.h ? n : null;
-        refresh();
+        // a ring that opens or closes refreshes the map itself, once
+        if (!(opts.focusMode && zoom && (state.selected || focus))) refresh();
         if (opts.onSelect) opts.onSelect(state.selected);   // first, so the focus can see the card's room
         if (opts.focusMode && zoom) { if (state.selected) enterFocus(state.selected); else leaveFocus(); }
         focusOn(state.selected);
@@ -1715,7 +1769,7 @@
       // for the checks in playbooks/unfolding.md: who is drawn where, and each territory's region
       // (a Path2D in layout units, filled even-odd) with the names marked as its members
       debug: () => ({
-        T, S, ahead: !!ahead && Object.keys(layouts).every((k) => ahead[k] && nodes.every((n) => ahead[k][n.id])),
+        T, S, calls: { ...calls }, ahead: !!ahead && Object.keys(layouts).every((k) => ahead[k] && nodes.every((n) => ahead[k][n.id])),
         nodes: nodes.filter((n) => drawn.has(n.id) && n.h <= state.h).map((n) => ({ id: n.id, x: n.x, y: n.y, bx: n.bx, by: n.by, r: n.r, label: !!n.lab,
           alpha: n.alpha, name: n.lg, sub: subs.has(n.id) ? subs.get(n.id)[0] : null, score: n.score })),
         // each line of the view shown, with the opacity it's heading for

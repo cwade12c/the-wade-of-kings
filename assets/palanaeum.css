@@ -77,6 +77,8 @@ button { font: inherit; color: inherit; }
 .muted { color: var(--dusk); }
 .small { font-size: var(--step--1); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* the map's A–Z name list: a pick changes a button or two, and lays out only this box */
+.web-names { contain: strict; }
 .ico { width: 1.25rem; height: 1.25rem; flex: none; }
 
 /* ------------------------------------------------------------ header */
@@ -1071,7 +1073,8 @@ body[data-page="unfolding"] .site-foot { margin-top: 0; }
   .uf-card .c-id h2 { font-size: 1.3rem; }
   .uf-card[data-state="peek"] .c-more { display: none; }
   .uf-card[data-state="open"] .c-more { animation: acc-in .35s var(--ease-out); }
-  .uf-stage.focusing .uf-readout > :not(.uf-tabs), .uf-stage.focusing .uf-readout::before, .uf-stage.focusing .uf-tools { opacity: 0; pointer-events: none; }
+  /* named, not :not(.uf-tabs): a bare :not() makes every pick restyle the whole stage, the hidden name list included */
+  .uf-stage.focusing .uf-readout > :is(h1, .uf-at, .uf-counts), .uf-stage.focusing .uf-readout::before, .uf-stage.focusing .uf-tools { opacity: 0; pointer-events: none; }
   .uf-readout > *, .uf-readout::before, .uf-tools { transition: opacity .3s; }
   /* the tabs take the place of the small label, which stays for screen readers */
   .uf-readout:not(.no-tabs) h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

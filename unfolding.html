@@ -149,16 +149,33 @@
   // desktop, and above the one-more-step pill when Ripples will have one ({ full: true } keeps
   // the pill's room in)
   const PILL_H = 48;
+  // A pick asks for the box before the page is laid out again, so the stage's size is kept as it
+  // changes, and the card's peek bar and width are measured once per card written (a card
+  // written again has a new head, so it's measured again).
+  let stageWH = null, cardRoom = null;
+  const stageBox = () => {
+    if (!stageWH) { const st = stage.getBoundingClientRect(); stageWH = [st.width, st.height]; }
+    return stageWH;
+  };
+  // read here, where the page has just been laid out (this observer is made before the map's)
+  if (window.ResizeObserver) new ResizeObserver(() => { const st = stage.getBoundingClientRect(); stageWH = [st.width, st.height]; cardRoom = null; }).observe(stage);
+  else addEventListener("resize", () => { stageWH = null; cardRoom = null; });
   function focusBox(o = {}) {
-    const st = stage.getBoundingClientRect();
+    const [sw, sh] = stageBox();
     const pill = !o.full && web && sel && !tracing && web.stepCount(sel.id) ? PILL_H : 0;
-    if (narrow()) {
-      const top = card.querySelector(".c-top");
-      const peek = card.hidden || !top ? 0 : top.offsetHeight + 30;
-      return { x: 6, y: 18, w: st.width - 12, h: st.height - peek - 30 - pill };
+    const top = card.hidden ? null : card.querySelector(".c-top");
+    let room = cardRoom;
+    if (card.hidden) room = cardRoom = null;
+    else if (!room || room.top !== top) {
+      room = { top, peek: top ? top.offsetHeight + 30 : 0, w: card.offsetWidth };
+      cardRoom = room.w ? room : null;   // a card not laid out yet (its panel hidden) is asked again
     }
-    const right = card.hidden ? 80 : card.offsetWidth + 100;
-    return { x: 30, y: 96, w: st.width - right - 30, h: st.height - 120 - pill };
+    if (narrow()) {
+      const peek = card.hidden ? 0 : room.peek;
+      return { x: 6, y: 18, w: sw - 12, h: sh - peek - 30 - pill };
+    }
+    const right = card.hidden ? 80 : room.w + 100;
+    return { x: 30, y: 96, w: sw - right - 30, h: sh - 120 - pill };
   }
   let web = null;
   // the tabs push the chapter readout down; the map's top margin grows by as much
