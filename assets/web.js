@@ -577,6 +577,11 @@
       return opts.avoid().map((r) => [r.left - b.left - 2, r.top - b.top - 2, r.right - b.left + 2, r.bottom - b.top + 2]);
     }
     let placedAt = 0, needPlace = false;   // when names were last placed; whether they're due again
+    // The frame that opens a ring places the ring's names (and one more step's) only; everyone
+    // else's are placed, by the same full pass, in the frame after (focus-speed S.3).
+    let ringFirst = false, placeMore = false;
+    // and keeps the territories' last outlines, traced again in the frame after (one frame at most)
+    let traceAfter = false;
     // Asking only marks the names: they're placed once, just before the next frame is drawn.
     function layoutLabels() { needPlace = true; invalidate(); }
     function placeNames() {
@@ -614,6 +619,7 @@
       let count = 0;
       for (const n of order) {
         const forced = pinned.has(n.id);
+        if (ringFirst && !forced && !soft.has(n.id)) { placeMore = true; break; }
         if (!forced && !soft.has(n.id) && count >= B) break;
         if (lit && !forced && !lit.has(n.id)) continue;
         if (castNow && terrOf.has(n.id) && state.selected !== n) continue;   // the territory carries the group's name
@@ -1020,6 +1026,8 @@
       ring2 = new Map(); soft = new Set();
       nodes.forEach((m) => { m.half = false; });
       const { target, cam } = cast() ? rippleLayout(n) : focusLayout(n);
+      ringFirst = true;
+      traceAfter = cast();
       refresh();
       paintHalf();
       moveTo(target, ms);
@@ -1401,8 +1409,8 @@
       raf = 0;
       clock = performance.now();
       busy = false;
-      if (needTrace) doTrace();
-      if (needPlace) placeNames();
+      if (needTrace && !traceAfter) doTrace();
+      if (needPlace) { placeNames(); ringFirst = false; }
       if (dirty) {
         dirty = false;
         layersStale = true;
@@ -1425,8 +1433,10 @@
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.drawImage(layerB, 0, 0);
       }
+      if (placeMore) { placeMore = false; needPlace = true; dirty = true; }   // the rest of the names
+      if (traceAfter) { traceAfter = false; if (needTrace) dirty = true; }    // and the outlines
       if (busy) dirty = true;
-      if (busy || (pulsing && onScreen)) schedule();
+      if (busy || dirty || (pulsing && onScreen)) schedule();
     }
     function clear(c) { c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, canvas.width, canvas.height); }
     const inLayout = (c) => c.setTransform(dpr * T.k, 0, 0, dpr * T.k, dpr * T.x, dpr * T.y);
