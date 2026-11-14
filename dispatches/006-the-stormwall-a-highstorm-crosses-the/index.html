@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dispatch #006 · The Stormwall · The Wade of Kings</title>
+<link rel="stylesheet" href="../../assets/palanaeum.css">
+<style>
+  .sw .page-head h1 { line-height: 1; }
+  .sw .page-head .subtitle { display: block; font-family: var(--display); font-style: italic; font-size: var(--step-2); color: var(--dusk); margin-top: .35rem; }
+  .sw section.block { margin: 3.2rem 0; }
+  .sw section.block > h2 { font-size: var(--step-2); margin-bottom: .35rem; }
+  .sw section.block > .sub { color: var(--dusk); max-width: 62ch; margin-bottom: 1.2rem; }
+
+  .sw-frame { position: relative; margin: 1.6rem auto 0; max-width: 1280px; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 40px 90px -40px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.05); }
+  .sw-stage { position: relative; aspect-ratio: 16 / 9; touch-action: manipulation; user-select: none; -webkit-user-select: none; background: #05070a; }
+  @media (max-width: 760px) and (orientation: portrait) { .sw-stage { aspect-ratio: 4 / 5; } }
+  .sw-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  /* fill the screen: the browser's own fullscreen where it exists, a fixed frame where it does not (iPhone) */
+  .sw-frame.fill { position: fixed; inset: 0; z-index: 2000; margin: 0; max-width: none; border-radius: 0; display: grid; grid-template-rows: 1fr auto; }
+  .sw-frame.fill .sw-stage { aspect-ratio: auto; height: 100%; min-height: 0; }
+  .sw-frame:fullscreen { display: grid; grid-template-rows: 1fr auto; border-radius: 0; max-width: none; }
+  .sw-frame:fullscreen .sw-stage { aspect-ratio: auto; height: 100%; min-height: 0; }
+  .sw-frame.fill .sw-deck, .sw-frame:fullscreen .sw-deck { padding-bottom: max(.7rem, env(safe-area-inset-bottom)); }
+
+  .sw-cap { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; padding: 9% 5% 5%; z-index: 3; pointer-events: none; color: #f4ead6; opacity: 0; transform: translateY(6px); transition: opacity 1s ease, transform 1s ease; background: linear-gradient(0deg, rgba(3,5,9,.74), rgba(3,5,9,.4) 55%, rgba(3,5,9,0)); text-shadow: 0 2px 3px rgba(0,0,0,.7), 0 0 28px rgba(0,0,0,.6); }
+  .sw-cap.on { opacity: 1; transform: none; }
+  .sw-cap b { display: block; max-width: 36em; font: italic 400 clamp(.92rem, 2.1vw, 1.6rem)/1.28 var(--display); }
+  .sw-cap b.long { font-size: clamp(.84rem, 1.8vw, 1.35rem); }
+  .sw-cap span { display: block; font: 400 clamp(.66rem, 1.3vw, .82rem) var(--text); letter-spacing: .16em; text-transform: uppercase; color: #d9cdb6; margin-top: .45rem; }
+  .sw-cap span a { color: inherit; }
+  .sw-frame.nocap .sw-cap { display: none; }
+
+  .sw-start { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; border: 0; padding: 0; cursor: pointer; color: #f4ead6; font: inherit; background: radial-gradient(70% 70% at 50% 50%, rgba(6,9,14,.18), rgba(6,9,14,.78)); }
+  .sw-start[hidden] { display: none; }
+  .sw-start[disabled] { cursor: progress; }
+  .sw-start span { display: grid; justify-items: center; gap: .7rem; font: 400 clamp(1.1rem, 2.6vw, 1.6rem) var(--display); text-shadow: 0 2px 12px rgba(0,0,0,.8); }
+  .sw-start i { display: grid; place-items: center; width: 4.6rem; height: 4.6rem; border-radius: 50%; background: rgba(170,190,215,.12); border: 1px solid rgba(205,220,240,.6); box-shadow: 0 0 40px rgba(150,180,220,.4), inset 0 0 20px rgba(170,200,235,.22); transition: transform .3s, opacity .4s; }
+  .sw-start[disabled] i { opacity: .35; }
+  .sw-start:not([disabled]):hover i, .sw-start:focus-visible i { transform: scale(1.07); }
+  .sw-start svg { width: 1.6rem; height: 1.6rem; margin-left: .25rem; }
+  .sw-start small { font: 400 var(--step--1) var(--text); color: #cfc4b1; min-height: 1.2em; }
+  .sw-load { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: linear-gradient(90deg, #7f93ad, #dfe8f3); z-index: 7; transition: width .3s, opacity .8s; }
+  .sw-veil { position: absolute; inset: 0; z-index: 9; display: none; place-items: center; text-align: center; padding: 2rem; background: rgba(8,10,16,.96); color: var(--parchment); }
+  .sw-veil.on { display: grid; }
+  .sw-veil strong { display: block; font: 400 var(--step-2) var(--display); margin-bottom: .4rem; }
+
+  .sw-deck { display: grid; grid-template-columns: auto 1fr auto auto auto auto; gap: .6rem; align-items: center; padding: .7rem 1rem; background: #0b0d14; border-top: 1px solid rgba(255,255,255,.06); }
+  .sw-deck button { display: inline-grid; place-items: center; min-width: 2.6rem; height: 2.6rem; border-radius: 999px; border: 1px solid var(--rule); background: var(--deep); color: var(--parchment); cursor: pointer; padding: 0 .7rem; }
+  .sw-deck button.play { width: 3rem; height: 3rem; background: var(--parchment); color: var(--abyss); border: 0; }
+  .sw-deck button[aria-pressed="true"] { border-color: var(--sphere); color: var(--sphere); }
+  .sw-deck svg { width: 1.05rem; height: 1.05rem; }
+  .sw-line { position: relative; height: 2.6rem; display: grid; align-items: center; }
+  .sw-line .track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; transform: translateY(-50%); border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .sw-line .done { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #6f819a, #d8ecff); }
+  .sw-line .tk { position: absolute; top: 50%; width: 2px; height: 10px; margin-left: -1px; transform: translateY(-50%); background: rgba(255,255,255,.22); }
+  .sw-line input { position: relative; z-index: 2; width: 100%; margin: 0; opacity: 0; height: 2.6rem; cursor: pointer; }
+  .sw-time { font: 400 var(--step--1) var(--text); font-variant-numeric: tabular-nums; color: var(--mist); min-width: 5.6rem; text-align: right; }
+  @media (max-width: 560px) { .sw-time { display: none; } .sw-deck { grid-template-columns: auto 1fr auto auto auto; gap: .45rem; padding: .6rem .7rem; } }
+
+  .sw-beats { list-style: none; margin: 1.1rem auto 0; padding: 0 0 .4rem; max-width: 1280px; display: flex; gap: .45rem; overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+  .sw-beats button { white-space: nowrap; padding: .5rem .85rem; border-radius: 999px; border: 1px solid var(--rule); background: var(--deep); color: var(--dusk); font: 400 var(--step--1) var(--text); cursor: pointer; transition: color .3s, border-color .3s, background .3s; }
+  .sw-beats button em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--mist); margin-right: .45rem; }
+  .sw-beats button:hover, .sw-beats button[aria-current="true"] { color: var(--parchment); border-color: var(--sphere); background: var(--slate); }
+
+  .sw-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+  @media (max-width: 820px) { .sw-two { grid-template-columns: 1fr; } }
+  .sw-card { background: var(--slate); border: 1px solid var(--rule); border-radius: 14px; padding: 1.3rem 1.4rem; }
+  .sw-card h3 { font: 400 var(--step-1) var(--display); margin: 0 0 .7rem; }
+  .sw-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .65rem; }
+  .sw-card li { padding-left: 1.1rem; position: relative; color: var(--parchment); }
+  .sw-card li::before { content: ""; position: absolute; left: 0; top: .62em; width: .42rem; height: .42rem; border-radius: 50%; background: var(--sphere); box-shadow: 0 0 8px rgba(216,236,255,.7); }
+  .sw-card.mine li::before { background: var(--ink); box-shadow: 0 0 8px rgba(240,195,106,.6); }
+  .sw-credits { color: var(--dusk); font-size: var(--step--1); columns: 2 22rem; column-gap: 2rem; padding-left: 1.2rem; }
+  .sw-credits li { margin: .25rem 0; break-inside: avoid; }
+  .sw-credits a { color: var(--sphere); }
+  .sw-made { color: var(--dusk); max-width: 68ch; }
+  .capture .sw-deck, .capture .sw-start, .capture .sw-cap, .capture .sw-load { display: none !important; }
+</style>
+<script type="importmap">{ "imports": { "three": "../../assets/vendor/three/three.module.js" } }</script>
+</head>
+<body data-page="dispatch" data-horizon="wok:19" data-root="../../">
+<main class="wrap dispatch-page sw">
+  <header class="page-head">
+    <p class="eyebrow">Dispatch #006 · safe through <span class="stamp" id="safe"></span></p>
+    <h1>The Stormwall<span class="subtitle">a highstorm crosses the land</span></h1>
+    <p class="lede">One take, eighty-four seconds: a calm stretch of stormland, the wall coming out of the east, the fury, and the land waking behind it. Drawn live in your browser, with the book's own sentences over it. Sound on.</p>
+  </header>
+
+  <section class="sw-frame" id="frame" aria-label="An animated film of a highstorm crossing a stretch of stormland">
+    <div class="sw-stage" id="stage">
+      <canvas id="cv" role="img" aria-label="The storm, drawn live"></canvas>
+      <p class="sw-cap" id="cap" aria-live="polite"><b></b><span></span></p>
+      <button type="button" class="sw-start" id="start" disabled><span><i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3.8v16.4L20 12z"/></svg></i>Watch it come in<small id="stagemsg">raising the stone</small></span></button>
+      <div class="sw-load" id="load"></div>
+      <div class="sw-veil" id="veil"><div><strong id="veilhead">Past your bookmark</strong><p class="muted" id="veilmsg">This draws on chapters up to Chapter 19. Read that far, then come back.</p></div></div>
+    </div>
+    <div class="sw-deck">
+      <button type="button" class="play" id="play" aria-label="Play"></button>
+      <div class="sw-line"><div class="track"><div class="done" id="done"></div></div><div id="ticks"></div><input type="range" id="scrub" min="0" max="84" step="0.05" value="0" aria-label="Move through the storm"></div>
+      <span class="sw-time" id="time">0:00 / 1:24</span>
+      <button type="button" id="words" aria-label="The book's words" aria-pressed="true" title="The book's words"></button>
+      <button type="button" id="mute" aria-label="Mute" aria-pressed="false"></button>
+      <button type="button" id="fill" aria-label="Fill the screen" aria-pressed="false" title="Fill the screen"></button>
+    </div>
+  </section>
+  <ol class="sw-beats" id="beats" aria-label="Beats of the storm"></ol>
+
+  <section class="block">
+    <h2>The page's, and mine</h2>
+    <p class="sub">Everything the storm does here comes from the chapters you've read. Where the book is silent, I've staged it, and I say so.</p>
+    <div class="sw-two">
+      <div class="sw-card">
+        <h3>From the page</h3>
+        <ul>
+          <li>The storm comes out of the east and leaves to the west. <span data-cite="wok:18"></span> <span data-cite="wok:4"></span></li>
+          <li>The horizon darkens first; then dust and leaves fill the air ahead of the wall. <span data-cite="wok:18"></span></li>
+          <li>The wall itself: a curtain in the air, a silvery grey sheet of rain under onyx black cloud, lit from within by lightning. <span data-cite="wok:18"></span></li>
+          <li>When the wind picks up, the shyest grass shrinks into its burrows and leaves the land patchy. <span data-cite="wok:2"></span></li>
+          <li>The stormwall is the most dangerous part, and it throws rocks and branches into the air. After it the storm weakens, down to sprinkling rain at its trailing edge. <span data-cite="wok:4"></span></li>
+          <li>Sometimes light flashes with no thunder at all. <span data-cite="wok:4"></span></li>
+          <li>Afterwards rockbuds split and send out vines, more vines creep from the crevices, and cremlings come out into the puddles. <span data-cite="wok:4"></span> <span data-cite="wok:11"></span></li>
+          <li>Lifespren rise around the plants like motes of glowing green dust, and half a dozen windspren, ribbons of light, chase the last gusts. <span data-cite="wok:4"></span> <span data-cite="wok:2"></span></li>
+          <li>The sky clears, and the storm is a smudge of blackness on the western horizon. <span data-cite="wok:4"></span></li>
+        </ul>
+      </div>
+      <div class="sw-card mine">
+        <h3>The ardent's staging</h3>
+        <ul>
+          <li>The place is no one place: a stretch of stormland built from how the book describes rock, grass and rockbuds in several chapters. No scene from the story happens here, and no one is in it.</li>
+          <li>The camera, the single take, and the stone it shelters behind.</li>
+          <li>The time of day and where the sun sits.</li>
+          <li>Colours the book hasn't given: the inside of a rockbud, its vines and leaves, the shells of the cremlings, the stone.</li>
+          <li>How fast it all goes. A storm takes far longer than a minute and a half; this one is pressed into the length of a song's first verse.</li>
+          <li>Rockbuds drawing in before the storm. The book shows them shut with their vines withdrawn <span data-cite="wok:1"></span> and pulling back at a touch <span data-cite="wok:6"></span>; closing as the wind rises is my reading.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Sound</h2>
+    <p class="sub">Every sound is an openly licensed recording of the real thing, found through Openverse, then trimmed and mixed to the picture. One flash in the storm is left silent on purpose. <span data-cite="wok:4"></span></p>
+    <ol class="sw-credits" id="credits"></ol>
+  </section>
+
+  <section class="block">
+    <h2>How it was made</h2>
+    <p class="sw-made">There are no models, photographs or video in this film. The sky, the wall, the stone, every rockbud, blade of grass and drop of rain is built by code when the page opens, using <a href="https://threejs.org">three.js</a> (MIT licence) and nothing else. Every frame is worked out from the film's clock alone, which is why you can drag the line to any second and the storm is simply there. On a phone it draws a lighter version of the same film, and it lowers its own resolution if frames start to run long. Wade pointed to Crimson Loong, a film made the same way, as the bar to aim for.</p>
+  </section>
+</main>
+<script src="../../data/palanaeum.js"></script>
+<script src="../../assets/palanaeum.js"></script>
+<script src="credits.js"></script>
+<script type="module" src="page.js"></script>
+</body>
+</html>
