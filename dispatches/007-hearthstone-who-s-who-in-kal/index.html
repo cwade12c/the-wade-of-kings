@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch #007 · Hearthstone · The Wade of Kings</title>
+<link rel="stylesheet" href="../../assets/palanaeum.css">
+<style>
+  .dx .living { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--rule); border-radius: 999px; padding: .1rem .65rem; color: var(--sphere); }
+  .dx .living i { width: .5rem; height: .5rem; border-radius: 50%; background: var(--sphere); box-shadow: 0 0 10px var(--sphere); }
+  .dx section.block { margin: 3.5rem 0; }
+  .dx section.block > h2 { font-size: var(--step-2); margin-bottom: .35rem; }
+  .dx section.block > .sub { color: var(--dusk); max-width: 62ch; margin-bottom: 1.4rem; }
+  .dx ul.facts { list-style: none; padding: 0; margin: 0; display: grid; gap: .55rem; }
+  .dx ul.facts li { padding-left: 1.1rem; position: relative; }
+  .dx ul.facts li::before { content: ""; position: absolute; left: 0; top: .62em; width: .4rem; height: .4rem; border-radius: 50%; background: var(--c, var(--dusk)); box-shadow: 0 0 8px var(--c, transparent); }
+  .dx .eyebrow.k { color: var(--dusk); margin: 0 0 .35rem; }
+
+  /* ---------------------------------------------------------- the days */
+  .days { background: radial-gradient(110% 140% at 15% 0%, #222c3a 0%, #0f151d 70%); border: 1px solid var(--rule); border-radius: 22px; padding: 1.4rem 1.5rem 1.6rem; position: relative; overflow: hidden; }
+  .days::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,.012) 0 2px, transparent 2px 7px); pointer-events: none; }
+  .axis { position: relative; height: 6.6rem; margin: 0 .25rem; }
+  .axis .rail { position: absolute; top: 2.31rem; height: 2px; background: linear-gradient(90deg, rgba(240,195,106,.15), rgba(240,195,106,.55)); border-radius: 2px; }
+  .axis .rail.gap { background: none; border-top: 2px dashed var(--rule); height: 0; }
+  .axis .brk { position: absolute; top: 1.6rem; transform: translateX(-50%); color: var(--mist); font-family: var(--display); font-size: 1.3rem; background: #121821; padding: 0 .3rem; line-height: 1.2; }
+  .pt { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; gap: .2rem; background: none; border: 0; padding: 0 .2rem; cursor: pointer; color: var(--dusk); font: inherit; }
+  .pt .age { font-size: var(--step--2); letter-spacing: .08em; text-transform: uppercase; color: var(--mist); height: 1.1rem; white-space: nowrap; }
+  .pt .knot { width: 1.25rem; height: 1.25rem; border-radius: 50%; margin: .45rem 0 .35rem; background: #121821; border: 2px solid #b48a3c; transition: transform .35s var(--ease-spring), background .3s, box-shadow .3s; }
+  .pt.now .knot { border-color: #5fb0ff; }
+  .pt .ch { font-family: var(--display); font-size: 1.25rem; color: var(--parchment); line-height: 1; white-space: nowrap; }
+  .pt .ago { font-size: var(--step--2); color: var(--mist); white-space: nowrap; }
+  .pt:hover .knot { transform: scale(1.15); }
+  .pt[aria-pressed="true"] .knot { background: #f0c36a; border-color: #f0c36a; box-shadow: 0 0 18px rgba(240,195,106,.7); transform: scale(1.2); }
+  .pt.now[aria-pressed="true"] .knot { background: #5fb0ff; border-color: #5fb0ff; box-shadow: 0 0 18px rgba(95,176,255,.7); }
+  .pt[aria-pressed="true"] .ch { color: #f6dca4; }
+  .pt:focus-visible { outline: 2px solid var(--sphere); outline-offset: 4px; border-radius: 10px; }
+
+  .day-card { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2rem; border-top: 1px solid var(--rule); padding-top: 1.4rem; margin-top: .3rem; min-height: 15rem; position: relative; }
+  .day-card h3 { font-size: var(--step-3); margin: 0 0 .25rem; }
+  .day-card .meta { color: var(--dusk); margin: 0 0 1rem; }
+  .day-card h4 { font-family: var(--text); font-weight: 700; font-size: var(--step--2); letter-spacing: .16em; text-transform: uppercase; color: var(--mist); margin: 0 0 .6rem; }
+  .line-q { font-family: var(--display); font-style: italic; font-size: var(--step-1); line-height: 1.35; color: var(--parchment); border-left: 2px solid #b48a3c; padding: .1rem 0 .1rem 1rem; margin: 0; max-width: 40ch; }
+  .day-card .chips { margin-bottom: 1.1rem; }
+  .day-card blockquote.wade { margin: 0; font-size: 1.02em; }
+  .fade-in { animation: fadeUp .45s var(--ease-out); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .now-list { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+  .now-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem .5rem; }
+  .now-list .who { font-family: var(--display); font-size: 1.15rem; color: var(--parchment); background: none; border: 0; padding: 0; cursor: pointer; }
+  .now-list .who:hover { color: var(--sphere); }
+
+  /* ---------------------------------------------------------- around Kal */
+  .tabs { display: inline-flex; gap: .25rem; padding: .25rem; border: 1px solid var(--rule); border-radius: 999px; background: var(--deep); margin-bottom: 1rem; }
+  .tabs button { font: inherit; font-size: var(--step--1); color: var(--dusk); background: none; border: 0; border-radius: 999px; padding: .35rem 1rem; cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--parchment); background: var(--slate); box-shadow: inset 0 0 0 1px var(--rule); }
+  .kal-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.5rem; align-items: start; }
+  .board { background: radial-gradient(90% 90% at 50% 50%, #1b2533 0%, #0e141c 75%); border: 1px solid var(--rule); border-radius: 22px; padding: 1rem; min-width: 0; }
+  .lens { margin: 0 0 .4rem; }
+  .lens .chip { cursor: pointer; }
+  #web svg { width: 100%; height: auto; display: block; }
+  #web .terr { fill: none; stroke: rgba(236,228,210,.045); }
+  #web .glabel { font-family: var(--display); fill: var(--dusk); letter-spacing: .02em; }
+  #web .terr, #web .edge, #web .glabel, #web .halo { pointer-events: none; }
+  #web .hit { fill: transparent; }
+  #web .edge { fill: none; transition: opacity .4s, stroke-width .3s; }
+  #web .node { cursor: pointer; transition: opacity .4s; outline: none; }
+  #web .node .ring { fill: none; stroke: var(--sphere); stroke-width: 2; opacity: 0; transition: opacity .3s; }
+  #web .node:hover .ring, #web .node:focus-visible .ring { opacity: .45; }
+  #web .node.sel .ring { opacity: 1; filter: drop-shadow(0 0 6px rgba(216,236,255,.8)); }
+  #web .node text { font-family: var(--text); fill: var(--parchment); paint-order: stroke; stroke: #0e141c; stroke-width: 4px; stroke-linejoin: round; }
+  #web .dim { opacity: .14; }
+  #web .kal text { font-family: var(--display); }
+  .legend { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; font-size: var(--step--2); color: var(--dusk); margin-top: .6rem; padding: 0 .3rem; }
+  .legend span { display: inline-flex; align-items: center; gap: .4rem; }
+  .legend svg { width: 26px; height: 8px; }
+
+  .card { background: var(--slate); border: 1px solid var(--rule); border-radius: 18px; padding: 1.25rem 1.3rem 1.3rem; position: sticky; top: calc(var(--head-h) + 1rem); min-height: 20rem; }
+  .card h3 { font-size: var(--step-3); line-height: 1.05; margin: 0 0 .5rem; }
+  .card .gnote { color: var(--mist); font-size: var(--step--1); margin: -.2rem 0 .9rem; }
+  .card .tie { display: flex; gap: .6rem; align-items: baseline; margin: 0 0 1rem; color: var(--parchment); }
+  .card .tie i { flex: none; width: .7rem; height: .7rem; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); transform: translateY(.05rem); }
+  .card .tie i.none { background: none; border: 1.5px solid var(--mist); box-shadow: none; }
+  .card .named { display: flex; flex-wrap: wrap; gap: .3rem .5rem; align-items: baseline; font-size: var(--step--1); color: var(--mist); margin: 0 0 1rem; padding: .55rem .7rem; border-radius: 12px; background: var(--deep); }
+  .card .named b { font-weight: 400; color: var(--dusk); margin-right: .2rem; }
+  .card ul.facts li { color: var(--dusk); font-size: .98rem; }
+  .card .more { margin-top: 1.1rem; }
+  .btn { font: inherit; font-size: var(--step--1); color: var(--parchment); background: var(--deep); border: 1px solid var(--rule); border-radius: 999px; padding: .35rem .95rem; cursor: pointer; }
+  .btn:hover { border-color: var(--mist); }
+
+  /* day by day */
+  .matrix-wrap { overflow-x: auto; }
+  table.dd { border-collapse: separate; border-spacing: 0; width: 100%; font-size: var(--step--1); }
+  .dd thead th { font-weight: 400; color: var(--mist); text-align: center; padding: .2rem .3rem .7rem; vertical-align: bottom; line-height: 1.25; }
+  .dd thead th b { display: block; font-family: var(--display); font-weight: 400; font-size: 1.12rem; color: var(--parchment); }
+  .dd thead th small { display: block; font-size: var(--step--2); }
+  .dd tr.grp th { text-align: left; font-family: var(--display); font-weight: 400; font-size: 1.05rem; color: var(--dusk); padding: .9rem .4rem .3rem; border-bottom: 1px solid var(--rule); }
+  .dd tbody tr.p th { text-align: left; font-weight: 400; padding: 0; }
+  .dd tbody tr.p th button { font: inherit; color: var(--parchment); background: none; border: 0; padding: .42rem .4rem; cursor: pointer; display: flex; align-items: center; gap: .45rem; width: 100%; text-align: left; border-radius: 8px; }
+  .dd tbody tr.p th button i { width: .5rem; height: .5rem; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px var(--c); flex: none; }
+  .dd tbody tr.p th button i.none { background: none; border: 1.5px solid var(--mist); box-shadow: none; }
+  .dd tbody tr.p:hover th button, .dd tbody tr.p.sel th button { background: rgba(216,236,255,.07); }
+  .dd tbody tr.p.sel th button { color: var(--sphere); }
+  .dd td { text-align: center; padding: .2rem; border-bottom: 1px solid rgba(46,59,78,.45); }
+  .dd td .on { display: inline-block; width: .8rem; height: .8rem; border-radius: 50%; background: #f0c36a; box-shadow: 0 0 9px rgba(240,195,106,.6); }
+  .dd td .off { display: inline-block; width: .32rem; height: .32rem; border-radius: 50%; background: var(--rule); }
+  .dd td .cnt { display: inline-block; min-width: 1.6rem; border-radius: 999px; padding: 0 .45rem; border: 1px solid rgba(95,176,255,.55); color: #bfe0ff; font-size: var(--step--2); }
+  .dd .colnow { color: #9ccaff; }
+
+  .unknowns li { color: var(--dusk); }
+  .unknowns a { color: var(--sphere); }
+  .qstat { display: inline-block; font-size: var(--step--2); letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--rule); border-radius: 999px; padding: 0 .5rem; margin-left: .35rem; color: var(--mist); }
+
+  @media (prefers-reduced-motion: reduce) { .fade-in { animation: none; } .pt .knot, #web .edge, #web .node { transition: none; } }
+  @media (max-width: 900px) {
+    .kal-grid { grid-template-columns: 1fr; }
+    .card { position: static; min-height: 0; }
+    .day-card { grid-template-columns: 1fr; gap: 1.3rem; min-height: 0; }
+  }
+  @media (max-width: 520px) {
+    .days { padding: 1.1rem .9rem 1.3rem; border-radius: 18px; }
+    .pt .ch { font-size: 1.05rem; }
+    .board { padding: .6rem .4rem; border-radius: 18px; }
+    .lens { padding: 0 .3rem; }
+    .day-card h3 { font-size: var(--step-2); }
+  }
+</style>
+</head>
+<body data-page="dispatch" data-horizon="wok:22" data-root="../../">
+<main class="wrap dispatch-page dx">
+  <header class="page-head">
+    <p class="eyebrow">Dispatch #007 · <span class="living"><i></i>Living</span> · safe through <span id="safe"></span></p>
+    <h1>Hearthstone</h1>
+    <p class="lede">Who's who in Kal's boyhood: everyone the flashbacks have named in his home town, sorted by how they connect to him, and the days they turn up. This page grows as Wade reads. Every line is cited.</p>
+  </header>
+
+  <section class="block">
+    <h2>The days we've seen</h2>
+    <p class="sub">The flashbacks jump years at a time. Pick a day to see who's in it.</p>
+    <div class="days">
+      <div class="axis" id="axis" role="group" aria-label="Choose a day"></div>
+      <div class="day-card" id="day-card" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Around Kal</h2>
+    <p class="sub">Each line runs from Kal to someone the book ties to him, coloured by the kind of tie. People without a line share a day or a story with him, but the book doesn't tie them to him directly. Tap anyone for what the book has said.</p>
+    <div class="tabs" role="tablist" aria-label="View">
+      <button type="button" role="tab" id="tab-web" aria-selected="true" aria-controls="pane-web">Around Kal</button>
+      <button type="button" role="tab" id="tab-dd" aria-selected="false" aria-controls="pane-dd">Day by day</button>
+    </div>
+    <div class="kal-grid">
+      <div class="board">
+        <div id="pane-web" role="tabpanel" aria-labelledby="tab-web">
+          <div class="lens chips scroll" id="lens" role="group" aria-label="Show who's named in"></div>
+          <div id="web"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div id="pane-dd" role="tabpanel" aria-labelledby="tab-dd" hidden>
+          <div class="matrix-wrap" id="matrix"></div>
+        </div>
+      </div>
+      <aside class="card" id="card" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section class="block" id="dark-block">
+    <h2>Still dark</h2>
+    <p class="sub">Your questions about these people that the book hasn't settled yet.</p>
+    <ul class="facts unknowns" id="unknowns"></ul>
+  </section>
+</main>
+<script src="../../data/palanaeum.js"></script>
+<script src="../../assets/palanaeum.js"></script>
+<script>
+(function () {
+  "use strict";
+  const U = (id) => P.unitById[id];
+  const seen = (c) => [].concat(c).every((id) => U(id) && P.visible(U(id).h));
+  const cite = (c) => [].concat(c).map((id) => `<a class="cite" href="../../journal.html#${P.unitAnchor(id)}" title="${P.esc(U(id).full)}">${P.esc(U(id).short)}</a>`).join(" ");
+  const basis = (b) => b && b !== "seen" ? `<span class="basis basis-${b.startsWith("said") ? "said" : b}">${P.esc(b)}</span>` : "";
+  const li = (f, col) => `<li${col ? ` style="--c:${col}"` : ""}>${f.t} ${cite(f.c)}${basis(f.b)}</li>`;
+  document.getElementById("safe").innerHTML = cite(P.data.units[P.limit()].id);
+  const HEX = { family: "#e3ad4c", support: "#4fd1a0", hostile: "#f58e9b", other: "#b3bccb", command: "#74afff" };
+  const DASH = { said: "7 5" };
+
+  // ------------------------------------------------------------ the days
+  // y: years before the present-day chapters, as each flashback dates itself.
+  const SCENES = [
+    { u: "wok:10", y: 9, ago: "9 yrs ago", age: "Kal, 10", ageC: "wok:10", where: "Lirin's surgery room",
+      q: "“There are two kinds of people in this world, son,” his father said sternly. “Those who save lives. And those who take lives.”" },
+    { u: "wok:16", y: 7.5, ago: "7½ yrs ago", age: "Kal, 12", ageC: "wok:16", where: "The rocks and hillsides outside Hearthstone",
+      q: "“You go be what you are, Kal. I’ll be what I am.”" },
+    { u: "wok:20", y: 7, ago: "7 yrs ago", age: "Kal, 13", ageC: "wok:20", where: "A crowd in Hearthstone, two months after Wistiow’s death",
+      q: "“You have to learn when to care, son,” Lirin said softly. “And when to let go.”" },
+  ].filter((s) => seen(s.u));
+  const NOW = { u: "now", q: "“You can’t put a price on a person’s life,” Kaladin said. One of his father’s sayings.", qc: "wok:17" };
+  const flashIds = new Set(SCENES.map((s) => s.u));
+  // "now": Kaladin's own present-day chapters
+  const isNow = (u) => !flashIds.has(u) && !U(u).flashback && (U(u).pov || []).includes("kaladin");
+
+  // ------------------------------------------------------------ the people
+  // tie: how the book links them to Kal. type picks the colour; no type means no direct tie yet.
+  const GROUPS = [
+    { id: "house", name: "The surgeon's house", note: "Kal's family: the only one of second nahn in town", c: ["wok:10", "wok:16"] },
+    { id: "manor", name: "The citylord's manor", note: "Lighteyes; Wistiow and Lirin are good friends across the difference in rank", c: "wok:16" },
+    { id: "boys", name: "The older boys", note: "Boys of the town, all older than Kal", c: ["wok:10", "wok:16"] },
+    { id: "town", name: "Townsfolk", note: "Others of the town, all of fourth or fifth nahn", c: "wok:16" },
+    { id: "fall", name: "The day Miasal fell", note: "The crowd around Kal, seven years ago", c: "wok:20" },
+  ];
+  const PEOPLE = [
+    { id: "lirin", g: "house", tie: { t: "His father, the town surgeon, who is training him", type: "family", c: "wok:10" }, facts: [
+      { t: "A short man, balding; he wears his spectacles, “the most precious gift he’d ever been given,” only for surgery", c: "wok:10" },
+      { t: "The only man of second nahn in town; he once travelled to Kharbranth as a courier", c: "wok:10" },
+      { t: "Saving to send Kal to train with Kharbranth’s surgeons at sixteen", c: "wok:10" },
+      { t: "Never charged for his services: “You can’t put a price on a person’s life”", c: "wok:17" },
+      { t: "After Miasal, tells Kal he did well and couldn’t have done more", c: "wok:20" },
+    ] },
+    { id: "hesina", g: "house", tie: { t: "His mother", type: "family", c: "wok:10" }, facts: [
+      { t: "When a wound is life-threatening, Lirin works with her as his assistant", c: "wok:10" },
+      { t: "Says Kal should be allowed a childhood, rather than focusing so much on his future", c: "wok:16" },
+      { t: "Bought him a fine pair of trousers a few weeks before his fight with Jost", c: "wok:16" },
+      { t: "Always just wore a glove on her safehand, which seemed far more practical to Kaladin than a long cuff", c: "wok:6" },
+      { t: "Put great stock in glyphwards; Lirin was disappointed in her “superstitions”", c: "wok:17" },
+    ] },
+    { id: "tien", g: "house", tie: { t: "His younger brother, two years his junior", type: "family", c: ["wok:10", "wok:16"] }, facts: [
+      { t: "At ten he looks half his age; other kids call him a runt", c: "wok:16" },
+      { t: "Finds dull rocks with hidden patterns and gives them to Kal to cheer him up", c: "wok:16" },
+      { t: "Kaladin always loved climbing high rock formations with him", c: "wok:6" },
+      { t: "Kaladin remembers him as dead, and feels he failed him", c: ["wok:2", "wok:9"] },
+      { t: "Wanted to come to the Shattered Plains and fight in the king’s army", c: "wok:4", b: "said: Kaladin" },
+    ] },
+    { id: "wistiow", g: "manor", tie: { t: "The citylord; he left spheres to pay for Kal’s surgical training", type: "support", b: "said: Lirin", c: "wok:16" }, facts: [
+      { t: "“Stuffy old Wistiow,” to ten-year-old Kal", c: "wok:10" },
+      { t: "Laral’s father; he and Lirin are pretty good friends, for all that one is lighteyed and the other dark", c: "wok:16" },
+      { t: "Gave a recruiting army permission to take a few of the older boys", c: "wok:16" },
+      { t: "He dies; those in Kholinar are to appoint a new citylord", c: "wok:16", b: "said: Lirin" },
+      { t: "Two months later the town still has no replacement", c: "wok:20" },
+    ] },
+    { id: "laral", g: "manor", tie: { t: "His childhood friend", type: "other", c: "wok:16" }, facts: [
+      { t: "Golden streaks in black hair, and bright, pale green eyes", c: "wok:16" },
+      { t: "Wants Kal to go to war and win a Shardblade, not become a surgeon", c: "wok:16" },
+      { t: "Walks away toward her father’s mansion after Kal’s fight with Jost", c: "wok:16" },
+      { t: "Kal has barely seen her in the two months since her father died", c: "wok:20" },
+      { t: "A lighteyed woman in Sadeas’s camp looks “much as Laral had, at the end”", c: "wok:6" },
+    ] },
+    { id: "jam", g: "boys", tie: { t: "Two years older; Kal and Tien go to see what he’s learned with the quarterstaff", type: "other", c: "wok:10" }, facts: [
+      { t: "His father has started training him in the quarterstaff", c: "wok:10" },
+      { t: "His father was a soldier in Brightlord Amaram’s army; Lirin has operated on his lame leg three times", c: "wok:10" },
+    ] },
+    { id: "jost", g: "boys", tie: { t: "Fights Kal with quarterstaffs, then refuses to teach him", type: "hostile", c: "wok:16" }, facts: [
+      { t: "Fourteen, senior among the boys; broad-chested and stocky, like his father", c: "wok:16" },
+      { t: "Says his father should have been given a Shardblade; Laral and Kal doubt it", c: "wok:16" },
+      { t: "Kal draws blood from his hand, then freezes; Jost sweeps his legs", c: "wok:16" },
+      { t: "Turns down Kal’s offer to worm for him in return for lessons: “You go be what you are, Kal. I’ll be what I am.”", c: "wok:16" },
+    ] },
+    { id: "jest", g: "boys", tie: { t: "Takes the staff from Kal’s fingers after the fight", type: "hostile", c: "wok:16" }, facts: [
+      { t: "Jost’s brother; Jost takes the second staff from him", c: "wok:16" },
+      { t: "Says men go to war to send soldiers to the Heralds, for the Tranquiline Halls", c: "wok:16" },
+    ] },
+    { id: "mord", g: "boys", tie: { t: "One of the older boys Kal finds gathered at the foot of a hill", c: "wok:16" }, facts: [
+      { t: "Like the others, he has a “solid, Alethi darkeyes name”", c: "wok:16" },
+    ] },
+    { id: "tift", g: "boys", tie: { t: "Among the boys Kal joins at the foot of the hill", c: "wok:16" }, facts: [
+      { t: "“My fah’s a farmer, and he’s right good at it. It’s a noble Calling!”", c: "wok:16" },
+    ] },
+    { id: "naget", g: "boys", tie: { t: "Tells Kal “you know things,” and asks him whether a darkeyes ever becomes a lighteyes", type: "other", c: "wok:16" }, facts: [
+      { t: "Light-haired and spindly, the tallest of the boys", c: "wok:16" },
+      { t: "Wants to know if it really happens, “not just in stories”", c: "wok:16" },
+    ] },
+    { id: "khav", g: "boys", tie: { t: "Presses Kal about real darkeyes: “Like us”", type: "other", c: "wok:16" }, facts: [
+      { t: "Low eyebrows and a perpetual scowl", c: "wok:16" },
+      { t: "Says the ardents treat farming like “some lonely second place”", c: "wok:16" },
+    ] },
+    { id: "sani", g: "town", tie: { t: "Kal helps his father mend her hand", type: "support", c: "wok:10" }, facts: [
+      { t: "Fifteen, with sleek black hair; three fingers broken", c: "wok:10" },
+      { t: "Lirin takes off the shattered third finger and saves the other four", c: "wok:10" },
+      { t: "Her parents are “good people,” and will make a small donation", c: "wok:10" },
+    ] },
+    { id: "tarn", g: "town", tie: { t: "His bad patch of polyps gets the older boys the day off", c: "wok:16", b: "said: Jost" }, facts: [
+      { t: "“Old Tarn found a patch of polyps that ain’t growing right”", c: "wok:16", b: "said: Jost" },
+    ] },
+    { id: "ral", g: "town", tie: { t: "Kal’s example of a son taking up his father’s trade", c: "wok:16", b: "said: Kal" }, facts: [
+      { t: "Has just become the new town carpenter, as his father was", c: "wok:16", b: "said: Kal" },
+    ] },
+    { id: "harl", g: "fall", tie: { t: "Miasal’s father; he shoves Kal aside when she dies", type: "other", c: "wok:20" }, facts: [
+      { t: "Thick-shouldered; calls Kal a cremling until other men pull him back", c: "wok:20" },
+      { t: "An hour later he is still wailing in the distance", c: "wok:20" },
+    ] },
+    { id: "miasal", g: "fall", tie: { t: "Kal stops her bleeding, but loses her", type: "support", c: "wok:20" }, facts: [
+      { t: "Five years old; she falls far, breaking her leg, with a head wound", c: "wok:20" },
+      { t: "Kal ties a tourniquet and cauterizes the wound with a heated knife", c: "wok:20" },
+    ] },
+    { id: "valama", g: "fall", tie: { t: "Comes back with a candle’s flame while Kal holds the artery closed", type: "support", c: "wok:20" }, facts: [] },
+    { id: "alim", g: "fall", tie: { t: "Already sent to fetch Kal’s father while Kal tends Miasal", c: "wok:20" }, facts: [] },
+  ].map((p) => Object.assign(p, { e: P.entityById[p.id] })).filter((p) => p.e && P.visible(p.e.h));
+  const KAL = { id: "kal", name: "Kal", facts: [
+    { t: "Ten years old, already tall and lanky; he prefers Kal to Kaladin, which “sounded like a lighteyes’s name”", c: "wok:10" },
+    { t: "The town finds his father strange, and is uncomfortable around Kal by association", c: "wok:10" },
+    { t: "At twelve he wavers between surgery and soldiering; a moment with the quarterstaff “sang to him”", c: "wok:16" },
+    { t: "His family are the only one of second nahn in town; everyone else is fourth or fifth", c: "wok:16" },
+    { t: "At thirteen, after Miasal, he tells his father he doesn’t want to be a surgeon", c: "wok:20" },
+  ] };
+  const byId = Object.fromEntries(PEOPLE.map((p) => [p.id, p]));
+  const shownGroups = GROUPS.filter((g) => PEOPLE.some((p) => p.g === g.id));
+  // chapters that name each person, from the build's mention counts
+  const namedIn = (p) => (p.e.m || []).filter(([h]) => P.visible(h)).map(([h]) => P.data.units[h].id);
+  const tieType = (p) => (p.tie && p.tie.type && seen(p.tie.c) ? p.tie.type : null);
+  const groupOf = (id) => GROUPS.find((g) => g.id === id);
+
+  // ------------------------------------------------------------ the timeline
+  const axis = document.getElementById("axis"), dayCard = document.getElementById("day-card");
+  // the flashback years fill the left of the rail in proportion; the jump to now is a break
+  const L = 6, Rz = 66, Rn = 94;
+  const yMax = 9, yMin = 7;
+  const pos = (y) => L + ((yMax - y) / (yMax - yMin)) * (Rz - L);
+  // on a phone the rail is too short for true spacing, so the stops sit evenly instead
+  const even = axis.clientWidth < 560;
+  const points = SCENES.map((s, i) => ({ ...s, x: even ? L + (i * (Rz - L)) / Math.max(1, SCENES.length - 1) : pos(s.y) })).concat([{ ...NOW, x: Rn }]);
+  axis.innerHTML = `<div class="rail" style="left:${L}%;width:${Rz - L}%"></div><div class="rail gap" style="left:${Rz}%;width:${Rn - Rz}%"></div>
+    <span class="brk" style="left:${(Rz + Rn) / 2}%" aria-hidden="true">≈</span>` +
+    points.map((s, i) => s.u === "now"
+      ? `<button type="button" class="pt now" data-i="${i}" style="left:${s.x}%" aria-pressed="false"><span class="age">Kaladin</span><span class="knot"></span><span class="ch">Now</span><span class="ago">his chapters</span></button>`
+      : `<button type="button" class="pt" data-i="${i}" style="left:${s.x}%" aria-pressed="false"><span class="age">${s.age}</span><span class="knot"></span><span class="ch">${U(s.u).short}</span><span class="ago">${s.ago}</span></button>`).join("");
+
+  const pchip = (p, extra = "") => `<button type="button" class="chip ent-chip" data-pick="${p.id}" style="--c:${HEX[tieType(p)] || "#7d8899"}"><span class="dot"></span>${P.esc(p.e.name)}${extra}</button>`;
+  const wadeQuote = (u) => {
+    const s = (U(u).sections || []).find((x) => x.title === "Wade");
+    if (!s) return "";
+    const items = s.items.filter((it) => P.visible(it.h));
+    if (!items.some((it) => it.kind === "quote")) return "";
+    return `<h4>Wade, after reading it</h4>${items.map((it) => it.html.replaceAll('href="journal.html', 'href="../../journal.html')).join("")}`;
+  };
+  function showDay(i) {
+    [...axis.querySelectorAll(".pt")].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+    const s = points[i];
+    if (s.u === "now") {
+      const rows = PEOPLE.map((p) => [p, namedIn(p).filter(isNow)]).filter(([, us]) => us.length);
+      dayCard.innerHTML = `<div class="fade-in"><p class="eyebrow k">The present-day chapters</p><h3>Kaladin remembers</h3>
+          <p class="meta">Away from Hearthstone, Kaladin still thinks of home. These are the Hearthstone people his own chapters name.</p>
+          ${seen(NOW.qc) ? `<p class="line-q">${NOW.q} ${cite(NOW.qc)}</p>` : ""}</div>
+        <div class="fade-in"><h4>Named in Kaladin's chapters</h4>
+          ${rows.length ? `<ul class="now-list">${rows.map(([p, us]) => `<li><button type="button" class="who" data-pick="${p.id}">${P.esc(p.e.name)}</button> ${cite(us)}</li>`).join("")}</ul>` : `<p class="meta">None yet.</p>`}</div>`;
+      return;
+    }
+    const u = U(s.u);
+    const here = PEOPLE.filter((p) => namedIn(p).includes(s.u));
+    dayCard.innerHTML = `<div class="fade-in"><p class="eyebrow k">${P.esc(u.when)} · ${P.esc(u.label)}</p><h3>${P.esc(u.title)}</h3>
+        <p class="meta">${s.age} ${cite(s.ageC)} · ${s.where}</p>
+        <p class="line-q">${s.q} ${cite(s.u)}</p></div>
+      <div class="fade-in"><h4>Named that day</h4><div class="chips">${here.map((p) => pchip(p)).join("")}</div>${wadeQuote(s.u)}</div>`;
+  }
+  axis.addEventListener("click", (e) => { const b = e.target.closest(".pt"); if (b) showDay(+b.dataset.i); });
+  showDay(0);
+
+  // ------------------------------------------------------------ around Kal
+  const web = document.getElementById("web"), card = document.getElementById("card");
+  let lens = "all", selected = "kal", mode = null;
+  // Kal sits at the centre. Everyone sits on one ring around him, evenly spaced along it, in
+  // group order clockwise from the top and in reading order within a group, with a gap between
+  // groups. The same rule places everyone; nobody is moved by hand.
+  const LAYOUT = {
+    wide: { W: 1000, H: 610, kal: [500, 300], rx: 350, ry: 205, fs: 16, gs: 20, r: 11, kr: 26 },
+    tall: { W: 400, H: 780, kal: [200, 392], rx: 124, ry: 284, fs: 14, gs: 17, r: 10, kr: 22 },
+  };
+  const GAP = 1.6;
+  const rad = (d) => (d * Math.PI) / 180;
+  function render() {
+    const m = web.clientWidth < 600 ? "tall" : "wide";
+    mode = m;
+    const Lo = LAYOUT[m];
+    const [kx, ky] = Lo.kal;
+    const at = (deg) => [kx + Lo.rx * Math.cos(rad(deg)), ky + Lo.ry * Math.sin(rad(deg))];
+    // arc-length table round the ellipse, from the top (-90°) clockwise
+    const tab = [[0, -90]];
+    for (let d = -89.75, acc = 0, prev = at(-90); d <= 270.001; d += 0.25) { const q = at(d); acc += Math.hypot(q[0] - prev[0], q[1] - prev[1]); prev = q; tab.push([acc, d]); }
+    const per = tab[tab.length - 1][0];
+    const angAt = (len) => { len = ((len % per) + per) % per; let lo = 0, hi = tab.length - 1; while (hi - lo > 1) { const mi = (lo + hi) >> 1; if (tab[mi][0] < len) lo = mi; else hi = mi; } return tab[hi][1]; };
+    const order = ["house", "manor", "town", "fall", "boys"].map(groupOf).filter((g) => shownGroups.includes(g));
+    const counts = order.map((g) => PEOPLE.filter((p) => p.g === g.id).length);
+    const S = per / (counts.reduce((x, y) => x + y, 0) + GAP * order.length);
+    let cur = -((counts[0] - 1) * S) / 2; // the first group centred at the top
+    const nodes = [], terr = [];
+    order.forEach((g, gi) => {
+      const ms = PEOPLE.filter((p) => p.g === g.id);
+      const angs = ms.map((_, i) => angAt(cur + i * S));
+      const mid = angAt(cur + ((ms.length - 1) * S) / 2);
+      const gn = ms.map((p, i) => { const [x, y] = at(angs[i]); const c = Math.cos(rad(angs[i])), sn = Math.sin(rad(angs[i]));
+        let lx = x, ly = y + Lo.r + Lo.fs + 2, anc = "middle";
+        if (c > 0.3) { lx = x + Lo.r + 7; ly = y + Lo.fs * 0.35; anc = "start"; }
+        else if (c < -0.3) { lx = x - Lo.r - 7; ly = y + Lo.fs * 0.35; anc = "end"; }
+        else if (sn < 0) ly = y - Lo.r - 8;
+        return { p, x, y, lx, ly, anc }; });
+      nodes.push(...gn);
+      // the group's name: above the top member of a side arc, otherwise just outside the arc
+      const side = Math.abs(Math.cos(rad(mid))) > 0.5, est = g.name.length * Lo.gs * 0.47;
+      let tx, ty, ta;
+      if (side) {
+        const top = gn.reduce((q, n) => (n.y < q.y ? n : q)), right = Math.cos(rad(mid)) > 0;
+        tx = top.x + (right ? -14 : 14); ty = top.y - Lo.r - 18; ta = right ? "start" : "end";
+        if (right && tx + est > Lo.W - 6) { tx = Lo.W - 6; ta = "end"; }
+        if (!right && tx - est < 6) { tx = 6; ta = "start"; }
+      } else if (Math.sin(rad(mid)) < 0) {
+        tx = at(mid)[0]; ty = Math.min(...gn.map((n) => n.y)) - Lo.r - Lo.fs - 22; ta = "middle";
+      } else {
+        tx = at(mid)[0]; ty = Math.max(...gn.map((n) => n.y)) + Lo.r + Lo.fs + 30; ta = "middle";
+      }
+      const pts = [];
+      for (let l = cur - S * 0.42; l <= cur + (ms.length - 1) * S + S * 0.42 + 0.01; l += S / 12) pts.push(at(angAt(l)).map((v) => v.toFixed(1)).join(","));
+      terr.push({ g, path: "M" + pts.join(" L"), tx, ty, ta });
+      cur += (ms.length - 1 + 1 + GAP) * S;
+    });
+    const edges = nodes.filter((n) => tieType(n.p)).map((n) => {
+      const t = tieType(n.p), dx = n.x - kx, dy = n.y - ky, d = Math.hypot(dx, dy);
+      const x1 = kx + (dx / d) * (Lo.kr + 4), y1 = ky + (dy / d) * (Lo.kr + 4), x2 = n.x - (dx / d) * (Lo.r + 3), y2 = n.y - (dy / d) * (Lo.r + 3);
+      const said = n.p.tie.b && n.p.tie.b.startsWith("said");
+      return `<line class="edge" data-id="${n.p.id}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${HEX[t]}" stroke-width="1.8" stroke-opacity=".75"${said ? ` stroke-dasharray="${DASH.said}"` : ""}/>`;
+    });
+    // fit the board to what's drawn, top and bottom
+    const ys = terr.map((t) => t.ty).concat(nodes.map((n) => n.ly), [ky + Lo.kr + Lo.fs + 30]);
+    const vy0 = Math.min(...ys) - Lo.gs - 6, vy1 = Math.max(...ys) + 14;
+    web.innerHTML = `<svg viewBox="0 ${vy0.toFixed(0)} ${Lo.W} ${(vy1 - vy0).toFixed(0)}" role="img" aria-label="Kal at the centre, with the Hearthstone people around him in five groups">
+      <defs><radialGradient id="ng" cx="36%" cy="30%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="#c9d6e8" stop-opacity=".6"/><stop offset="1" stop-color="#0b1017" stop-opacity=".95"/></radialGradient>
+        <radialGradient id="kg" cx="36%" cy="30%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".35" stop-color="#5fb0ff" stop-opacity=".95"/><stop offset="1" stop-color="#0b1017" stop-opacity=".9"/></radialGradient></defs>
+      ${terr.map((t) => `<path class="terr" d="${t.path}" stroke-width="${Lo.r * 2 + 22}" stroke-linecap="round"/>`).join("")}
+      ${edges.join("")}
+      ${terr.map((t) => `<text class="glabel" x="${t.tx.toFixed(1)}" y="${t.ty.toFixed(1)}" text-anchor="${t.ta}" font-size="${Lo.gs}">${P.esc(t.g.name)}</text>`).join("")}
+      <g class="node kal${selected === "kal" ? " sel" : ""}" data-id="kal" tabindex="0" role="button" aria-label="Kal">
+        <circle class="halo" cx="${kx}" cy="${ky}" r="${Lo.kr + 14}" fill="#5fb0ff" opacity=".12"/>
+        <circle cx="${kx}" cy="${ky}" r="${Lo.kr}" fill="url(#kg)"/>
+        <circle class="ring" cx="${kx}" cy="${ky}" r="${Lo.kr + 6}"/>
+        <text x="${kx}" y="${ky + Lo.kr + 22}" text-anchor="middle" font-size="${Lo.fs + 6}">Kal</text></g>
+      ${nodes.map((n) => {
+        const t = tieType(n.p);
+        return `<g class="node${selected === n.p.id ? " sel" : ""}" data-id="${n.p.id}" tabindex="0" role="button" aria-label="${P.esc(n.p.e.name)}">
+          <circle class="hit" cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${Lo.r + 12}"/>
+          <circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${Lo.r}" fill="url(#ng)" stroke="${t ? HEX[t] : "#7d8899"}" stroke-width="${t ? 2.2 : 1.2}"/>
+          <circle class="ring" cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${Lo.r + 5}"/>
+          <text x="${n.lx.toFixed(1)}" y="${n.ly.toFixed(1)}" text-anchor="${n.anc}" font-size="${Lo.fs}">${P.esc(n.p.e.name)}</text></g>`;
+      }).join("")}
+    </svg>`;
+    applyLens();
+  }
+  function applyLens() {
+    const on = (id) => lens === "all" || id === "kal" || (byId[id] && (lens === "now" ? namedIn(byId[id]).some(isNow) : namedIn(byId[id]).includes(lens)));
+    web.querySelectorAll("[data-id]").forEach((el) => el.classList.toggle("dim", !on(el.dataset.id)));
+  }
+  const lensEl = document.getElementById("lens");
+  lensEl.innerHTML = [["all", "Everyone"], ...SCENES.map((s) => [s.u, `${U(s.u).short} · ${s.ago}`]), ["now", "Kaladin's chapters"]]
+    .map(([k, label], i) => `<button type="button" class="chip" data-lens="${k}" aria-pressed="${!i}">${label}</button>`).join("");
+  lensEl.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-lens]"); if (!b) return;
+    lens = b.dataset.lens;
+    lensEl.querySelectorAll("[data-lens]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    applyLens();
+  });
+  const legendItems = ["family", "support", "hostile", "other"].filter((t) => PEOPLE.some((p) => tieType(p) === t))
+    .map((t) => `<span><svg viewBox="0 0 26 8"><line x1="1" y1="4" x2="25" y2="4" stroke="${HEX[t]}" stroke-width="2.4"/></svg>${P.TYPES[t].label}</span>`);
+  if (PEOPLE.some((p) => tieType(p) && p.tie.b && p.tie.b.startsWith("said"))) legendItems.push(`<span><svg viewBox="0 0 26 8"><line x1="1" y1="4" x2="25" y2="4" stroke="#b3bccb" stroke-width="2" stroke-dasharray="6 4"/></svg>Said by someone, not shown</span>`);
+  legendItems.push(`<span><svg viewBox="0 0 26 8"><circle cx="13" cy="4" r="3.2" fill="none" stroke="#7d8899" stroke-width="1.2"/></svg>No line: no direct tie</span>`);
+  document.getElementById("legend").innerHTML = legendItems.join("");
+
+  function showCard(id) {
+    selected = id;
+    web.querySelectorAll(".node").forEach((n) => n.classList.toggle("sel", n.dataset.id === id));
+    web.querySelectorAll(".edge").forEach((e) => { const on = e.dataset.id === id; e.setAttribute("stroke-width", on ? 3.2 : 1.8); e.setAttribute("stroke-opacity", on ? 1 : .75); });
+    document.querySelectorAll("#matrix tr.p").forEach((r) => r.classList.toggle("sel", r.dataset.id === id));
+    if (id === "kal") {
+      card.innerHTML = `<div class="fade-in"><p class="eyebrow k">At the centre</p><h3>Kal</h3>
+        <p class="tie" style="color:var(--dusk)">The boy Kaladin was. Everyone on this page is placed by how the book ties them to him.</p>
+        <ul class="facts">${KAL.facts.filter((f) => seen(f.c)).map((f) => li(f, "#5fb0ff")).join("")}</ul></div>`;
+      return;
+    }
+    const p = byId[id], t = tieType(p), g = groupOf(p.g), col = HEX[t] || "#7d8899";
+    const tie = p.tie && seen(p.tie.c)
+      ? `<p class="tie"><i${t ? ` style="--c:${col}"` : ` class="none"`}></i><span>${p.tie.t} ${cite(p.tie.c)}${basis(p.tie.b)}</span></p>`
+      : `<p class="tie"><i class="none"></i><span>The book hasn't told us yet.</span></p>`;
+    const named = namedIn(p);
+    const facts = p.facts.filter((f) => seen(f.c));
+    card.innerHTML = `<div class="fade-in"><p class="eyebrow k">${P.esc(g.name)}</p><h3>${P.esc(p.e.name)}</h3>
+      ${seen(g.c) ? `<p class="gnote">${g.note} ${cite(g.c)}</p>` : ""}${tie}
+      <div class="named"><b>Named in</b>${named.length ? cite(named) : "no chapter yet"}</div>
+      ${facts.length ? `<ul class="facts">${facts.map((f) => li(f, col)).join("")}</ul>` : ""}
+      <div class="more"><button type="button" class="btn" data-open="${p.id}">More in the codex</button></div></div>`;
+  }
+  card.addEventListener("click", (e) => { const b = e.target.closest("[data-open]"); if (b) P.openProfile(b.dataset.open); });
+  function pick(id, scroll) {
+    showCard(id);
+    if (scroll) {
+      const r = card.getBoundingClientRect();
+      if (r.top < 0 || r.top > innerHeight * 0.6) card.scrollIntoView({ behavior: P.reducedMotion ? "auto" : "smooth", block: "start" });
+    }
+  }
+  web.addEventListener("click", (e) => { const n = e.target.closest(".node"); if (n) pick(n.dataset.id, web.clientWidth < 600); });
+  web.addEventListener("keydown", (e) => { const n = e.target.closest(".node"); if (n && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pick(n.dataset.id, false); } });
+  document.getElementById("day-card").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-pick]"); if (!b) return;
+    pick(b.dataset.pick, false);
+    document.getElementById("tab-web").closest("section").scrollIntoView({ behavior: P.reducedMotion ? "auto" : "smooth", block: "start" });
+  });
+
+  // ------------------------------------------------------------ day by day
+  const cols = SCENES.map((s) => s.u);
+  document.getElementById("matrix").innerHTML = `<table class="dd"><thead><tr><th></th>${SCENES.map((s) => `<th><b>${U(s.u).short}</b><small>${s.ago}</small><small>${s.age}</small></th>`).join("")}<th class="colnow"><b>Now</b><small>Kaladin's</small><small>chapters</small></th></tr></thead><tbody>
+    ${shownGroups.map((g) => `<tr class="grp"><th colspan="${cols.length + 2}">${P.esc(g.name)}</th></tr>` + PEOPLE.filter((p) => p.g === g.id).map((p) => {
+      const named = namedIn(p), t = tieType(p), now = named.filter(isNow);
+      return `<tr class="p" data-id="${p.id}"><th><button type="button" data-pick="${p.id}"><i${t ? ` style="--c:${HEX[t]}"` : ` class="none"`}></i>${P.esc(p.e.name)}</button></th>
+        ${cols.map((u) => `<td>${named.includes(u) ? `<span class="on" title="Named in ${P.esc(U(u).short)}"></span>` : `<span class="off"></span>`}</td>`).join("")}
+        <td>${now.length ? `<span class="cnt" title="${P.esc(now.map((u) => U(u).short).join(", "))}">${now.length}</span>` : `<span class="off"></span>`}</td></tr>`;
+    }).join("")).join("")}</tbody></table>
+    <p class="legend" style="margin-top:.8rem"><span><span class="on" style="display:inline-block;width:.7rem;height:.7rem;border-radius:50%;background:#f0c36a"></span>named in that chapter</span><span><span class="cnt" style="border:1px solid rgba(95,176,255,.55);border-radius:999px;padding:0 .4rem;color:#bfe0ff">n</span>how many of Kaladin's own chapters name them</span></p>`;
+  document.getElementById("matrix").addEventListener("click", (e) => { const b = e.target.closest("[data-pick]"); if (b) pick(b.dataset.pick, window.innerWidth <= 900); });
+
+  const tabs = [["tab-web", "pane-web"], ["tab-dd", "pane-dd"]];
+  tabs.forEach(([t, pn]) => document.getElementById(t).addEventListener("click", () => {
+    tabs.forEach(([t2, p2]) => { document.getElementById(t2).setAttribute("aria-selected", String(t2 === t)); document.getElementById(p2).hidden = t2 !== t; });
+    if (t === "tab-web") render();
+  }));
+
+  render();
+  showCard("kal");
+  let rt = null;
+  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { const m = web.clientWidth < 600 ? "tall" : "wide"; if (m !== mode && web.clientWidth) render(); }, 150); });
+
+  // ------------------------------------------------------------ still dark
+  const ids = new Set(PEOPLE.map((p) => p.id).concat(["hearthstone"]));
+  const QS = (P.data.questions || []).filter((q) => P.visible(q.h) && (q.about || []).some((a) => ids.has(a)) && P.questionStatus(q) !== "answered");
+  if (QS.length) document.getElementById("unknowns").innerHTML = QS.map((q) => `<li style="--c:#7d8899">${q.question} <a href="../../ledger.html#${q.id}">${q.id}</a> ${cite(q.asked_at)}${P.questionStatus(q) === "partial" ? `<span class="qstat">partly answered</span>` : ""}</li>`).join("");
+  else document.getElementById("dark-block").hidden = true;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+<defs><radialGradient id="bg" cx="50%" cy="0%" r="120%"><stop offset="0" stop-color="#1d2836"/><stop offset=".7" stop-color="#0d1219"/></radialGradient><radialGradient id="ng" cx="36%" cy="30%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="#c9d6e8" stop-opacity=".6"/><stop offset="1" stop-color="#0b1017" stop-opacity=".95"/></radialGradient><radialGradient id="kg" cx="36%" cy="30%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".35" stop-color="#5fb0ff" stop-opacity=".95"/><stop offset="1" stop-color="#0b1017" stop-opacity=".9"/></radialGradient><radialGradient id="halo"><stop offset="0" stop-color="#5fb0ff" stop-opacity=".35"/><stop offset="1" stop-color="#5fb0ff" stop-opacity="0"/></radialGradient></defs>
+<rect width="800" height="450" rx="18" fill="url(#bg)"/>
+<path d="M506.6,118.6 L509.6,117.8 L513.4,117.0 L516.5,116.3 L519.5,115.7 L522.6,115.2 L525.7,114.7 L528.7,114.2 L531.8,113.8 L534.9,113.4 L538.1,113.1 L541.2,112.8 L544.3,112.6 L547.4,112.4 L550.6,112.2 L553.7,112.1 L556.9,112.0 L560.0,112.0 L563.1,112.0 L566.3,112.1 L569.4,112.2 L572.6,112.4 L576.5,112.6 L579.6,112.9 L582.7,113.2 L585.8,113.5 L588.9,113.9 L592.0,114.3 L595.1,114.8 L598.2,115.3 L601.3,115.9 L604.3,116.5 L607.3,117.1 L610.4,117.8 L613.4,118.6" fill="none" stroke="rgba(236,228,210,.05)" stroke-width="30" stroke-linecap="round"/>
+<path d="M674.5,145.3 L677.5,147.4 L679.9,149.1 L682.8,151.2 L685.0,153.0 L687.3,154.8 L690.0,157.0 L692.2,158.9 L694.8,161.3 L696.9,163.2 L699.4,165.6 L701.4,167.6 L703.8,170.1 L705.6,172.2 L707.9,174.8 L710.1,177.4 L711.8,179.6 L713.9,182.3 L715.9,185.0 L717.4,187.2 L719.3,190.0 L721.1,192.9 L722.5,195.1" fill="none" stroke="rgba(236,228,210,.05)" stroke-width="30" stroke-linecap="round"/>
+<path d="M740.0,259.3 L739.9,262.5 L739.8,265.6 L739.5,268.8 L739.2,272.0 L738.8,275.2 L738.2,278.3 L737.7,281.5 L737.0,284.6 L736.2,287.7 L735.4,290.8 L734.5,293.9 L733.5,297.0 L732.4,300.1 L731.4,302.5 L730.2,305.5 L728.9,308.5 L727.5,311.5 L726.0,314.5 L724.8,316.8 L723.1,319.7 L721.4,322.6 L719.7,325.4 L718.2,327.7 L716.3,330.4 L714.3,333.2 L712.6,335.4 L710.5,338.1 L708.3,340.7 L706.5,342.8 L704.2,345.4 L702.3,347.4 L699.9,349.9 L697.4,352.3 L695.3,354.3" fill="none" stroke="rgba(236,228,210,.05)" stroke-width="30" stroke-linecap="round"/>
+<path d="M638.2,389.5 L635.4,390.6 L632.5,391.6 L629.6,392.6 L626.7,393.6 L623.8,394.5 L620.1,395.6 L617.1,396.5 L614.1,397.2 L611.1,398.0 L608.1,398.7 L605.1,399.3 L602.0,400.0 L599.0,400.5 L595.9,401.1 L592.8,401.6 L589.7,402.0 L586.6,402.4 L583.5,402.8 L580.4,403.1 L576.5,403.4 L573.3,403.6 L570.2,403.8 L567.1,403.9 L563.9,404.0 L560.8,404.0 L557.6,404.0 L554.5,403.9 L551.4,403.8 L548.2,403.7 L545.1,403.5 L542.0,403.3 L538.8,403.0 L535.7,402.7 L532.6,402.3 L529.5,401.9 L526.4,401.4 L523.3,400.9 L520.3,400.4 L517.2,399.8 L514.2,399.2 L510.4,398.3 L507.4,397.6 L504.4,396.9 L501.4,396.0 L498.4,395.2 L495.5,394.3" fill="none" stroke="rgba(236,228,210,.05)" stroke-width="30" stroke-linecap="round"/>
+<path d="M436.1,363.9 L433.3,361.7 L431.1,359.9 L428.4,357.6 L426.2,355.7 L424.2,353.8 L421.6,351.4 L419.1,348.9 L417.2,346.9 L414.8,344.3 L413.0,342.3 L410.8,339.6 L409.0,337.5 L406.9,334.8 L404.9,332.1 L403.3,329.9 L401.4,327.1 L399.6,324.3 L397.9,321.4 L396.5,319.1 L394.9,316.2 L393.4,313.3 L392.0,310.3 L390.6,307.3 L389.6,304.9 L388.3,301.9 L387.2,298.9 L386.1,295.8 L385.2,292.7 L384.3,289.6 L383.5,286.5 L382.7,283.4 L382.1,280.2 L381.5,277.1 L381.2,274.5 L380.8,271.4 L380.4,268.2 L380.2,265.0 L380.1,261.8 L380.0,258.6 L380.0,255.5 L380.1,252.3 L380.3,249.1 L380.6,245.9 L381.0,242.7 L381.4,239.6 L382.0,236.4 L382.6,233.3 L383.3,230.1 L384.1,227.0 L385.0,223.9 L385.9,220.8 L387.0,217.8 L387.9,215.3 L389.1,212.3 L390.3,209.3 L391.7,206.3 L393.1,203.3 L394.6,200.4 L395.9,198.0 L397.5,195.1 L399.3,192.3 L401.1,189.5 L402.6,187.2 L404.5,184.4 L406.5,181.7 L408.2,179.6 L410.3,176.9 L412.6,174.3 L414.4,172.2 L416.7,169.6 L418.6,167.6 L421.1,165.1 L423.1,163.2 L425.7,160.8 L427.8,158.9 L430.5,156.6 L432.7,154.8 L435.5,152.5 L437.8,150.8 L440.1,149.1 L443.1,147.0 L445.5,145.3" fill="none" stroke="rgba(236,228,210,.05)" stroke-width="30" stroke-linecap="round"/>
+<line x1="553.4" y1="232.8" x2="525.1" y2="124.9" stroke="#e3ad4c" stroke-width="2" stroke-opacity=".8"/>
+<line x1="560.0" y1="232.0" x2="560.0" y2="122.0" stroke="#e3ad4c" stroke-width="2" stroke-opacity=".8"/>
+<line x1="566.7" y1="232.9" x2="595.6" y2="125.0" stroke="#e3ad4c" stroke-width="2" stroke-opacity=".8"/>
+<line x1="580.3" y1="241.7" x2="680.0" y2="161.5" stroke="#4fd1a0" stroke-width="2" stroke-opacity=".8" stroke-dasharray="7 5"/>
+<line x1="583.3" y1="246.5" x2="704.9" y2="186.7" stroke="#b3bccb" stroke-width="2" stroke-opacity=".8"/>
+<line x1="585.9" y1="260.5" x2="728.8" y2="274.2" stroke="#4fd1a0" stroke-width="2" stroke-opacity=".8"/>
+<line x1="570.9" y1="281.6" x2="618.9" y2="385.7" stroke="#b3bccb" stroke-width="2" stroke-opacity=".8"/>
+<line x1="564.6" y1="283.6" x2="584.1" y2="392.6" stroke="#4fd1a0" stroke-width="2" stroke-opacity=".8"/>
+<line x1="557.9" y1="283.9" x2="549.0" y2="393.7" stroke="#4fd1a0" stroke-width="2" stroke-opacity=".8"/>
+<line x1="538.7" y1="272.9" x2="431.8" y2="347.6" stroke="#b3bccb" stroke-width="2" stroke-opacity=".8"/>
+<line x1="536.0" y1="267.9" x2="408.9" y2="320.5" stroke="#f58e9b" stroke-width="2" stroke-opacity=".8"/>
+<line x1="534.4" y1="262.6" x2="394.1" y2="287.8" stroke="#f58e9b" stroke-width="2" stroke-opacity=".8"/>
+<line x1="536.7" y1="246.4" x2="415.5" y2="186.2" stroke="#b3bccb" stroke-width="2" stroke-opacity=".8"/>
+<line x1="539.8" y1="241.6" x2="440.5" y2="161.1" stroke="#b3bccb" stroke-width="2" stroke-opacity=".8"/>
+<circle cx="522.6" cy="115.2" r="8" fill="url(#ng)" stroke="#e3ad4c" stroke-width="2.2"/>
+<circle cx="560.0" cy="112.0" r="8" fill="url(#ng)" stroke="#e3ad4c" stroke-width="2.2"/>
+<circle cx="598.2" cy="115.3" r="8" fill="url(#ng)" stroke="#e3ad4c" stroke-width="2.2"/>
+<circle cx="687.8" cy="155.2" r="8" fill="url(#ng)" stroke="#4fd1a0" stroke-width="2.2"/>
+<circle cx="713.9" cy="182.3" r="8" fill="url(#ng)" stroke="#b3bccb" stroke-width="2.2"/>
+<circle cx="738.8" cy="275.2" r="8" fill="url(#ng)" stroke="#4fd1a0" stroke-width="2.2"/>
+<circle cx="727.5" cy="311.5" r="8" fill="url(#ng)" stroke="#7d8899" stroke-width="1.2"/>
+<circle cx="706.1" cy="343.3" r="8" fill="url(#ng)" stroke="#7d8899" stroke-width="1.2"/>
+<circle cx="623.0" cy="394.8" r="8" fill="url(#ng)" stroke="#b3bccb" stroke-width="2.2"/>
+<circle cx="585.8" cy="402.5" r="8" fill="url(#ng)" stroke="#4fd1a0" stroke-width="2.2"/>
+<circle cx="548.2" cy="403.7" r="8" fill="url(#ng)" stroke="#4fd1a0" stroke-width="2.2"/>
+<circle cx="510.4" cy="398.3" r="8" fill="url(#ng)" stroke="#7d8899" stroke-width="1.2"/>
+<circle cx="423.6" cy="353.3" r="8" fill="url(#ng)" stroke="#b3bccb" stroke-width="2.2"/>
+<circle cx="399.6" cy="324.3" r="8" fill="url(#ng)" stroke="#f58e9b" stroke-width="2.2"/>
+<circle cx="384.3" cy="289.6" r="8" fill="url(#ng)" stroke="#f58e9b" stroke-width="2.2"/>
+<circle cx="380.1" cy="252.3" r="8" fill="url(#ng)" stroke="#7d8899" stroke-width="1.2"/>
+<circle cx="388.1" cy="214.7" r="8" fill="url(#ng)" stroke="#7d8899" stroke-width="1.2"/>
+<circle cx="406.5" cy="181.7" r="8" fill="url(#ng)" stroke="#b3bccb" stroke-width="2.2"/>
+<circle cx="432.7" cy="154.8" r="8" fill="url(#ng)" stroke="#b3bccb" stroke-width="2.2"/>
+<circle cx="560" cy="258" r="48" fill="url(#halo)"/><circle cx="560" cy="258" r="22" fill="url(#kg)"/>
+<text x="560" y="302" text-anchor="middle" fill="#ece4d2" font-family="Palatino, Georgia, serif" font-size="17">Kal</text>
+<text x="64" y="62" fill="#ece4d2" font-family="Palatino, Georgia, serif" font-size="34">Hearthstone</text>
+<text x="64" y="88" fill="#a9b3c1" font-family="system-ui, sans-serif" font-size="14">Living dispatch · who's who in Kal's boyhood</text>
+<text id="checkpoint-note" x="64" y="110" fill="#a9b3c1" font-family="system-ui, sans-serif" font-size="13">Ch 22 · 19 people from Chapters 10, 16 and 20</text>
+</svg>

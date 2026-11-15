@@ -1,0 +1,11 @@
+id = "007"
+title = "Hearthstone: who's who in Kal's boyhood"
+horizon = "wok:22"
+date = "2026-11-14"
+kind = "page"
+file = "index.html"
+caption = "Everyone the flashbacks have named in Kal's home town, sorted by how they connect to him: his family, the citylord's manor, the older boys, the townsfolk and the crowd on the day Miasal fell. Pick a day to see who's in it, or tap anyone around Kal."
+note = "The Hearthstone names come up in flashbacks years apart, so Wade picked a chart of them. A living dispatch: it grows as he reads, and every line carries its citation. A draft until Wade approves it."
+covers = ["kaladin-family"]
+living = true
+preview = "preview.svg"
