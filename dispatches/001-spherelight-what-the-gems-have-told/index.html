@@ -222,6 +222,7 @@
       { t: "Ruby is among the coins in Shallan's money pouch", c: "wok:3" },
       { t: "One of the three stones on Jasnah's Soulcaster", c: "wok:5" },
       {"t": "Large rubies in golden fittings warm the pavilion without a fire", "c": "wok:15"},
+      {"t": "Navani shows off a fist-sized brass fabrial with a large infused ruby at its centre; its red Stormlight lights the whole table", "c": "wok:22"},
     ]},
     { id: "emerald", name: "Emerald", light: "green", facts: [
       { t: "Emeralds are the most valuable, “for they could be used by Soulcasters to create food”", c: "wok:3" },
@@ -341,6 +342,7 @@
     {"amt": "2 sapphire marks", "what": "lister's oil; knobweed sap costs less, but more than the mucus", "c": "wok:17", "g": "sapphire"},
     {"amt": "2 clearmarks", "what": "a needle and gut", "c": "wok:17", "g": "diamond"},
     {"amt": "1 mark", "what": "a box of bleached scrap bandages, priced at two clearchips an arm length", "c": "wok:17", "g": "diamond"},
+    {"amt": "about 2 dozen clearmarks", "what": "Kaladin's estimate for the medicine and supplies to keep three wounded bridgemen alive", "c": "wok:21", "g": "diamond"},
   ].filter((p) => seen(p.c));
   document.getElementById("prices").innerHTML = PRICES.map((p) => `<div class="price" style="--c:${p.g ? ART.GEMS[p.g].glow : "#a9b3c1"}">
     <div class="amt">${p.amt}</div><div class="what">${p.what}</div>${cite(p.c)}</div>`).join("");

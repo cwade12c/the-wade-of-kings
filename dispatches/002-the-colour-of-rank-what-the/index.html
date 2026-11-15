@@ -217,6 +217,7 @@
     {"n": "a Radiant knight", "w": "bright blue, almost white", "g": "colour", "c": "wok:19", "note": "In Dalinar's vision; Dalinar wonders whether the eyes are glowing, leaking Stormlight."},
     {"n": "a Radiant knight", "w": "light tan", "g": "colour", "c": "wok:19", "note": "In Dalinar's vision; light tan eyes that almost seem to glow in the night."},
     {"n": "Taffa", "w": "brown", "g": "colour", "c": "wok:19", "note": "In Dalinar's vision; by starlight alone he can make out her brown eyes as the voice speaks through her."},
+    {"n": "Navani", "w": "light violet", "g": "light", "c": "wok:22", "note": "The king's mother, back at the Plains; she turns a pair of light violet eyes on Dalinar."},
   ].filter((p) => seen(p.c));
 
   // ------------------------------------------------------------ hero
@@ -308,6 +309,8 @@
     {"h": "Low-ranked lighteyes", "t": "The Cobalt Guard are lighteyes of low rank, able to carry swords for close fighting.", "c": "wok:18"},
     {"h": "Glory by blood", "t": "The Almighty accepts anyone’s excellence, particularly a lighteyes’: the better your blood, the more innate Glory you already have.", "c": "wok:18"},
     {"h": "A changed Calling", "t": "A lighteyes who was once a soldier is uncommon in the ardentia; Kadash changed his Calling, which is odd but not forbidden.", "c": "wok:18"},
+    {"h": "The surgeons' hall", "t": "Sadeas forbids it to give supplies to bridgemen, slaves and servants of the lesser nahns.", "c": "wok:21"},
+    {"h": "The king's feast", "t": "Younger lighteyes gather on the first island and lesser lighteyes on the middle one; only highprinces and invited guests may sit at the king's table. Darkeyed servants carry the food.", "c": "wok:22"},
   ].filter((f) => seen(f.c));
   document.getElementById("customs").innerHTML = CUSTOMS.map((f) => `<div class="custom"><h4>${f.h}</h4><p>${f.t} ${cite(f.c)}${basis(f.b)}</p></div>`).join("");
 
