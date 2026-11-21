@@ -193,6 +193,8 @@
       q: "“You go be what you are, Kal. I’ll be what I am.”" },
     { u: "wok:20", y: 7, ago: "7 yrs ago", age: "Kal, 13", ageC: "wok:20", where: "A crowd in Hearthstone, two months after Wistiow’s death",
       q: "“You have to learn when to care, son,” Lirin said softly. “And when to let go.”" },
+    { u: "wok:25", y: 7, ago: "7 yrs ago", age: "Kal, 13", ageC: "wok:25", where: "Hearthstone in winter, the day the new citylord arrives",
+      q: "“Having power over the lives of men is an uncomfortable responsibility.”" },
   ].filter((s) => seen(s.u));
   const NOW = { u: "now", q: "“You can’t put a price on a person’s life,” Kaladin said. One of his father’s sayings.", qc: "wok:17" };
   const flashIds = new Set(SCENES.map((s) => s.u));
@@ -215,6 +217,8 @@
       { t: "Saving to send Kal to train with Kharbranth’s surgeons at sixteen", c: "wok:10" },
       { t: "Never charged for his services: “You can’t put a price on a person’s life”", c: "wok:17" },
       { t: "After Miasal, tells Kal he did well and couldn’t have done more", c: "wok:20" },
+      { t: "Gossip says he stole Wistiow’s spheres and wrote the old citylord’s order himself", c: "wok:25", b: "said: Terith" },
+      { t: "Calls Roshone’s arrival “the butcher”, a throw in breakneck whose outcome depends on later throws", c: "wok:25" },
     ] },
     { id: "hesina", g: "house", tie: { t: "His mother", type: "family", c: "wok:10" }, facts: [
       { t: "When a wound is life-threatening, Lirin works with her as his assistant", c: "wok:10" },
@@ -222,6 +226,8 @@
       { t: "Bought him a fine pair of trousers a few weeks before his fight with Jost", c: "wok:16" },
       { t: "Always just wore a glove on her safehand, which seemed far more practical to Kaladin than a long cuff", c: "wok:6" },
       { t: "Put great stock in glyphwards; Lirin was disappointed in her “superstitions”", c: "wok:17" },
+      { t: "Chips crem stalactites off the town hall’s eaves: “It clears the head”", c: "wok:25" },
+      { t: "Admits she hoped Kal might marry Laral; a surgeon of the right rank could draw a poorer noble family", c: "wok:25", b: "said: Hesina" },
     ] },
     { id: "tien", g: "house", tie: { t: "His younger brother, two years his junior", type: "family", c: ["wok:10", "wok:16"] }, facts: [
       { t: "At ten he looks half his age; other kids call him a runt", c: "wok:16" },
@@ -229,6 +235,7 @@
       { t: "Kaladin always loved climbing high rock formations with him", c: "wok:6" },
       { t: "Kaladin remembers him as dead, and feels he failed him", c: ["wok:2", "wok:9"] },
       { t: "Wanted to come to the Shattered Plains and fight in the king’s army", c: "wok:4", b: "said: Kaladin" },
+      { t: "Picks out a viewing spot for the family; Kal is furious when other boys laugh at him", c: "wok:25" },
     ] },
     { id: "wistiow", g: "manor", tie: { t: "The citylord; he left spheres to pay for Kal’s surgical training", type: "support", b: "said: Lirin", c: "wok:16" }, facts: [
       { t: "“Stuffy old Wistiow,” to ten-year-old Kal", c: "wok:10" },
@@ -236,6 +243,7 @@
       { t: "Gave a recruiting army permission to take a few of the older boys", c: "wok:16" },
       { t: "He dies; those in Kholinar are to appoint a new citylord", c: "wok:16", b: "said: Lirin" },
       { t: "Two months later the town still has no replacement", c: "wok:20" },
+      { t: "Gossip says he left only a few glyphs, not a proper will", c: "wok:25", b: "said: Terith" },
     ] },
     { id: "laral", g: "manor", tie: { t: "His childhood friend", type: "other", c: "wok:16" }, facts: [
       { t: "Golden streaks in black hair, and bright, pale green eyes", c: "wok:16" },
@@ -243,6 +251,15 @@
       { t: "Walks away toward her father’s mansion after Kal’s fight with Jost", c: "wok:16" },
       { t: "Kal has barely seen her in the two months since her father died", c: "wok:20" },
       { t: "A lighteyed woman in Sadeas’s camp looks “much as Laral had, at the end”", c: "wok:6" },
+      { t: "Since her father died, her nurse won’t let Kal see her", c: "wok:25" },
+    ] },
+    { id: "roshone", g: "manor", tie: { t: "The new citylord; Kal hopes he’ll be a real lighteyed hero", c: "wok:25" }, facts: [
+      { t: "Arrives unannounced with a black carriage, a dozen wagons and his own honour guard", c: "wok:25" },
+      { t: "A ruffled violet coat, a golden takama and a sword; Kal thinks him a little old and flabby for a true soldier", c: "wok:25" },
+      { t: "Tells Lirin, “You’re the one who let old Wistiow die,” and leaves without a speech", c: "wok:25" },
+    ] },
+    { id: "miliv", g: "manor", tie: { t: "Kal suspects him of spreading the rumours about his family", c: "wok:25" }, facts: [
+      { t: "Wistiow’s head steward, who never liked Lirin; his wife, Laral’s nurse, oversees Laral’s time", c: "wok:25" },
     ] },
     { id: "jam", g: "boys", tie: { t: "Two years older; Kal and Tien go to see what he’s learned with the quarterstaff", type: "other", c: "wok:10" }, facts: [
       { t: "His father has started training him in the quarterstaff", c: "wok:10" },
@@ -283,6 +300,12 @@
     { id: "ral", g: "town", tie: { t: "Kal’s example of a son taking up his father’s trade", c: "wok:16", b: "said: Kal" }, facts: [
       { t: "Has just become the new town carpenter, as his father was", c: "wok:16", b: "said: Kal" },
     ] },
+    { id: "terith", g: "town", tie: { t: "Kal catches her gossiping about his father and gives her a sharp look", c: "wok:25" }, facts: [
+      { t: "The baker’s wife: fat, with curly dark hair and brown eyes", c: "wok:25" },
+      { t: "Says Lirin stole Wistiow’s spheres: “It ain’t right what they do”", c: "wok:25" },
+    ] },
+    { id: "relina", g: "town", tie: { t: "Gossips with Terith in front of the bakery", c: "wok:25" }, facts: [] },
+    { id: "jarel", g: "town", tie: { t: "Once told Kal that killing people and fancy talking don’t always go together", c: "wok:25", b: "said: Jarel" }, facts: [] },
     { id: "harl", g: "fall", tie: { t: "Miasal’s father; he shoves Kal aside when she dies", type: "other", c: "wok:20" }, facts: [
       { t: "Thick-shouldered; calls Kal a cremling until other men pull him back", c: "wok:20" },
       { t: "An hour later he is still wailing in the distance", c: "wok:20" },
@@ -300,6 +323,7 @@
     { t: "At twelve he wavers between surgery and soldiering; a moment with the quarterstaff “sang to him”", c: "wok:16" },
     { t: "His family are the only one of second nahn in town; everyone else is fourth or fifth", c: "wok:16" },
     { t: "At thirteen, after Miasal, he tells his father he doesn’t want to be a surgeon", c: "wok:20" },
+    { t: "Practises with a staff in secret; as a soldier he might win a Shardblade, become a lighteyes and marry Laral as her equal", c: "wok:25" },
   ] };
   const byId = Object.fromEntries(PEOPLE.map((p) => [p.id, p]));
   const shownGroups = GROUPS.filter((g) => PEOPLE.some((p) => p.g === g.id));

@@ -183,7 +183,7 @@
     "brown": { h: 28, s: 45, l: 28 }, "dark brown": { h: 24, s: 42, l: 20 }, "black": { h: 25, s: 15, l: 10 },
     "deep dark green": { h: 140, s: 30, l: 20 }, "dark green": { h: 145, s: 34, l: 24 }, "green": { h: 120, s: 45, l: 50 },
     "yellow": { h: 50, s: 75, l: 58 }, "light grey": { h: 210, s: 8, l: 68 }, "sapphire": { h: 212, s: 90, l: 62 }, "violet": { h: 272, s: 50, l: 52 },
-    "bright blue, almost white": { h: 205, s: 70, l: 84 }, "light tan": { h: 34, s: 42, l: 60 }, "light violet": { h: 272, s: 46, l: 64 },
+    "bright blue, almost white": { h: 205, s: 70, l: 84 }, "light tan": { h: 34, s: 42, l: 60 }, "light violet": { h: 272, s: 46, l: 64 }, "light green": { h: 120, s: 40, l: 62 },
   };
   const swatchCol = (w) => ART.hsl(T[w].h, T[w].s, Math.max(T[w].l, 45));
 
@@ -218,6 +218,8 @@
     {"n": "a Radiant knight", "w": "light tan", "g": "colour", "c": "wok:19", "note": "In Dalinar's vision; light tan eyes that almost seem to glow in the night."},
     {"n": "Taffa", "w": "brown", "g": "colour", "c": "wok:19", "note": "In Dalinar's vision; by starlight alone he can make out her brown eyes as the voice speaks through her."},
     {"n": "Navani", "w": "light violet", "g": "light", "c": "wok:22", "note": "The king's mother, back at the Plains; she turns a pair of light violet eyes on Dalinar."},
+    {"n": "Nanha Terith", "w": "brown", "g": "colour", "c": "wok:25", "note": "Hearthstone's baker's wife; her brown eyes show discomfiture when Kal catches her gossiping."},
+    {"n": "Teleb", "w": "light green", "g": "colour", "c": "wok:26", "note": "Dalinar's highofficer on duty, an Oldblood with light green eyes."},
   ].filter((p) => seen(p.c));
 
   // ------------------------------------------------------------ hero
@@ -311,6 +313,10 @@
     {"h": "A changed Calling", "t": "A lighteyes who was once a soldier is uncommon in the ardentia; Kadash changed his Calling, which is odd but not forbidden.", "c": "wok:18"},
     {"h": "The surgeons' hall", "t": "Sadeas forbids it to give supplies to bridgemen, slaves and servants of the lesser nahns.", "c": "wok:21"},
     {"h": "The king's feast", "t": "Younger lighteyes gather on the first island and lesser lighteyes on the middle one; only highprinces and invited guests may sit at the king's table. Darkeyed servants carry the food.", "c": "wok:22"},
+    {"h": "The Unkalaki", "t": "Rock's nuatoma are like lighteyes, “only their eyes are not light”: the Unkalaki don't pick leaders this way.", "c": "wok:23", "b": "said: Rock"},
+    {"h": "Tradition", "t": "Teft holds that a common man who killed an enemy Shardbearer would become a lighteyes; Kaladin calls tradition “the pretty box they use to wrap up their lies.”", "c": "wok:23", "b": "said: Teft, Kaladin"},
+    {"h": "Marrying up", "t": "Hesina says a young surgeon of the right rank could draw a poorer noble family; Kal knows his children with Laral might be lighteyed and outrank him.", "c": "wok:25"},
+    {"h": "Escort by rank", "t": "Moratel, least among the officers present, escorts Sadeas so a lighteyes welcomes him as befits his station; darkeyed citizen officers stand at the sides of the ranks.", "c": "wok:26"},
   ].filter((f) => seen(f.c));
   document.getElementById("customs").innerHTML = CUSTOMS.map((f) => `<div class="custom"><h4>${f.h}</h4><p>${f.t} ${cite(f.c)}${basis(f.b)}</p></div>`).join("");
 
