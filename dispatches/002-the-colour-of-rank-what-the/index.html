@@ -260,6 +260,7 @@
     { b: "Highprinces", p: "The princedoms are “like kingdoms unto themselves.” Sadeas, Dalinar and Vamah ride on the hunt.", c: "wok:12" },
     { gap: true, p: "The rest of the dahns: not named yet" },
     { b: "Numbered dahns", p: "Kaladin guesses the lighteyed scribe sorting slaves in Sadeas's camp is “of the fourth or fifth dahn”; an epigraph records “a lighteyed spinster of the eighth dahn.” Which way the numbers run, the book hasn't said.", c: ["wok:6", "wok:8"] },
+    { b: "Seventh dahn", p: "A dead lighteyes in the chasms wears seventh-dahn insignia: “Landless, attached to a more powerful officer's retinue.”", c: "wok:27" },
     { b: "Low enough to work", p: "Some lighteyes are “of low enough rank that they needed to serve in the army and earn a wage”", c: "wok:12" },
   ].filter((r) => r.gap || seen(r.c));
   const DARK = [
@@ -316,6 +317,9 @@
     {"h": "The Unkalaki", "t": "Rock's nuatoma are like lighteyes, “only their eyes are not light”: the Unkalaki don't pick leaders this way.", "c": "wok:23", "b": "said: Rock"},
     {"h": "Tradition", "t": "Teft holds that a common man who killed an enemy Shardbearer would become a lighteyes; Kaladin calls tradition “the pretty box they use to wrap up their lies.”", "c": "wok:23", "b": "said: Teft, Kaladin"},
     {"h": "Marrying up", "t": "Hesina says a young surgeon of the right rank could draw a poorer noble family; Kal knows his children with Laral might be lighteyed and outrank him.", "c": "wok:25"},
+    {"h": "In death", "t": "Fallen lighteyes are sometimes recovered from the chasms by special teams to be Soulcast into statues; darkeyes, unless very wealthy, are burned.", "c": "wok:27"},
+    {"h": "Honorifics", "t": "Kaladin would be punished if heard leaving off a lighteyes's honorific; Dunny's old master beat him when he forgot the title.", "c": "wok:27"},
+    {"h": "Becoming a brightlord", "t": "Rock tells Kaladin he could challenge a Shardbearer and become a brightlord; Kaladin snaps that he doesn't want to be one, and that he tried that once.", "c": "wok:27", "b": "said: Rock, Kaladin"},
     {"h": "Escort by rank", "t": "Moratel, least among the officers present, escorts Sadeas so a lighteyes welcomes him as befits his station; darkeyed citizen officers stand at the sides of the ranks.", "c": "wok:26"},
   ].filter((f) => seen(f.c));
   document.getElementById("customs").innerHTML = CUSTOMS.map((f) => `<div class="custom"><h4>${f.h}</h4><p>${f.t} ${cite(f.c)}${basis(f.b)}</p></div>`).join("");

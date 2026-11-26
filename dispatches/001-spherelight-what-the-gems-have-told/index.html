@@ -222,6 +222,7 @@
       {"t": "Lister's oil costs two sapphire marks", "c": "wok:17"},
       {"t": "Dalinar's signet ring is sapphire, bearing his Kholin glyphpair", "c": "wok:26"},
       {"t": "The insides of his Shardplate sabatons glow with sapphires set in indented pockets", "c": "wok:26"},
+      {"t": "The apothecary pays Kaladin a skymark for his knobweed sap: a sphere that glows deep blue, worth about twenty-five diamond ones", "c": "wok:27"},
     ]},
     { id: "ruby", name: "Ruby", light: "red", facts: [
       { t: "Ruby is among the coins in Shallan's money pouch", c: "wok:3" },
@@ -286,6 +287,7 @@
     {"t": "The apothecary checks a dun mark with a jeweler's loupe to be sure the gem is real", "c": "wok:17"},
     {"t": "Three of Kaladin's four marks are dun by afternoon; he says they glowed that morning. Gaz says they were newly infused, straight from Sadeas's treasurer", "c": "wok:17"},
     {"t": "Kaladin keeps a glowing sphere in his pocket: “If you get caught in the dark, you'll have light”", "c": "wok:17"},
+    {"t": "Many spheres are flattened slightly on one side to keep them from rolling away", "c": "wok:27"},
   ].filter((f) => seen(f.c));
   document.getElementById("anat-facts").innerHTML = ANAT.map((f) => li(f, ART.GEMS.sapphire.glow)).join("");
   document.querySelectorAll(".switch button").forEach((b) => b.addEventListener("click", () => {
@@ -323,11 +325,12 @@
   const NAMES = [
     { t: "<b>Clearmark</b>: what Gaz pays bridgemen; Kaladin works it out as one diamond mark", c: "wok:11" },
     { t: "<b>Firemark</b>: “wages for a week's sailing,” to a sailor", c: "wok:3" },
-    { t: "<b>Skymark</b>: Shallan's alcove rent is two of them. Which stone it holds, the book hasn't said", c: "wok:8" },
+    { t: "<b>Skymark</b>: Shallan's alcove rent is two of them. Which stone it holds, the book hasn't said", c: "wok:8", until: "wok:27" },
+    { t: "<b>Skymark</b>: a sapphire mark, glowing deep blue. Shallan's alcove rent is two of them", c: ["wok:8", "wok:27"] },
     {"t": "<b>Bloodmark</b>: a bottle of larmic mucus costs two. Kaladin counts it as ten days' pay, at five diamond marks to a garnet", "c": "wok:17"},
     {"t": "<b>Clearchip</b>: the apothecary prices bandages at two clearchips an arm length", "c": "wok:17"},
     { t: "Yalb's winnings: a pile of chips that “glowed with a variety of hues”", c: "wok:8" },
-  ].filter((f) => seen(f.c));
+  ].filter((f) => seen(f.c) && !(f.until && seen(f.until)));
   document.getElementById("coin-names").innerHTML = NAMES.map((f) => li(f)).join("");
 
   // ------------------------------------------------------------ prices
@@ -349,6 +352,9 @@
     {"amt": "1 mark", "what": "a box of bleached scrap bandages, priced at two clearchips an arm length", "c": "wok:17", "g": "diamond"},
     {"amt": "about 2 dozen clearmarks", "what": "Kaladin's estimate for the medicine and supplies to keep three wounded bridgemen alive", "c": "wok:21", "g": "diamond"},
     {"amt": "1 sphere", "what": "a bundle of candles or a pouch of oil, often cheaper than sphere light for a tavern's lanterns", "c": "wok:23", "g": null},
+    {"amt": "2, then 3 clearmarks", "what": "the apothecary's first offers for Kaladin's knobweed sap, while he claims wild knobweed is worthless", "c": "wok:27", "g": "diamond"},
+    {"amt": "1 skymark", "what": "what Kaladin gets for the sap: half the apothecary's price to the army, and half a month of Kaladin's pay", "c": "wok:27", "g": "sapphire"},
+    {"amt": "5 clearmarks a day", "what": "a common darkeyed soldier's pay, so a skymark is a week's wages to him", "c": "wok:27", "g": "diamond"},
   ].filter((p) => seen(p.c));
   document.getElementById("prices").innerHTML = PRICES.map((p) => `<div class="price" style="--c:${p.g ? ART.GEMS[p.g].glow : "#a9b3c1"}">
     <div class="amt">${p.amt}</div><div class="what">${p.what}</div>${cite(p.c)}</div>`).join("");
@@ -380,6 +386,7 @@
     {"t": "Most gemhearts are harvested from vulnerable chasmfiends in rocky chrysalises on the western plateaus", "c": "wok:15"},
     {"t": "A single gemheart can cover a highprince's expenses for months", "c": "wok:15"},
     {"t": "Larger gemstones are less likely to shatter when used in Soulcasting", "c": "wok:15"},
+    {"t": "The Parshendi weave uncut gemstones, drilled through, into their beards; Stormlight infuses them, though they glow less brightly than cut stones would", "c": "wok:27"},
   ].filter((f) => seen(f.c));
   document.getElementById("strange").innerHTML = STRANGE.map((f) => li(f, "#b7b0e0")).join("");
 
@@ -387,9 +394,11 @@
   const UNK = [
     { t: "How the different gems fit into a larger system (your <a href=\"../../ledger.html\">Q-017</a>)", c: "wok:5" },
     { t: "What the black sphere is (your <a href=\"../../ledger.html\">Q-008</a>)", c: "wok:prologue" },
-    { t: "How many marks make a broam, and where ruby, sapphire and amethyst sit in value", c: "wok:8" },
-    { t: "Which stones are in a firemark, a skymark or a bloodmark", c: "wok:8" },
-  ].filter((f) => seen(f.c));
+    { t: "How many marks make a broam, and where ruby, sapphire and amethyst sit in value", c: "wok:8", until: "wok:27" },
+    { t: "How many marks make a broam, and where ruby and amethyst sit in value (a sapphire sphere is worth about twenty-five diamond ones)", c: ["wok:8", "wok:27"] },
+    { t: "Which stones are in a firemark, a skymark or a bloodmark", c: "wok:8", until: "wok:27" },
+    { t: "Which stones are in a firemark or a bloodmark", c: ["wok:8", "wok:27"] },
+  ].filter((f) => seen(f.c) && !(f.until && seen(f.until)));
   document.getElementById("unknowns").innerHTML = UNK.map((f) => li(f, "#7d8899")).join("");
 })();
 </script>
