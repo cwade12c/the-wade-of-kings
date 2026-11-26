@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kata · proof of concept</title>
+<style>
+  :root { --ink: #e9dfc8; --dusk: #9a917f; --ember: #f0a35a; --pale: #cfe3ff; --bg: #050607; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 15px/1.45 Georgia, "Iowan Old Style", "Palatino Linotype", serif; -webkit-text-size-adjust: 100%; }
+  body { display: flex; flex-direction: column; min-height: 100%; }
+  header { padding: 14px 18px 8px; display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; }
+  header h1 { margin: 0; font-size: 21px; font-weight: normal; letter-spacing: .02em; }
+  header h1 b { color: var(--ember); font-weight: normal; }
+  header p { margin: 0; color: var(--dusk); font-size: 13.5px; }
+  .stamp { margin-left: auto; font-size: 12px; color: var(--dusk); border: 1px solid #2b2a26; border-radius: 999px; padding: 2px 10px; }
+  .stage { position: relative; flex: 1; min-height: 300px; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  .cap { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(720px, calc(100% - 32px)); text-align: center;
+         font-style: italic; font-size: clamp(15px, 2.1vw, 19px); text-shadow: 0 1px 12px #000, 0 0 3px #000; opacity: 0; transition: opacity .6s; pointer-events: none; }
+  .cap small { display: block; font-style: normal; font-size: 12px; color: var(--dusk); margin-top: 4px; letter-spacing: .04em; }
+  .cap.on { opacity: 1; }
+  .fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 16px 14px; border-top: 1px solid #1c1c1a; }
+  .bar button { font: inherit; font-size: 13px; color: var(--ink); background: #141413; border: 1px solid #2f2e2a; border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+  .bar button[aria-pressed="true"] { border-color: var(--ember); color: #fff; background: #2a1d10; }
+  .bar .grp { display: flex; gap: 4px; align-items: center; }
+  .bar .lbl { font-size: 12px; color: var(--dusk); margin-right: 2px; }
+  #play { min-width: 74px; }
+  #scrub { flex: 1 1 220px; accent-color: var(--ember); }
+  #tlabel { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--dusk); min-width: 64px; }
+  .note { padding: 0 18px 16px; color: var(--dusk); font-size: 13px; max-width: 70ch; }
+  .err { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; padding: 24px; text-align: center; color: var(--dusk); }
+  @media (max-width: 600px) { header h1 { font-size: 18px; } .stamp { margin-left: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Kata <b>·</b> proof of concept</h1>
+  <p>The figure and the kata alone: no memories, no sound yet. Drag to look around; slow it down to check the hands.</p>
+  <span class="stamp">Read to Chapter 27</span>
+</header>
+<div class="stage">
+  <canvas id="c" aria-label="Kaladin's kata in the chasm, drawn live"></canvas>
+  <div class="cap" id="cap"></div>
+  <div class="fade" id="fade"></div>
+  <div class="err" id="err">This needs WebGL, which this browser has turned off.</div>
+</div>
+<div class="bar">
+  <button id="play" type="button" aria-pressed="true">Pause</button>
+  <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Time">
+  <span id="tlabel">0.0 s</span>
+  <span class="grp"><span class="lbl">Speed</span><button type="button" data-speed="1" aria-pressed="true">1×</button><button type="button" data-speed="0.5" aria-pressed="false">½×</button><button type="button" data-speed="0.25" aria-pressed="false">¼×</button></span>
+  <span class="grp"><span class="lbl">Camera</span><button type="button" data-cam="film" aria-pressed="true">Film</button><button type="button" data-cam="free" aria-pressed="false">Free</button></span>
+  <span class="grp"><span class="lbl">Light</span><button type="button" data-light="torch" aria-pressed="true">Torch</button><button type="button" data-light="studio" aria-pressed="false">Studio</button></span>
+</div>
+<p class="note">Studio light shows the figure plainly, so you can judge the motion without the torch's shadows hiding anything. Everything here is drawn by code as the page opens, using three.js (MIT licence): no models, images or recordings.</p>
+<script type="importmap">{ "imports": { "three": "../../assets/vendor/three/three.module.js" } }</script>
+<script type="module">
+import * as T from 'three';
+import { EffectComposer } from '../../assets/vendor/three/postprocessing/EffectComposer.js';
+import { RenderPass } from '../../assets/vendor/three/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from '../../assets/vendor/three/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from '../../assets/vendor/three/postprocessing/OutputPass.js';
+window.THREE = Object.assign({}, T, { EffectComposer, RenderPass, UnrealBloomPass, OutputPass });
+const s = document.createElement('script'); s.src = 'kata.js'; document.body.appendChild(s);
+</script>
+
+</body>
+</html>
