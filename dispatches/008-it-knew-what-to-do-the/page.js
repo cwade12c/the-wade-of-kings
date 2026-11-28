@@ -10,21 +10,19 @@ $('credits').innerHTML = (window.KATA_CREDITS || []).map(([t, a, l, u]) => `<li>
 
 // Frozen beat captions — exact lines from Chapter 27
 const BEATS = [
-  [0.0,  1.2,  6.8, 'The Pool', 'The spear quivered in Kaladin’s fingers, as if begging him to swing it, spin it, dance with it.', 'wok:27'],
-  [7.5,  7.7, 10.6, 'Guard Position', 'Without thinking about it, he snapped the spear up under his arm into a guard position, point down. The chasm became quiet.', 'wok:27'],
-  [11.0, 11.4, 16.8, 'Tukks', 'He was listening to Tukks chide him. “The first step is to care.”', 'wok:27'],
-  [17.5, 17.9, 23.2, 'Tien', 'He was listening to Tien laugh.', 'wok:27'],
-  [24.0, 24.4, 29.8, 'His Mother', 'He was hearing his mother tease him in her clever, witty way.', 'wok:27'],
-  [30.5, 30.9, 37.8, 'The Battlefield', 'He was on the battlefield, surrounded by enemies but ringed by friends.', 'wok:27'],
-  [38.5, 39.0, 44.8, 'His Father', 'He was listening to his father tell him with a sneer in his voice that spears were only for killing. You could not kill to protect.', 'wok:27'],
-  [45.5, 45.9, 50.4, 'The Chasm', 'He was alone in a chasm deep beneath the earth, holding the spear of a fallen man, fingers gripping the wet wood, a faint dripping coming from somewhere distant.', 'wok:27'],
-  [51.0, 51.3, 54.4, 'Strength', 'Strength surged through him as he spun the spear up into an advanced kata.', 'wok:27'],
-  [54.5, 54.6, 56.9, 'Around and Around', 'He spun with it, swinging it around and around, across his neck, over his arm, in and out of jabs and swings.', 'wok:27'],
-  [57.0, 57.0, 58.1, 'It Knew What to Do', 'It was as if the spear itself knew what to do.', 'wok:27'],
-  [58.2, 58.2, 61.4, 'Him and the Wind', 'For a moment, it was just him. Him and the wind. He fought with her, and she laughed.', 'wok:27'],
-  [61.5, 62.0, 66.4, 'The Finish', 'He snapped the spear back into place, holding the haft at the one-quarter position, spearhead down, bottom of the haft tucked underneath his arm, end rising back behind his head.', 'wok:27'],
-  [66.8, 67.6, 72.0, 'The Puddle', 'Moash dropped a handful of spheres in stunned silence. Those spheres plopped into the puddle at his feet, causing it to glow.', 'wok:27'],
-  [72.1, 72.2, 75.5, 'The Spren', '“And there was some sort of spren zipping around you, between your sweeps, glowing with a pale light. It was beautiful.”', 'wok:27'],
+  [0.0,  1.2,  7.4, 'The Pool', 'The spear quivered in Kaladin’s fingers, as if begging him to swing it, spin it, dance with it.', 'wok:27'],
+  [7.5,  7.65, 11.9, 'Guard Position', '…he snapped the spear up under his arm into a guard position, point down. The chasm became quiet.', 'wok:27'],
+  [11.0, 12.0, 17.3, 'Tukks', 'He was listening to Tukks chide him. “The first step is to care.”', 'wok:27'],
+  [17.5, 17.9, 23.9, 'Tien', 'He was listening to Tien laugh.', 'wok:27'],
+  [24.0, 24.4, 30.4, 'His Mother', 'He was hearing his mother tease him in her clever, witty way.', 'wok:27'],
+  [30.5, 30.9, 38.4, 'The Battlefield', 'He was on the battlefield, surrounded by enemies but ringed by friends.', 'wok:27'],
+  [38.5, 38.9, 45.9, 'His Father', 'He was listening to his father tell him with a sneer in his voice that spears were only for killing. You could not kill to protect.', 'wok:27'],
+  [45.5, 46.0, 50.9, 'The Chasm', 'He was alone in a chasm deep beneath the earth… a faint dripping coming from somewhere distant.', 'wok:27'],
+  [51.0, 51.2, 55.6, 'Strength', 'Strength surged through him as he spun the spear up into an advanced kata.', 'wok:27'],
+  [56.0, 56.1, 61.5, 'Him and the Wind', 'For a moment, it was just him. Him and the wind. He fought with her, and she laughed.', 'wok:27'],
+  [61.5, 61.9, 66.8, 'The Finish', 'He snapped the spear back into place… He breathed in deeply, shivering.', 'wok:27'],
+  [66.8, 66.9, 72.5, 'The Puddle', 'Moash dropped a handful of spheres in stunned silence. Those spheres plopped into the puddle at his feet, causing it to glow.', 'wok:27'],
+  [72.5, 72.6, 75.95, 'The Spren', '“And there was some sort of spren zipping around you… It was beautiful.”', 'wok:27'],
 ];
 
 const frame = $('frame'), stage = $('stage'), canvas = $('cv'), cap = $('cap');
