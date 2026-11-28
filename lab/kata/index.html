@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Dispatch #008 · It Knew What to Do · The Wade of Kings</title>
+<link rel="stylesheet" href="../../assets/palanaeum.css">
+<style>
+  .kt .page-head h1 { line-height: 1; }
+  .kt .page-head .subtitle { display: block; font-family: var(--display); font-style: italic; font-size: var(--step-2); color: var(--dusk); margin-top: .35rem; }
+  .kt section.block { margin: 3.2rem 0; }
+  .kt section.block > h2 { font-size: var(--step-2); margin-bottom: .35rem; }
+  .kt section.block > .sub { color: var(--dusk); max-width: 62ch; margin-bottom: 1.2rem; }
+
+  .kt-frame { position: relative; margin: 1.6rem auto 0; max-width: 1280px; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 40px 90px -40px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.06); }
+  .kt-stage { position: relative; aspect-ratio: 16 / 9; touch-action: none; user-select: none; -webkit-user-select: none; background: #040608; cursor: grab; }
+  .kt-stage.dragging { cursor: grabbing; }
+  @media (max-width: 760px) and (orientation: portrait) { .kt-stage { aspect-ratio: 4 / 5; } }
+  .kt-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .kt-frame.fill { position: fixed; inset: 0; z-index: 2000; margin: 0; max-width: none; border-radius: 0; display: grid; grid-template-rows: 1fr auto; }
+  .kt-frame.fill .kt-stage { aspect-ratio: auto; height: 100%; min-height: 0; }
+  .kt-frame:fullscreen { display: grid; grid-template-rows: 1fr auto; border-radius: 0; max-width: none; }
+  .kt-frame:fullscreen .kt-stage { aspect-ratio: auto; height: 100%; min-height: 0; }
+  .kt-frame.fill .kt-deck, .kt-frame:fullscreen .kt-deck { padding-bottom: max(.7rem, env(safe-area-inset-bottom)); }
+
+  .kt-cap { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; padding: 9% 5% 4.6%; z-index: 3; pointer-events: none; color: #f4ead6; opacity: 0; transform: translateY(6px); transition: opacity .85s ease, transform .85s ease; background: linear-gradient(0deg, rgba(3,5,9,.78), rgba(3,5,9,.42) 55%, rgba(3,5,9,0)); text-shadow: 0 2px 3px rgba(0,0,0,.75), 0 0 28px rgba(0,0,0,.65); }
+  .kt-cap.on { opacity: 1; transform: none; }
+  .kt-cap b { display: block; max-width: 36em; font: italic 400 clamp(.92rem, 2.05vw, 1.56rem)/1.28 var(--display); }
+  .kt-cap b.long { font-size: clamp(.82rem, 1.72vw, 1.32rem); }
+  .kt-cap span { display: block; font: 400 clamp(.66rem, 1.25vw, .8rem) var(--text); letter-spacing: .16em; text-transform: uppercase; color: #d9cdb6; margin-top: .45rem; }
+  .kt-cap span a { color: inherit; pointer-events: auto; }
+  .kt-frame.nocap .kt-cap { display: none; }
+
+  /* Subtle top-right orbit hint & reset button when paused or orbited */
+  .kt-hud { position: absolute; top: .85rem; right: .95rem; z-index: 4; display: flex; align-items: center; gap: .45rem; pointer-events: none; }
+  .kt-hud span, .kt-hud button { font: 400 .76rem var(--text); letter-spacing: .04em; color: #d8e4f0; background: rgba(7,11,17,.68); border: 1px solid rgba(180,210,240,.22); border-radius: 999px; padding: .34rem .72rem; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .kt-hud button { pointer-events: auto; cursor: pointer; transition: border-color .2s, background .2s; }
+  .kt-hud button:hover { border-color: rgba(160,215,255,.7); background: rgba(18,28,42,.82); }
+  .kt-hud [hidden] { display: none; }
+
+  .kt-start { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; border: 0; padding: 0; cursor: pointer; color: #f4ead6; font: inherit; background: radial-gradient(70% 70% at 50% 50%, rgba(5,8,13,.16), rgba(5,8,13,.76)); }
+  .kt-start[hidden] { display: none; }
+  .kt-start[disabled] { cursor: progress; }
+  .kt-start span { display: grid; justify-items: center; gap: .7rem; font: 400 clamp(1.1rem, 2.6vw, 1.6rem) var(--display); text-shadow: 0 2px 12px rgba(0,0,0,.85); }
+  .kt-start i { display: grid; place-items: center; width: 4.6rem; height: 4.6rem; border-radius: 50%; background: rgba(135,195,245,.12); border: 1px solid rgba(180,220,255,.58); box-shadow: 0 0 42px rgba(120,185,245,.38), inset 0 0 20px rgba(155,210,255,.22); transition: transform .3s, opacity .4s; }
+  .kt-start[disabled] i { opacity: .35; }
+  .kt-start:not([disabled]):hover i, .kt-start:focus-visible i { transform: scale(1.07); }
+  .kt-start svg { width: 1.6rem; height: 1.6rem; margin-left: .25rem; }
+  .kt-start small { font: 400 var(--step--1) var(--text); color: #cfc4b1; min-height: 1.2em; }
+
+  .kt-load { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: linear-gradient(90deg, #5c8db8, #d8f0ff); z-index: 7; transition: width .3s, opacity .8s; }
+  .kt-veil { position: absolute; inset: 0; z-index: 9; display: none; place-items: center; text-align: center; padding: 2rem; background: rgba(8,10,16,.96); color: var(--parchment); }
+  .kt-veil.on { display: grid; }
+  .kt-veil strong { display: block; font: 400 var(--step-2) var(--display); margin-bottom: .4rem; }
+
+  .kt-deck { display: grid; grid-template-columns: auto 1fr auto auto auto auto; gap: .6rem; align-items: center; padding: .7rem 1rem; background: #0a0d13; border-top: 1px solid rgba(255,255,255,.06); }
+  .kt-deck button { display: inline-grid; place-items: center; min-width: 2.6rem; height: 2.6rem; border-radius: 999px; border: 1px solid var(--rule); background: var(--deep); color: var(--parchment); cursor: pointer; padding: 0 .7rem; }
+  .kt-deck button.play { width: 3rem; height: 3rem; background: var(--parchment); color: var(--abyss); border: 0; }
+  .kt-deck button[aria-pressed="true"] { border-color: var(--sphere); color: var(--sphere); }
+  .kt-deck svg { width: 1.05rem; height: 1.05rem; }
+  .kt-line { position: relative; height: 2.6rem; display: grid; align-items: center; }
+  .kt-line .track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; transform: translateY(-50%); border-radius: 2px; background: rgba(255,255,255,.09); overflow: hidden; }
+  .kt-line .done { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #5a89b5, #d4f0ff); }
+  .kt-line .tk { position: absolute; top: 50%; width: 2px; height: 10px; margin-left: -1px; transform: translateY(-50%); background: rgba(255,255,255,.22); }
+  .kt-line input { position: relative; z-index: 2; width: 100%; margin: 0; opacity: 0; height: 2.6rem; cursor: pointer; }
+  .kt-time { font: 400 var(--step--1) var(--text); font-variant-numeric: tabular-nums; color: var(--mist); min-width: 5.6rem; text-align: right; }
+  @media (max-width: 560px) { .kt-time { display: none; } .kt-deck { grid-template-columns: auto 1fr auto auto auto; gap: .45rem; padding: .6rem .7rem; } }
+
+  /* Perspective bar + beat pills */
+  .kt-controls { margin: 1.05rem auto 0; max-width: 1280px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+  .kt-views { display: inline-flex; flex-wrap: wrap; gap: .35rem; background: var(--deep); border: 1px solid var(--rule); border-radius: 999px; padding: .24rem; }
+  .kt-views button { border: 0; background: transparent; color: var(--dusk); padding: .42rem .9rem; border-radius: 999px; font: 400 var(--step--1) var(--text); cursor: pointer; transition: color .2s, background .2s; }
+  .kt-views button:hover { color: var(--parchment); }
+  .kt-views button[aria-pressed="true"] { background: var(--slate); color: var(--parchment); box-shadow: inset 0 0 0 1px var(--sphere); }
+  .kt-tip { font: 400 var(--step--1) var(--text); color: var(--mist); margin: 0; }
+
+  .kt-beats { list-style: none; margin: .85rem auto 0; padding: 0 0 .4rem; max-width: 1280px; display: flex; gap: .45rem; overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+  .kt-beats button { white-space: nowrap; padding: .48rem .85rem; border-radius: 999px; border: 1px solid var(--rule); background: var(--deep); color: var(--dusk); font: 400 var(--step--1) var(--text); cursor: pointer; transition: color .3s, border-color .3s, background .3s; }
+  .kt-beats button em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--mist); margin-right: .45rem; }
+  .kt-beats button:hover, .kt-beats button[aria-current="true"] { color: var(--parchment); border-color: var(--sphere); background: var(--slate); }
+
+  .kt-credits { color: var(--dusk); font-size: var(--step--1); columns: 2 22rem; column-gap: 2rem; padding-left: 1.2rem; }
+  .kt-credits li { margin: .25rem 0; break-inside: avoid; }
+  .kt-credits a { color: var(--sphere); }
+  .kt-made { color: var(--dusk); max-width: 68ch; }
+  .capture .kt-deck, .capture .kt-start, .capture .kt-cap, .capture .kt-load, .capture .kt-hud { display: none !important; }
+</style>
+<script type="importmap">{ "imports": { "three": "../../assets/vendor/three/three.module.js" } }</script>
+</head>
+<body data-page="dispatch" data-horizon="wok:27" data-root="../../">
+<main class="wrap dispatch-page kt">
+  <header class="page-head">
+    <p class="eyebrow">Dispatch #008 · unlisted draft · safe through <span class="stamp" id="safe"></span></p>
+    <h1>It Knew What to Do<span class="subtitle">the kata in the chasm</span></h1>
+    <p class="lede">Chapter 27’s kata, drawn live. Every sweep of the spear hangs in the air like wet ink, and the strokes bring back what Kaladin remembers, until the snap that holds everything still. Sound on. Pause anywhere and drag to look around.</p>
+  </header>
+
+  <section class="kt-frame" id="frame" aria-label="An animated film of Kaladin's spear kata in the chasm, drawn as strokes of light">
+    <div class="kt-stage" id="stage">
+      <canvas id="cv" role="img" aria-label="The spear kata in the chasm, drawn live"></canvas>
+      <div class="kt-hud">
+        <span id="orbitHint" hidden>Drag to look around</span>
+        <button type="button" id="resetOrbit" hidden>Reset view</button>
+      </div>
+      <p class="kt-cap" id="cap" aria-live="polite"><b></b><span></span></p>
+      <button type="button" class="kt-start" id="start" disabled>
+        <span>
+          <i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 3.8v16.4L20 12z"/></svg></i>
+          Begin the kata
+          <small id="stagemsg">carving the chasm</small>
+        </span>
+      </button>
+      <div class="kt-load" id="load"></div>
+      <div class="kt-veil" id="veil"><div><strong id="veilhead">Past your bookmark</strong><p class="muted" id="veilmsg">This draws on Chapter 27. Read that far, then come back.</p></div></div>
+    </div>
+    <div class="kt-deck">
+      <button type="button" class="play" id="play" aria-label="Play"></button>
+      <div class="kt-line"><div class="track"><div class="done" id="done"></div></div><div id="ticks"></div><input type="range" id="scrub" min="0" max="76" step="0.05" value="0" aria-label="Move through the kata"></div>
+      <span class="kt-time" id="time">0:00 / 1:16</span>
+      <button type="button" id="words" aria-label="The book's words" aria-pressed="true" title="The book's words"></button>
+      <button type="button" id="mute" aria-label="Mute" aria-pressed="false"></button>
+      <button type="button" id="fill" aria-label="Fill the screen" aria-pressed="false" title="Fill the screen"></button>
+    </div>
+  </section>
+
+  <div class="kt-controls">
+    <div class="kt-views" id="views" role="group" aria-label="Camera perspective">
+      <button type="button" data-view="director" aria-pressed="true">Director’s Cut</button>
+      <button type="button" data-view="closed" aria-pressed="false">Closed Eyes · Kaladin</button>
+      <button type="button" data-view="open" aria-pressed="false">Bridge Four · Chasm Floor</button>
+    </div>
+    <p class="kt-tip">Pause, then drag across the picture to walk around the moment.</p>
+  </div>
+
+  <ol class="kt-beats" id="beats" aria-label="Beats of the kata"></ol>
+
+  <section class="block">
+    <h2>Sound</h2>
+    <p class="sub">Every sound is an openly licensed recording found through Openverse and Freesound, trimmed and mixed directly to the kata's beat sheet.</p>
+    <ol class="kt-credits" id="credits"></ol>
+  </section>
+
+  <section class="block">
+    <h2>How it was made</h2>
+    <p class="kt-made">Everything is drawn live in your browser with <a href="https://threejs.org">three.js</a> (MIT licence): the chasm, the spear, the water and the light. The spear’s path through the whole kata is laid down once as brush strokes; each stroke lights as the spear passes, keeps the colour of the memory it was painted in, then dries and fades. The memories are ink studies, revealed where the spear’s sweeps cross them and spreading outward from there like ink on wet paper. Every frame is worked out from the film’s clock alone, so you can scrub to any instant, switch views, or pause and walk around a held moment. On a phone it draws a lighter version and lowers its resolution if frames run long.</p>
+  </section>
+</main>
+<script src="../../data/palanaeum.js"></script>
+<script src="../../assets/palanaeum.js"></script>
+<script src="credits.js"></script>
+<script type="module" src="page.js"></script>
+</body>
+</html>
