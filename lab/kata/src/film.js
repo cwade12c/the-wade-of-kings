@@ -45,12 +45,12 @@ const CAM_DIRECTOR = [
     [42.2,  0.15, 2.28, 3.20, 42,  0.00, 1.30, -0.20],
     [45.6,  0.30, 1.62, 4.35, 40,  0.00, 1.20, -0.40],
     [49.6,  0.35, 1.32, 5.15, 38,  0.00, 1.16, -0.60],
-    [51.2,  0.20, 1.30, 4.10, 44,  0.05, 1.30, 0.00],
-    [53.2, -1.55, 1.25, 2.75, 50,  0.10, 1.36, 0.10],
-    [55.6, -1.95, 1.78, 0.80, 52,  0.10, 1.40, 0.00],
-    [58.0,  0.15, 2.12, 3.05, 52,  0.10, 1.42, 0.00],
-    [60.0,  1.72, 1.22, 2.30, 50,  0.10, 1.36, 0.10],
-    [61.6,  1.40, 1.12, 2.70, 46,  0.10, 1.22, 0.10],
+    [51.2,  0.25, 1.06, 4.55, 48,  0.08, 1.26, 0.00],
+    [53.4, -1.55, 0.82, 3.70, 50,  0.10, 1.30, 0.00],
+    [55.8, -1.75, 1.45, 1.90, 52,  0.10, 1.40, 0.00],
+    [58.0,  0.20, 2.15, 3.75, 52,  0.10, 1.36, 0.00],
+    [60.0,  1.60, 0.88, 3.05, 50,  0.10, 1.30, 0.10],
+    [61.6,  1.20, 1.00, 3.10, 46,  0.10, 1.22, 0.10],
   ],
   [ // The snap: wide and low on what the kata left in the air, then down to the puddle and the pile.
     [61.6,  0.12, 0.78, 4.45, 46,  0.05, 1.46, 0.00],
@@ -104,6 +104,42 @@ export function fxTime(t) {
   return lerp(FX[i], FX[i + 1], x - i);
 }
 
+export const fxRate = fxSlope;
+
+// ---- Him and the wind ----
+// The breath (49.4) draws everything in; strength surges at BURST; the wind builds on the score's hits to the
+// last snap, which stops it dead. RELEASE is when the held water starts to fall back into the pool.
+export const BURST = 51.02, RELEASE = 63.35;
+const hits = [52.6, 53.8, 55.6, 56.4, 57.2, 58.2, 58.9, 59.5, 60.2];
+const galeKeys = track([[50.9, 0], [BURST, 0], [51.25, 1.15], [52.2, 0.72], [54.0, 0.88], [56.4, 1.02], [58.0, 1.14], [61.5, 1.26], [61.6, 1.26]], 1);
+export function galeSpd(t) {
+  if (t < BURST || t > T.FINISH + 0.1) return 0;
+  let k = galeKeys(t);
+  for (const h of hits) k += 0.28 * (t < h ? sm(h - 0.12, h, t) : Math.exp(-(t - h) * 3.2));
+  return k * (1 - sm(T.FINISH + 0.02, T.FINISH + 0.1, t));
+}
+const visKeys = track([[BURST, 0], [51.3, 0.42], [53.0, 0.5], [56.0, 0.62], [58.0, 0.7], [66.4, 0.7], [67.4, 0.0]], 1);
+export const galeVis = (t) => (t < BURST ? 0 : t > 67.4 ? 0 : visKeys(t));
+const lensKeys = track([[BURST, 0], [51.2, 0.42], [52.6, 0.14], [55.0, 0.22], [58.0, 0.32], [61.5, 0.4], [66.4, 0.36], [67.4, 0]], 1);
+export const lensVis = (t) => (t < BURST ? 0 : t > 67.4 ? 0 : lensKeys(t));
+export const inhale = (t) => sm(49.3, 50.95, t) * (1 - sm(50.98, 51.06, t));
+export const burst = (t) => (t < BURST ? 0 : Math.exp(-(t - BURST) * 2.2));
+// Wind phases, integrated on the world's clock so they stop when it does.
+const WP_HZ = 240, WP_N = Math.ceil(DUR * WP_HZ) + 2, WPT = new Float32Array(WP_N), LPT = new Float32Array(WP_N);
+for (let i = 1; i < WP_N; i++) {
+  const t0 = (i - 1) / WP_HZ, t1 = i / WP_HZ;
+  const a = galeSpd(t0) * fxSlope(t0), b = galeSpd(t1) * fxSlope(t1);
+  WPT[i] = WPT[i - 1] + 0.5 * (a + b) / WP_HZ;
+  LPT[i] = LPT[i - 1] + 0.5 * (a + b) / WP_HZ * 0.6;
+}
+const tabAt = (tab, t) => { const x = clamp(t, 0, DUR) * WP_HZ, i = Math.min(WP_N - 2, x | 0); return lerp(tab[i], tab[i + 1], x - i); };
+export const windPhase = (t) => tabAt(WPT, t);
+// When the held water lands: rain on the pool from the lowest drops to the highest.
+const FX_REL = fxTime(RELEASE);
+function landAt(h) { for (let t = RELEASE; t < DUR; t += 1 / 60) if (4.9 * Math.pow(fxTime(t) - FX_REL, 2) >= h) return t; return DUR; }
+const RAIN_A = landAt(0.25), RAIN_B = landAt(3.2);
+export const rainOnPool = (t) => sm(RAIN_A - 0.15, RAIN_A + 0.35, t) * (1 - sm(RAIN_B - 0.4, RAIN_B + 0.6, t));
+
 function compileTake(rows) {
   return {
     t0: rows[0][0],
@@ -148,7 +184,7 @@ export function moodAt(t) {
 export const post = {
   fade: 1, exposure: 1.12, bloom: 0.74, sat: 1.04, grain: 0.024, vig: 0.64,
   tint: new THREE.Vector3(1, 1, 1),
-  bleed: 0, run: 0, flash: 0, freeze: 0, ca: 0, bleedCol: new THREE.Vector3(1, 0.8, 0.5),
+  bleed: 0, run: 0, flash: 0, freeze: 0, ca: 0, rush: 0, bleedCol: new THREE.Vector3(1, 0.8, 0.5),
 };
 
 export const orbit = { yaw: 0, pitch: 0, dist: 0, active: false };
@@ -194,7 +230,19 @@ export function apply(t, camera, look) {
     L.set(override[3], override[4], override[5]);
   }
 
+  // The wind shakes the lens; strength surging kicks it back.
+  const gsh = gentle ? 0 : galeSpd(t) * 0.75 + burst(t) * 1.6;
+  if (gsh > 0.001) {
+    P.x += (Math.sin(t * 31.0) * 0.6 + Math.sin(t * 47.3 + 1.2) * 0.4) * 0.010 * gsh;
+    P.y += (Math.sin(t * 37.7 + 0.5) * 0.6 + Math.sin(t * 53.1) * 0.4) * 0.008 * gsh;
+  }
   camera.position.copy(P);
+  {
+    const kc = U.uKataC.value, dx = P.x - kc.x, dz = (P.z - kc.z) / 1.32;
+    const lw = U.uLensWind.value.set(-dz, 0.08, dx * 1.32);
+    if (lw.lengthSq() < 1e-6) lw.set(1, 0, 0);
+    lw.normalize();
+  }
   _m.lookAt(P, L, UP);
   camera.quaternion.setFromRotationMatrix(_m);
 
@@ -205,7 +253,7 @@ export function apply(t, camera, look) {
     camera.quaternion.multiply(_q2.setFromEuler(_eu));
   }
 
-  const baseFov = (override && override[6]) || cam.cf(t);
+  const baseFov = ((override && override[6]) || cam.cf(t)) + burst(t) * 7.0;
   const a169 = 16 / 9;
   camera.fov = camera.aspect >= a169
     ? baseFov
@@ -216,11 +264,24 @@ export function apply(t, camera, look) {
   const ft = fxTime(t);
   U.uFxTime.value = ft;
   U.uStrokeView.value = view === 'open' ? 0.55 : view === 'closed' ? 1.15 : 1.0;
+  const gs = galeSpd(t);
+  U.uGaleSpd.value = gs;
+  U.uGaleVis.value = galeVis(t);
+  U.uGaleView.value = view === 'open' ? 0.38 : 1.0;
+  U.uFxRate.value = fxSlope(t);
+  U.uFxRel.value = FX_REL;
+  U.uBurstT.value = fxTime(BURST);
+  U.uWindPh.value = windPhase(t);
+  U.uLensPh.value = tabAt(LPT, t);
+  U.uLens.value = view === 'open' ? 0 : lensVis(t);
+  U.uBurst.value = burst(t);
+  U.uInhale.value = inhale(t);
+  U.uRain.value = rainOnPool(t);
   U.uStrokeHold.value = sm(T.FINISH, T.FINISH + 0.08, t) * (1 - sm(T.FINISH + 1.9, T.FINISH + 4.8, t));
   U.uCamPos.value.copy(camera.position);
 
   const flick = 0.88 + 0.09 * Math.sin(ft * 9.7) + 0.06 * Math.sin(ft * 23.1 + 1.4) + 0.04 * Math.cos(ft * 37.3);
-  U.uTorchFlick.value = gentle ? 0.96 : flick;
+  U.uTorchFlick.value = gentle ? 0.96 : flick * (1 - 0.22 * Math.min(1, galeSpd(t)) * (0.5 + 0.5 * Math.sin(ft * 17.3)));
 
   let wallDim = 0;
   if (view === 'closed') {
@@ -273,8 +334,9 @@ export function apply(t, camera, look) {
   post.run = mood.wFather;
   // The two snaps land as a flash; the last one stops the world.
   const hit = (at, k) => (t >= at ? Math.exp(-(t - at) * k) : 0);
-  post.flash = (hit(7.66, 9) * 0.45 + hit(61.6, 6) * 0.85) * (gentle ? 0.3 : 1);
-  post.ca = hit(7.66, 6) + hit(61.6, 3.5);
+  post.flash = (hit(7.66, 9) * 0.45 + hit(BURST, 5) * 0.55 + hit(61.6, 6) * 0.85) * (gentle ? 0.3 : 1);
+  post.ca = hit(7.66, 6) + hit(BURST, 3) * 1.2 + hit(61.6, 3.5) + galeSpd(t) * 0.35;
+  post.rush = gentle || view === 'open' ? 0 : clamp(galeSpd(t) * 0.22 + burst(t) * 0.8, 0, 1.0);
   post.freeze = sm(T.FINISH + 0.04, T.FINISH + 0.2, t) * (1 - sm(T.FINISH + 1.6, T.FINISH + 4.6, t));
   U.uFreeze.value = post.freeze;
   G.mood = mood;

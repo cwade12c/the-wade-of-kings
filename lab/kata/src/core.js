@@ -106,6 +106,24 @@ export const U = {
   uStrokeView: { value: 1 },
   uStrokeHold: { value: 0 },
   uFreeze: { value: 0 },
+  // The pool as a mirror (mirror.js)
+  tRefl: { value: null },
+  uReflMat: { value: new THREE.Matrix4() },
+  // Him and the wind (gale.js): strength, how much water is up, world-clock rate, release into the fall
+  uKataC: { value: v3(0.12, 0, 0.12) },
+  uWindPh: { value: 0 },
+  uGaleSpd: { value: 0 },
+  uGaleVis: { value: 0 },
+  uGaleView: { value: 1 },
+  uFxRate: { value: 1 },
+  uFxRel: { value: 1e4 },
+  uBurstT: { value: 1e4 },
+  uBurst: { value: 0 },
+  uLens: { value: 0 },
+  uLensPh: { value: 0 },
+  uLensWind: { value: v3(1, 0, 0) },
+  uInhale: { value: 0 },
+  uRain: { value: 0 },
   uBokeh: { value: 1 },
 };
 

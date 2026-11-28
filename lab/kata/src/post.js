@@ -41,7 +41,7 @@ ${GLSL_NOISE}
 uniform sampler2D tScene, tBloom;
 uniform vec2 uRes;
 uniform float uTime, uExposure, uBloom, uFade, uSat, uGrain, uVig;
-uniform float uBleed, uRun, uFlash, uFreeze, uCA;
+uniform float uBleed, uRun, uFlash, uFreeze, uCA, uRush;
 uniform vec3 uTint, uBleedCol;
 in vec2 vUv; out vec4 frag;
 
@@ -55,6 +55,13 @@ void main() {
   vec2 ca = c * (0.0016 + uCA * 0.006);
   vec3 s = vec3(texture(tScene, uv - ca).r, texture(tScene, uv).g, texture(tScene, uv + ca).b);
   s = max(s, vec3(0.0));
+  // In the wind the edges of the frame tear toward the middle, as if everything rushes past.
+  if (uRush > 0.002) {
+    vec2 st = c * uRush * 0.05;
+    vec3 acc = s;
+    for (int i = 1; i <= 5; i++) acc += max(texture(tScene, uv - st * (float(i) / 5.0)).rgb, vec3(0.0));
+    s = mix(s, acc / 6.0, smoothstep(0.02, 0.32, dot(c, c)));
+  }
   vec3 b = max(texture(tBloom, uv).rgb, vec3(0.0));
   vec3 col = s + b * uBloom;
   col *= uExposure * (1.0 + uFlash * 0.9);
@@ -112,7 +119,7 @@ export const Post = {
       tScene: { value: null }, tBloom: { value: null }, uRes: { value: new THREE.Vector2() },
       uTime: { value: 0 }, uExposure: { value: 1 }, uBloom: { value: 0.7 }, uFade: { value: 1 },
       uSat: { value: 1 }, uGrain: { value: 0.025 }, uVig: { value: 0.68 }, uTint: { value: new THREE.Vector3(1, 1, 1) },
-      uNoise: U.uNoise, uBleed: { value: 0 }, uRun: { value: 0 }, uFlash: { value: 0 }, uFreeze: { value: 0 }, uCA: { value: 0 },
+      uNoise: U.uNoise, uBleed: { value: 0 }, uRun: { value: 0 }, uFlash: { value: 0 }, uFreeze: { value: 0 }, uCA: { value: 0 }, uRush: { value: 0 },
       uBleedCol: { value: new THREE.Vector3(1, 0.8, 0.5) },
     });
     this.scene = null; this.mips = []; this.ups = [];
@@ -167,7 +174,7 @@ export const Post = {
     f.uExposure.value = P.exposure; f.uBloom.value = P.bloom; f.uFade.value = P.fade;
     f.uSat.value = P.sat; f.uGrain.value = P.grain; f.uVig.value = P.vig;
     f.uTint.value.copy(P.tint);
-    f.uBleed.value = P.bleed; f.uRun.value = P.run; f.uFlash.value = P.flash; f.uFreeze.value = P.freeze; f.uCA.value = P.ca;
+    f.uBleed.value = P.bleed; f.uRun.value = P.run; f.uFlash.value = P.flash; f.uFreeze.value = P.freeze; f.uCA.value = P.ca; f.uRush.value = P.rush || 0;
     f.uBleedCol.value.copy(P.bleedCol);
     this.pass(this.final, null);
   },

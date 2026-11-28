@@ -8,6 +8,8 @@ import { buildSpear, spearPoseAt } from './kata.js';
 import { Memories } from './memories.js';
 import { Effects } from './effects.js';
 import { Strokes } from './strokes.js';
+import { Gale } from './gale.js';
+import { Mirror, MIRROR_LAYER } from './mirror.js';
 
 // Build a tiny procedural chasm-light environment cubemap via PMREM so forged steel & wet ash wood gleam naturally!
 function buildChasmEnv(R) {
@@ -88,6 +90,7 @@ export async function boot(canvas, opt = {}) {
 
   U.uNoise.value = makeNoiseTex();
   Post.init(R);
+  Mirror.init(R);
   Film.setGentle(opt.gentle);
 
   // ---- Lighting rig: overhead rift + shadow-casting torch + distant torch + live Syl light + memory & sphere glows ----
@@ -129,6 +132,8 @@ export async function boot(canvas, opt = {}) {
   // Crisp subtle key light tracking the spear so wet wood & burnished steel always gleam
   const spearKey = new THREE.PointLight(0xdcecff, 1.85, 6.2, 1.5);
   scene.add(spearKey);
+  // The lights that matter in the pool's reflection (the shadow-casting rift light stays out of it).
+  for (const l of [hemi, torchA, torchB, sylLight, memLight, sphereLight, spearKey]) l.layers.enable(MIRROR_LAYER);
 
   // ---- Sizing ----
   let quality = 1;
@@ -143,6 +148,7 @@ export async function boot(canvas, opt = {}) {
     R.setSize(w, h, false);
     R.getDrawingBufferSize(buf);
     Post.size(buf.x, buf.y, G.tier ? 0 : 4);
+    Mirror.size(buf.x, buf.y);
   }
 
   // ---- Staged build ----
@@ -152,10 +158,11 @@ export async function boot(canvas, opt = {}) {
   let spear;
   const steps = [
     ['carving the chasm', 32, (p) => Chasm.build(scene, p, tick)],
-    ['balancing the spear', 12, async (p) => { spear = buildSpear(); scene.add(spear); p(1); await tick(); }],
+    ['balancing the spear', 12, async (p) => { spear = buildSpear(); scene.add(spear); Mirror.add(spear); p(1); await tick(); }],
     ['grinding the ink', 14, (p) => Strokes.build(scene, p, tick)],
     ['painting the memories', 24, (p) => Memories.build(scene, p, tick)],
     ['calling the wind', 24, (p) => Effects.build(scene, p, tick)],
+    ['raising the water', 14, (p) => Gale.build(scene, p, tick)],
   ];
   const totalW = steps.reduce((a, s) => a + s[1], 0) + 10;
   let done = 0;
@@ -223,6 +230,10 @@ export async function boot(canvas, opt = {}) {
     updateLights();
 
     R.info.reset();
+    const sh = R.shadowMap.autoUpdate;
+    R.shadowMap.autoUpdate = false;
+    Mirror.render(scene, camera);
+    R.shadowMap.autoUpdate = sh;
     Post.render(scene, camera, Film.post, t);
   }
 

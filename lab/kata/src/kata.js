@@ -213,6 +213,94 @@ function figureEight(angle, sideBias, height, radius, pos, dir) {
   dir.set((Math.sin(planeYaw) * c + Math.cos(planeYaw) * 0.28 * s2) * radius, s * 0.88, Math.cos(planeYaw) * c * radius).normalize();
 }
 
+// ---- The wind passage, move by move: [start, end, fn(e, u, pos, dir, grip)] ----
+const _bP = new THREE.Vector3(), _bD = new THREE.Vector3(), _bG = { slide: 0, front: 0, rear: 0, vis: 0 };
+const WIND_MOVES = [
+  // Strength surges: spun up into a wheel beside him, faster with every turn.
+  [51.0, 52.4, 0.22, (e, u, p, d, g) => {
+    const a = 0.25 + Math.PI * 2 * 1.3 * Math.pow(u, 1.45);
+    p.set(0.06, 1.36 + Math.sin(a) * 0.06, 0.14);
+    d.set(0.22 * Math.sin(a * 0.5), Math.sin(a), Math.cos(a)).normalize();
+    g.vis = 0.5; g.front = 0.16; g.rear = -0.18;
+  }],
+  // Around and around: figure-eights, side to side.
+  [52.4, 54.6, 0.22, (e, u, p, d, g) => {
+    const ang = 0.9 + e * 6.3 + 0.2 * Math.sin(e * 3.1);
+    figureEight(ang, 1.3, 1.36, 1.0, p, d);
+    g.vis = 0.55; g.slide = Math.sin(ang * 0.5) * 0.12; g.front = 0.2; g.rear = -0.22;
+  }],
+  // Across his neck: two full turns behind the shoulders.
+  [54.6, 56.2, 0.2, (e, u, p, d, g) => {
+    const a = 1.2 + Math.PI * 2 * 2.0 * (u + 0.06 * Math.sin(u * Math.PI));
+    p.set(Math.cos(a) * 0.16 + 0.06, 1.62, Math.sin(a) * 0.16 + 0.06);
+    d.set(-Math.sin(a), 0.07 * Math.sin(a * 2.0), Math.cos(a)).normalize();
+    g.vis = 0.22; g.front = 0.1; g.rear = -0.1;
+  }],
+  // Over his arm: a wheel at his side, facing out, that turns into the jab.
+  [56.2, 57.02, 0.16, (e, u, p, d, g) => {
+    const a = 2.2 + Math.PI * 2 * 1.05 * u;
+    p.set(0.42, 1.30, 0.16);
+    d.set(Math.cos(a), Math.sin(a), 0.32).normalize();
+    g.vis = 0.45; g.front = 0.18; g.rear = -0.2;
+  }],
+  // Jab.
+  [57.02, 57.62, 0.12, (e, u, p, d, g) => {
+    const k = kime((e - 0.06) / 0.2) * (1 - sm(0.36, 0.6, e) * 0.75);
+    p.set(0.16, 1.26, lerp(-0.34, 0.62, k));
+    d.set(0.06, 0.02, 1).normalize();
+    g.vis = 0.55; g.slide = k * 0.44; g.front = lerp(0.22, -0.2, k); g.rear = lerp(-0.3, -0.84, k);
+  }],
+  // A wide swing, low to high...
+  [57.62, 58.62, 0.14, (e, u, p, d, g) => {
+    const k = whip(clamp((e - 0.1) / 0.75));
+    const a = lerp(-1.9, 1.6, k);
+    p.set(Math.sin(a) * 0.26 + 0.06, 1.12 + 0.34 * k, Math.cos(a) * 0.20 + 0.1);
+    d.set(Math.sin(a), lerp(-0.25, 0.45, k), Math.cos(a)).normalize();
+    g.vis = 0.5; g.front = 0.24; g.rear = -0.34;
+  }],
+  // ...and back across, high to low.
+  [58.62, 59.22, 0.1, (e, u, p, d, g) => {
+    const k = kime(clamp((e - 0.18) / 0.32));
+    const a = lerp(1.6, -1.75, k);
+    p.set(Math.sin(a) * 0.26 + 0.06, 1.46 - 0.32 * k, Math.cos(a) * 0.20 + 0.1);
+    d.set(Math.sin(a), lerp(0.45, -0.32, k), Math.cos(a)).normalize();
+    g.vis = 0.5; g.front = 0.24; g.rear = -0.34;
+  }],
+  // Jab.
+  [59.22, 59.92, 0.12, (e, u, p, d, g) => {
+    const k = kime((e - 0.2) / 0.2) * (1 - sm(0.42, 0.7, e) * 0.7);
+    p.set(lerp(0.02, -0.08, k), 1.32, lerp(-0.32, 0.68, k));
+    d.set(-0.12, 0.05, 1).normalize();
+    g.vis = 0.55; g.slide = k * 0.44; g.front = lerp(0.22, -0.2, k); g.rear = lerp(-0.3, -0.84, k);
+  }],
+  // One last great whirl over his head, into the snap.
+  [59.92, 61.5, 0.18, (e, u, p, d, g) => {
+    const a = 0.6 + Math.PI * 2 * 1.55 * (u + 0.05 * Math.sin(u * Math.PI));
+    p.set(Math.cos(a) * 0.24 + 0.06, 1.74 - 0.12 * u, Math.sin(a) * 0.22 + 0.08);
+    d.set(-Math.sin(a), 0.2 - 0.1 * u, Math.cos(a)).normalize();
+    g.vis = 0.4; g.front = 0.16; g.rear = -0.18;
+  }],
+];
+function windMove(t, pos, dir, grip) {
+  let i = 0;
+  while (i < WIND_MOVES.length - 1 && t >= WIND_MOVES[i + 1][0]) i++;
+  const [a, b, blend, fn] = WIND_MOVES[i];
+  const e = t - a, u = clamp(e / (b - a));
+  grip.slide = 0;
+  fn(e, u, pos, dir, grip);
+  if (e < blend) {
+    // where the spear was when this move began
+    if (i === 0) evalPhaseRaw(a - 1e-4, _bP, _bD, _bG);
+    else { _bG.slide = 0; WIND_MOVES[i - 1][3](a - WIND_MOVES[i - 1][0], 1, _bP, _bD, _bG); }
+    const k = sm(0, blend, e);
+    pos.lerpVectors(_bP, pos, k);
+    slerpDir(_bD, dir, k, _vTmp2);
+    dir.copy(_vTmp2);
+    grip.slide = lerp(_bG.slide, grip.slide, k);
+  }
+}
+const _vTmp2 = new THREE.Vector3();
+
 // Evaluates (pos, dir, gripSlide, handFront, handRear, handVis)
 // gripSlide shifts the spear axially along dir so thrusts shoot forward through the invisible guide hand!
 function evalPhaseRaw(t, pos, dir, grip) {
@@ -389,51 +477,11 @@ function evalPhaseRaw(t, pos, dir, grip) {
     return;
   }
 
-  // ---- 9. HIM AND THE WIND — LYRICAL FULL MASTERY (51.0 .. 61.5s) ----
+  // ---- 9. HIM AND THE WIND (51.0 .. 61.5s) ----
+  // "He spun with it, swinging it around and around, across his neck, over his arm, in and out of jabs and
+  // swings" [wok:27]. Each move blends in from where the last one left the spear and lands on the score's hits.
   if (t < T.FINISH) {
-    const e = t - T.WIND;
-    grip.vis = 0.56;
-    if (e < 3.0) {
-      const ang = e * 4.05 + 0.18 * Math.sin(e * 3.0);
-      figureEight(ang, 1.22, 1.34, 1.0, pos, dir);
-      grip.slide = Math.sin(ang * 0.5) * 0.14;
-      grip.front = 0.20; grip.rear = -0.22;
-      return;
-    }
-    if (e < 5.8) {
-      const u = (e - 3.0) / 2.8;
-      const ang = u * TAU * 1.32;
-      pos.set(Math.cos(ang) * 0.30, 1.56 - Math.sin(u * Math.PI) * 0.16, Math.sin(ang) * 0.28);
-      dir.set(-Math.sin(ang), 0.32 * Math.sin(ang * 1.5), Math.cos(ang)).normalize();
-      grip.vis = 0.24; grip.front = 0.12; grip.rear = -0.14;
-      return;
-    }
-    if (e < 8.4) {
-      const sub = e - 5.8;
-      if (sub < 1.35) {
-        const u = kime(sub / 0.72);
-        pos.set(lerp(-0.34, 0.16, u), lerp(1.06, 1.32, u), lerp(-0.32, 0.64, u));
-        _dA.set(-0.55, -0.42, 0.72).normalize();
-        _dB.set(0.08, 0.14, 0.98).normalize();
-        slerpDir(_dA, _dB, u, dir);
-        grip.slide = u * 0.44;
-        grip.front = lerp(0.24, -0.20, u); grip.rear = lerp(-0.30, -0.84, u);
-      } else {
-        const u = breathCurve((sub - 1.35) / 1.25);
-        pos.set(lerp(0.16, 0.0, u), lerp(1.32, 1.72, u), lerp(0.64, 0.04, u));
-        _dA.set(0.08, 0.14, 0.98).normalize();
-        _dB.set(0.88, 0.25, 0.40).normalize();
-        slerpDir(_dA, _dB, u, dir);
-        grip.slide = lerp(0.44, 0.0, u);
-        grip.front = lerp(-0.20, 0.18, u); grip.rear = lerp(-0.84, -0.18, u);
-      }
-      return;
-    }
-    const u = (e - 8.4) / (T.FINISH - (T.WIND + 8.4));
-    const ang = 0.4 + u * TAU * 1.22;
-    pos.set(Math.cos(ang) * 0.36 * (1 - u * 0.4), lerp(1.72, 1.38, sm(0.55, 1.0, u)), Math.sin(ang) * 0.26);
-    dir.set(Math.cos(ang), lerp(0.24, 0.48, u), Math.sin(ang)).normalize();
-    grip.front = 0.18; grip.rear = -0.20;
+    windMove(t, pos, dir, grip);
     return;
   }
 
@@ -475,7 +523,6 @@ const SOFT_SEAMS = [
   T.TIEN, T.MOTHER,
   T.BATTLE, T.BATTLE + 1.65, T.BATTLE + 3.65, T.BATTLE + 6.25,
   T.FATHER, T.CHASM,
-  T.WIND, T.WIND + 3.0, T.WIND + 5.8, T.WIND + 8.4,
 ];
 const _sP0 = new THREE.Vector3(), _sD0 = new THREE.Vector3();
 const _sP1 = new THREE.Vector3(), _sD1 = new THREE.Vector3();
@@ -551,5 +598,5 @@ export const SPRAY_BURSTS = [
   18.8, 21.0,
   25.8, 28.4,
   31.0, 32.15, 33.15, 35.0,
-  51.6, 52.8, 54.4, 56.2, 57.9, 59.6, 61.55,
+  51.3, 52.6, 54.0, 55.4, 56.6, 57.25, 58.2, 58.9, 59.5, 60.4, 61.55,
 ];

@@ -73,6 +73,24 @@ window.KATA_CREDITS = [
   "https://freesound.org/people/silencyo/sounds/81794"
  ],
  [
+  "G56-30 Wind Storm",
+  "craigsmith",
+  "CC0 1.0",
+  "https://freesound.org/people/craigsmith/sounds/438885"
+ ],
+ [
+  "Heavy Rain & Wind",
+  "jackcursham",
+  "CC0 1.0",
+  "https://freesound.org/people/jackcursham/sounds/467326"
+ ],
+ [
+  "Heavy rain, clear recording",
+  "dersinnsspace",
+  "CC0 1.0",
+  "https://freesound.org/people/dersinnsspace/sounds/435221"
+ ],
+ [
   "Noir: A Minimalist and Emotive Piano Melody for Relaxation",
   "kjartan_abel",
   "CC BY 4.0",
@@ -167,6 +185,12 @@ window.KATA_CREDITS = [
   "D4XX",
   "CC0 1.0",
   "https://freesound.org/people/D4XX/sounds/567267"
+ ],
+ [
+  "whoosh+boom.wav",
+  "Capashen",
+  "CC0 1.0",
+  "https://freesound.org/people/Capashen/sounds/118934"
  ],
  [
   "Choir of Voices - Single Chord",

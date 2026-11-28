@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { U, G, clamp, lerp, sm, GLSL_NOISE } from './core.js';
 import { T, DUR, moodAt } from './film.js';
 import { spearPoseAt } from './kata.js';
+import { Mirror } from './mirror.js';
 
 const HZ = 90;
 
@@ -17,7 +18,7 @@ function lifeAt(t) {
   if (t < T.FATHER) return 1.7;
   if (t < T.CHASM) return 2.3;
   if (t < T.WIND) return 1.1;
-  if (t < T.FINISH + 0.1) return 1.7;
+  if (t < T.FINISH + 0.1) return 0.9;
   return 0.6;
 }
 
@@ -30,7 +31,9 @@ function inkAt(t, out) {
   r = lerp(r, m.r * 1.18, k); g = lerp(g, m.g * 1.14, k); b = lerp(b, m.b * 1.08, k);
   const w = m.wWind;
   r = lerp(r, 0.70, w); g = lerp(g, 0.82, w); b = lerp(b, 1.02, w);
-  out[0] = r; out[1] = g; out[2] = b;
+  // The wind passage moves fastest; its ink runs thinner so the storm can be seen through it.
+  const thin = 1 - 0.45 * w;
+  out[0] = r * thin; out[1] = g * thin; out[2] = b * thin;
 }
 
 const STROKE_V = /* glsl */`
@@ -185,7 +188,7 @@ export const Strokes = {
     const uni = (gain, width) => ({
       uTime: U.uTime, uCamPos: U.uCamPos, uNoise: U.uNoise,
       uGain: { value: gain }, uWidth: { value: width }, uView: U.uStrokeView,
-      uHold: U.uStrokeHold, uHoldA: { value: T.FINISH - 4.2 }, uHoldB: { value: T.FINISH + 0.08 },
+      uHold: U.uStrokeHold, uHoldA: { value: T.FINISH - 2.3 }, uHoldB: { value: T.FINISH + 0.08 },
     });
     const mk = (geo, gain, width, order) => {
       const m = new THREE.Mesh(geo, new THREE.ShaderMaterial({
@@ -195,6 +198,7 @@ export const Strokes = {
       }));
       m.frustumCulled = false; m.renderOrder = order;
       scene.add(m);
+      Mirror.add(m);
       return m;
     };
     mk(buildStrip(samples, 'tip', colours, lives), 1.0, 0.020, 15);
@@ -232,6 +236,7 @@ export const Strokes = {
     }));
     sheet.frustumCulled = false; sheet.renderOrder = 14;
     scene.add(sheet);
+    Mirror.add(sheet);
 
     G.info.strokeSamples = n;
     prog(1);

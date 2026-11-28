@@ -3,8 +3,9 @@
 import * as THREE from 'three';
 import { mergeVertices } from '../../../assets/vendor/three/utils/BufferGeometryUtils.js';
 import { U, G, rng, fbm, ridged, vnoise, clamp, lerp, sm, TAU, GLSL_NOISE } from './core.js';
-import { chasmRockMaterial } from './mat.js';
+import { chasmRockMaterial, boulderMaterial } from './mat.js';
 import { T } from './film.js';
+import { Mirror } from './mirror.js';
 
 export function canyonCenterX(z) {
   return Math.sin(z * 0.105) * 0.92 + Math.cos(z * 0.052 + 0.65) * 0.48;
@@ -16,50 +17,60 @@ export function canyonHalfWidth(z, y) {
   return Math.max(0.88, base + narrow);
 }
 
-// ---- Angular stepped Rosharan boulder/crag sculptor (merged vertices + sedimentary ledges, ZERO potato spheres!) ----
+// ---- Boulders and crags: a lumpy core cut by planes into fractured faces, banded by sediment, chipped ----
+// kind 0 boulder, 1 slab, 2 crag column, 3 block. Each vertex also carries its convexity (aEdge): worn
+// edges read lighter, crevices darker, and moss keeps off the sharp edges.
 function stone(seed, detail, kind) {
   let g = new THREE.IcosahedronGeometry(1, detail);
   g.deleteAttribute('normal');
   g.deleteAttribute('uv');
   g = mergeVertices(g, 1e-4);
-  const p = g.attributes.position, r = rng(seed);
-  const ox = r() * 80, oy = r() * 80, v = new THREE.Vector3();
-  const lean = (r() - 0.5) * 0.35, lean2 = (r() - 0.5) * 0.35, el = 0.78 + 0.45 * r();
+  const p = g.attributes.position, r = rng(seed), v = new THREE.Vector3();
+  const ox = r() * 80, oy = r() * 80;
+  const S = [[1.0, 0.80, 0.92], [1.25, 0.52, 1.10], [0.62, 1.9, 0.66], [1.0, 0.86, 0.95]][kind];
+  const planes = [];
+  const add = (x, y, z, d) => planes.push([new THREE.Vector3(x, y, z).normalize(), d]);
+  add((r() - 0.5) * 0.4, 1, (r() - 0.5) * 0.4, 0.52 + 0.22 * r());
+  const nSide = kind === 2 ? 7 : 6;
+  for (let i = 0; i < nSide; i++) {
+    const a = (i + r() * 0.7) / nSide * TAU;
+    add(Math.cos(a), (r() - 0.5) * 0.8, Math.sin(a), 0.60 + 0.26 * r());
+  }
+  for (let i = 0; i < 6; i++) {
+    const th = r() * TAU, ph = Math.acos(2 * r() - 1);
+    add(Math.sin(ph) * Math.cos(th), Math.cos(ph), Math.sin(ph) * Math.sin(th), 0.70 + 0.22 * r());
+  }
   for (let i = 0; i < p.count; i++) {
     v.fromBufferAttribute(p, i);
-    const a = Math.atan2(v.z, v.x), up = (v.y + 1) * 0.5;
-    if (kind === 3) {
-      // Cleaved angular block
-      const k = 0.58;
-      v.x = Math.sign(v.x) * Math.pow(Math.abs(v.x), k);
-      v.y = Math.sign(v.y) * Math.pow(Math.abs(v.y), k);
-      v.z = Math.sign(v.z) * Math.pow(Math.abs(v.z), k);
-    }
-    let d = 0.72
-      + 0.44 * fbm(ox + v.x * 1.25 + v.y * 0.65, oy + v.z * 1.25 - v.y * 0.55, 4)
-      + 0.20 * ridged(ox + v.x * 2.5 + v.y, oy + v.z * 2.5 - v.y, 3)
-      + (detail > 2 ? 0.055 * (ridged(ox + v.x * 6.5 + v.y * 3, oy + v.z * 6.5 - v.y * 3, 3) - 0.5) : 0);
-
-    if (kind === 2) {
-      // Tall fluted crag buttress along the cliff wall
-      const prof = lerp(1.0, 0.38, Math.pow(up, 1.25)) * (0.82 + 0.44 * vnoise(ox + up * 3.0, oy + a * 1.2));
-      const flute = 1 - 0.18 * Math.pow(Math.abs(Math.sin(a * 3.0 + ox + 2.0 * vnoise(ox + a, up * 2.0))), 0.65);
-      d *= prof * flute;
-      const yy = v.y * 1.85;
-      v.set(v.x * d * el + lean * yy * 0.35, yy, v.z * d / el + lean2 * yy * 0.35);
-    } else {
-      // Stepped sedimentary ledges & flat-fractured faces
-      const ledge = 0.045 * Math.tanh(3.4 * Math.sin(v.y * (kind === 3 ? 6.0 : 8.0) + 2.8 * vnoise(ox + a * 1.4, oy + v.y)));
-      d *= 1 + ledge;
-      d = Math.round(d * 6.5) / 6.5 * (kind === 0 ? 0.10 : 0.16) + d * (kind === 0 ? 0.90 : 0.84);
-      v.x *= d; v.z *= d;
-      v.y *= (kind === 1 ? 0.74 : kind === 3 ? 0.92 : 0.84) * (0.86 + 0.14 * d);
-    }
-    // Flatten underside so boulders sit heavily into the crem floor
-    if (v.y < -0.32) v.y = -0.32 + (v.y + 0.32) * 0.18;
+    v.multiplyScalar(1 + 0.22 * (fbm(ox + v.x * 1.3 + v.y * 0.7, oy + v.z * 1.3 - v.y * 0.6, 3) - 0.5));
+    for (const [n, d] of planes) { const k = v.dot(n) - d; if (k > 0) v.addScaledVector(n, -k); }
+    const st = Math.sin(v.y * (kind === 2 ? 8.0 : 12.0) + 2.2 * vnoise(ox + v.x * 2.0, oy + v.z * 2.0));
+    const ledge = 0.026 * Math.tanh(4.0 * st);
+    v.x *= 1 + ledge; v.z *= 1 + ledge;
+    v.multiplyScalar(1 + 0.035 * (ridged(ox + v.x * 4.5 + v.y * 2.0, oy + v.z * 4.5 - v.y * 2.0, 3) - 0.5));
+    v.set(v.x * S[0], v.y * S[1], v.z * S[2]);
+    const base = -0.30 * S[1];
+    if (v.y < base) v.y = base + (v.y - base) * 0.2;
     p.setXYZ(i, v.x, v.y, v.z);
   }
   g.computeVertexNormals();
+  // Convexity: how far each vertex stands proud of its neighbours, along its normal.
+  const n = p.count, idx = g.index.array, sum = new Float32Array(n * 3), cnt = new Float32Array(n);
+  for (let t = 0; t < idx.length; t += 3) {
+    for (let e = 0; e < 3; e++) {
+      const a = idx[t + e], b = idx[t + (e + 1) % 3];
+      sum[a * 3] += p.getX(b); sum[a * 3 + 1] += p.getY(b); sum[a * 3 + 2] += p.getZ(b); cnt[a]++;
+      sum[b * 3] += p.getX(a); sum[b * 3 + 1] += p.getY(a); sum[b * 3 + 2] += p.getZ(a); cnt[b]++;
+    }
+  }
+  const nr = g.attributes.normal, edge = new Float32Array(n);
+  const scale = 0.9 / (1 / Math.pow(2, detail));
+  for (let i = 0; i < n; i++) {
+    const c = cnt[i] || 1;
+    const dx = p.getX(i) - sum[i * 3] / c, dy = p.getY(i) - sum[i * 3 + 1] / c, dz = p.getZ(i) - sum[i * 3 + 2] / c;
+    edge[i] = clamp((dx * nr.getX(i) + dy * nr.getY(i) + dz * nr.getZ(i)) * scale * 6.0, -1, 1);
+  }
+  g.setAttribute('aEdge', new THREE.BufferAttribute(edge, 1));
   return g;
 }
 
@@ -117,10 +128,31 @@ void main() {
 const FLOOR_F = /* glsl */`precision highp float;
 ${GLSL_NOISE}
 uniform float uTime, uTorchFlick, uSylGlow, uMemMix, uWallDim, uRiftSun, uPuddleGlow, uWindVortex, uFogDen;
-uniform vec3 uCamPos, uTorchA, uTorchB, uSylPos, uMemCol, uSpherePos, uFogCol;
+uniform float uWindPh, uGaleSpd, uGaleVis, uGaleView, uInhale, uBurst, uRain;
+uniform vec3 uCamPos, uTorchA, uTorchB, uSylPos, uMemCol, uSpherePos, uFogCol, uKataC;
+uniform sampler2D tRefl;
+uniform mat4 uReflMat;
 in vec3 vWorld;
 in vec2 vUv;
 out vec4 frag;
+
+float hh(vec2 q) { q = fract(q * vec2(127.31, 311.73)); q += dot(q, q + 34.17); return fract(q.x * q.y); }
+// The held water coming back down: rings scattered across the pool, each cell with its own timing.
+vec2 rainGrad(vec2 p) {
+  vec2 g = vec2(0.0);
+  const float C = 0.17;
+  vec2 cell = floor(p / C);
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec2 c = cell + vec2(float(i), float(j));
+    if (hh(c) > uRain) continue;
+    vec2 ctr = (c + 0.2 + 0.6 * vec2(hh(c + 3.1), hh(c + 7.7))) * C;
+    float ph = fract(uTime * (0.8 + 0.6 * hh(c + 1.3)) + hh(c + 5.2));
+    vec2 d = p - ctr;
+    float r = length(d), e = r - ph * 0.2;
+    g += d / max(r, 1e-3) * cos(e * 110.0) * exp(-e * e * 1400.0) * (1.0 - ph) * 0.09;
+  }
+  return g;
+}
 
 vec2 rippleGrad(vec2 p, vec2 c, float t0, float amp, float freq, float speed, float life) {
   float age = uTime - t0;
@@ -141,8 +173,8 @@ void main() {
   float grit = n2(p * 24.0);
 
   // Organic shallow rainwater basin meandering through the hardened crem floor
-  float px = (p.x - 0.06) / 1.52;
-  float pz = (p.y - 1.18) / 2.75;
+  float px = (p.x - 0.06) / 1.85;
+  float pz = (p.y - 1.00) / 3.05;
   float pDist = length(vec2(px, pz)) + (n - 0.5) * 0.48;
   float puddle = 1.0 - smoothstep(0.70, 0.98, pDist);
 
@@ -181,14 +213,31 @@ void main() {
   grad += rippleGrad(p, vec2(-0.24, 0.28), 54.00, 0.10, 29.0, 0.78, 2.2);
   grad += rippleGrad(p, vec2( 0.32, 0.56), 61.60, 0.14, 28.0, 0.84, 2.8);
   grad += rippleGrad(p, vec2(-0.30, 0.12), 61.64, 0.12, 28.0, 0.82, 2.8);
-  // 3) Wind-driven ripples swirling across the puddle during Him and the Wind!
-  if (uWindVortex > 0.01) {
-    vec2 dp = p - vec2(0.0, 0.2);
-    float r = length(dp);
-    float ang = atan(dp.y, dp.x);
-    float swirl = sin(r * 18.0 - uTime * 6.5 + ang * 2.0) * 0.045 * uWindVortex * exp(-r * 0.45);
-    grad += normalize(dp + 1e-4) * swirl;
+  // 3) The breath draws a ring in across the water; strength surging sends one out hard.
+  vec2 kd = p - uKataC.xz;
+  float kr = length(kd);
+  vec2 kn = kd / max(kr, 1e-3);
+  if (uInhale > 0.001) {
+    float e = kr - 2.8 * (1.0 - uInhale);
+    grad += kn * cos(e * 26.0) * exp(-e * e * 10.0) * 0.07 * uInhale;
   }
+  grad += rippleGrad(p, uKataC.xz, 51.02, 0.30, 15.0, 2.4, 2.6);
+  grad += rippleGrad(p, uKataC.xz, 51.10, 0.16, 24.0, 1.7, 2.2);
+  // 4) The wind on the pool: chop that spirals with the vortex, gusts streaking across it. It runs on the
+  // world's clock, so it freezes with everything else.
+  float galeK = uGaleSpd * uGaleView;
+  if (uGaleVis > 0.001) {
+    float ang = atan(kd.y, kd.x), ph = uWindPh * 2.2;
+    vec2 tg = vec2(-kn.y, kn.x);
+    float chop = sin(kr * 21.0 - ang * 3.0 + ph * 7.0) + 0.6 * sin(kr * 37.0 + ang * 5.0 + ph * 11.0) + 0.5 * sin(dot(p, vec2(31.0, 17.0)) + ph * 13.0);
+    float gustN = fbm2(vec2(kr * 2.0 - ph * 1.4, ang * 1.6));
+    float k = uGaleVis * (0.35 + 0.65 * galeK) * exp(-kr * 0.22) * uGaleView;
+    grad += (kn * chop * 0.032 + tg * (gustN - 0.5) * 0.09) * k;
+  } else if (uWindVortex > 0.01) {
+    float ang = atan(kd.y, kd.x);
+    grad += kn * sin(kr * 18.0 - uTime * 6.5 + ang * 2.0) * 0.045 * uWindVortex * exp(-kr * 0.45);
+  }
+  if (uRain > 0.001) grad += rainGrad(p);
   // 4) Moash's 5 dropped spheres plopping into the foreground puddle (67.4..68.08s)
   grad += rippleGrad(p, vec2(0.28, 2.38), 67.40, 0.07, 27.0, 0.88, 3.4);
   grad += rippleGrad(p, vec2(0.46, 2.52), 67.56, 0.07, 29.0, 0.84, 3.4);
@@ -236,6 +285,23 @@ void main() {
     vec3 H = normalize(L + V);
     float spec = pow(max(dot(N, H), 0.0), mix(24.0, 180.0, puddle));
     col += sCol * spec * mix(0.18, 2.35, puddle);
+  }
+
+  // The pool as a mirror: everything that gives light, seen in the water through its ripples.
+  {
+    vec4 rc = uReflMat * vec4(vWorld.x, 0.0, vWorld.z, 1.0);
+    vec2 ruv = rc.xy / rc.w + grad * vec2(0.10, 0.06) * puddle;
+    vec3 refl = textureLod(tRefl, ruv, 0.0).rgb;
+    float rk = puddle * mix(0.42, 0.95, fresnel) + (1.0 - puddle) * wetRim * 0.10;
+    col += refl * rk;
+  }
+
+  // Spray torn off the surface where the wind rakes it
+  if (uGaleVis > 0.001) {
+    float ang = atan(kd.y, kd.x), ph = uWindPh * 2.2;
+    float foam = smoothstep(0.66, 0.94, n2(vec2(kr * 9.0 - ph * 3.0, ang * 7.0 + ph * 0.9)));
+    vec3 lit = vec3(0.30, 0.42, 0.58) + vec3(0.45, 0.75, 1.15) * uSylGlow / (1.0 + 0.4 * dot(uSylPos - vWorld, uSylPos - vWorld));
+    col += lit * foam * uGaleVis * (0.25 + 0.75 * galeK) * puddle * exp(-kr * 0.3) * 0.22;
   }
 
   // Memory colour shimmer in the damp stone & water
@@ -311,11 +377,17 @@ const FLAME_V = /* glsl */`
 in float aLayer;
 out vec2 vUv;
 out float vLayer;
-uniform float uFxTime;
+uniform float uFxTime, uGaleSpd, uBurst, uGaleView;
 void main() {
   vUv = uv;
   vLayer = aLayer;
   vec3 p = position;
+  // The wind lays the flame over and tears at it.
+  float h0 = clamp(uv.y, 0.0, 1.0);
+  float bend = (uGaleSpd * 0.9 * uGaleView + uBurst * 1.5) * h0 * h0;
+  p.x += bend * 0.20 + sin(uFxTime * 29.0 + h0 * 9.0 + aLayer) * 0.05 * bend;
+  p.z -= bend * 0.12;
+  p.y *= 1.0 - min(bend, 1.0) * 0.25;
   // Wind draft sways flame tips organically (stronger during Him and the Wind!)
   float h = clamp(uv.y, 0.0, 1.0);
   p.x += sin(uFxTime * 11.5 + h * 5.0 + aLayer * 2.1) * 0.045 * h * h;
@@ -354,7 +426,7 @@ void main() {
 // ---- Rising Glowing Torch Embers + Soft Illuminated Smoke Wisps ----
 const EMBER_V = /* glsl */`
 in vec4 aSeed; // x phase, y life, z speed, w radius
-uniform float uFxTime, uWallDim;
+uniform float uFxTime, uWallDim, uGaleSpd, uGaleView;
 uniform vec3 uCamPos, uTorchA;
 out vec2 vUv;
 out float vA;
@@ -367,7 +439,7 @@ void main() {
     sin(u * 9.0 + aSeed.x * 24.0) * (0.06 + u * 0.32) + u * 0.14,
     0.10 + u * (1.25 + aSeed.w * 1.1),
     cos(u * 7.5 + aSeed.x * 19.0) * (0.06 + u * 0.28)
-  );
+  ) + vec3(1.8, -0.35, -0.9) * u * uGaleSpd * uGaleView;
   vec3 toCam = normalize(uCamPos - p);
   vec3 rt = normalize(cross(vec3(0.0, 1.0, 0.0), toCam));
   vec3 up = cross(toCam, rt);
@@ -389,8 +461,8 @@ void main() {
 // ---- Low Drifting Volumetric Chasm Floor Mist (swirls into a wind-vortex during Him and the Wind!) ----
 const MIST_V = /* glsl */`
 in vec4 aMist; // x, y, z, seed
-uniform float uFxTime, uWindVortex, uWallDim;
-uniform vec3 uCamPos;
+uniform float uFxTime, uWindVortex, uWallDim, uInhale, uBurst;
+uniform vec3 uCamPos, uKataC;
 out vec2 vUv;
 out float vA;
 out float vSeed;
@@ -405,13 +477,16 @@ void main() {
   vec2 vortex = vec2(cos(ang), sin(ang)) * mix(r, 0.85 + 0.55 * aMist.w, uWindVortex * 0.65);
   p.xz = mix(p.xz + drift, vortex, uWindVortex * 0.72);
   p.y += uWindVortex * (0.28 + 0.52 * aMist.w) * (0.5 + 0.5 * sin(uFxTime * 1.4 + aMist.w * 10.0));
+  // Drawn in with his breath, thrown out when strength surges.
+  vec2 kd = p.xz - uKataC.xz;
+  p.xz = uKataC.xz + kd * (1.0 - uInhale * 0.45) + normalize(kd + 1e-4) * uBurst * 1.6;
 
   vec3 toCam = normalize(uCamPos - p);
   vec3 rt = normalize(cross(vec3(0.0, 1.0, 0.0), toCam));
   vec3 up = cross(toCam, rt);
   float sz = (0.95 + aMist.w * 1.05) * (1.0 - uWindVortex * 0.18);
   vec3 wp = p + (rt * position.x + up * position.y) * sz;
-  vA = (0.048 + uWindVortex * 0.068) * (1.0 - uWallDim * 0.55);
+  vA = (0.048 + uWindVortex * 0.03) * (1.0 - uWallDim * 0.55);
   gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
 }`;
 const MIST_F = /* glsl */`precision highp float;
@@ -503,6 +578,7 @@ export const Chasm = {
   async build(scene, prog, tick) {
     const r = rng(27042);
     const rockMat = chasmRockMaterial();
+    const stoneMat = boulderMaterial();
 
     // 1. High-detail stepped sedimentary chasm walls (world-space 3D shader + chasmfiend claw gashes!)
     const leftWall = buildCliffWall(-1, G.tier, rockMat);
@@ -557,14 +633,14 @@ export const Chasm = {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), eu = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
 
     // HERO BOULDER PAIR flanking a visible side-by-side V-cleft where Kaladin wedged his torch!
-    const heroA = new THREE.Mesh(stone(107, G.tier ? 3 : 4, 3), rockMat);
+    const heroA = new THREE.Mesh(stone(107, G.tier ? 4 : 5, 3), stoneMat);
     heroA.position.set(-1.38, 0.28, -1.42);
     heroA.scale.set(0.46, 0.54, 0.48);
     heroA.rotation.set(0.10, 0.42, -0.22);
     heroA.castShadow = heroA.receiveShadow = true;
     scene.add(heroA);
 
-    const heroB = new THREE.Mesh(stone(131, G.tier ? 3 : 4, 1), rockMat);
+    const heroB = new THREE.Mesh(stone(131, G.tier ? 4 : 5, 0), stoneMat);
     heroB.position.set(-2.14, 0.48, -1.60);
     heroB.scale.set(0.62, 0.78, 0.64);
     heroB.rotation.set(-0.08, 1.12, 0.20);
@@ -595,7 +671,7 @@ export const Chasm = {
     }
     archetypes.forEach((g, ki) => {
       if (!lists[ki].length) return;
-      const im = new THREE.InstancedMesh(g, rockMat, lists[ki].length);
+      const im = new THREE.InstancedMesh(g, stoneMat, lists[ki].length);
       lists[ki].forEach((m, j) => im.setMatrixAt(j, m));
       im.castShadow = im.receiveShadow = true;
       scene.add(im);
@@ -694,6 +770,7 @@ export const Chasm = {
     const tA = buildTorch(U.uTorchA.value, -0.32, 0.12, flameMat);
     const tB = buildTorch(U.uTorchB.value, 0.26, -0.08, flameMat);
     scene.add(tA.group, tB.group);
+    Mirror.add(tA.group); Mirror.add(tB.group);
 
     // Rising glowing ember sparks from the hero torch
     const nEmbers = G.tier ? 24 : 44;
@@ -713,6 +790,7 @@ export const Chasm = {
     }));
     embers.frustumCulled = false; embers.renderOrder = 17;
     scene.add(embers);
+    Mirror.add(embers);
 
     // 9. Low drifting volumetric chasm floor mist (responds to the wind during Him and the Wind!)
     const nMist = G.tier ? 18 : 30;
@@ -740,10 +818,12 @@ export const Chasm = {
       const fl = U.uTorchFlick.value * (1 - U.uWallDim.value * 0.8);
       tA.emberMat.emissiveIntensity = 1.25 * fl;
       tB.emberMat.emissiveIntensity = 1.15 * fl;
-      const windSway = 0.04 + 0.16 * U.uWindVortex.value;
+      const gv = U.uGaleView.value;
+      const windSway = 0.04 + 0.16 * U.uWindVortex.value + (0.32 * U.uGaleSpd.value + 0.5 * U.uBurst.value) * gv;
+      const ft = U.uFxTime.value, wp = U.uWindPh.value * 11.0 * gv;
       for (const vm of vineGroup.children) {
-        vm.rotation.z = Math.sin(t * 1.45 + vm.userData.phase) * windSway;
-        vm.rotation.x = Math.cos(t * 1.15 + vm.userData.phase) * windSway * 0.6;
+        vm.rotation.z = Math.sin(ft * 1.45 + wp + vm.userData.phase) * windSway;
+        vm.rotation.x = Math.cos(ft * 1.15 + wp * 0.8 + vm.userData.phase) * windSway * 0.6;
       }
     });
 

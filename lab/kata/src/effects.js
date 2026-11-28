@@ -2,8 +2,9 @@
 // into the pool), motes in the air, light drifting past the lens, and Moash's spheres
 import * as THREE from 'three';
 import { U, G, rng, clamp, lerp, sm, win, TAU } from './core.js';
-import { T, fxTime } from './film.js';
+import { T, fxTime, BURST } from './film.js';
 import { spearPoseAt, SPRAY_BURSTS, DRIPS, DRIP_H } from './kata.js';
+import { Mirror } from './mirror.js';
 
 // ---- 1. Syl's graceful, lyrical 3D windspren flight path ----
 // Pre-integrated monotonic phase table so changing speed (calm -> wind -> father -> wind) NEVER jumps angle!
@@ -251,7 +252,8 @@ void main() {
 const MOTE_V = /* glsl */`
 in vec4 aHome;  // xyz base, w seed
 in vec4 aDrift; // x speed, y size, z phase, w radius
-uniform float uFxTime, uMemMix, uRiftSun, uSylGlow, uWindVortex;
+uniform float uFxTime, uMemMix, uRiftSun, uSylGlow, uWindVortex, uInhale, uBurst;
+uniform vec3 uKataC;
 uniform vec3 uCamPos, uMemCol, uSylPos;
 out vec2 vUv;
 out float vA;
@@ -271,6 +273,8 @@ void main() {
     vec3 swirlP = vec3(cos(ang) * r, p.y, sin(ang) * r);
     p = mix(p, swirlP, uWindVortex * 0.55);
   }
+  vec3 kd = p - vec3(uKataC.x, 1.3, uKataC.z);
+  p = vec3(uKataC.x, 1.3, uKataC.z) + kd * (1.0 - uInhale * 0.55) + normalize(kd + 1e-4) * uBurst * 2.2;
   vec3 toCam = normalize(uCamPos - p);
   vec3 rt = normalize(cross(vec3(0.0, 1.0, 0.0), toCam));
   vec3 up = cross(toCam, rt);
@@ -329,7 +333,7 @@ void main() {
   vp.xy += position.xy * size;
   float edge = smoothstep(1.0, 0.75, abs(xy.x)) * smoothstep(1.0, 0.7, abs(xy.y));
   float tw = 0.65 + 0.35 * sin(uFxTime * (0.8 + fract(aB.w * 9.0)) + aB.w * 40.0);
-  float wind = uWindVortex * step(0.45, fract(aB.w * 2.9));
+  float wind = uWindVortex * 0.45 * step(0.6, fract(aB.w * 2.9));
   vA = edge * tw * uBokeh * (uMemMix * 0.9 + wind * 0.8 + uPuddleGlow * 0.35) * sp;
   vec3 warm = uMemCol * 1.6;
   vCol = mix(warm, vec3(0.55, 0.85, 1.35), clamp(wind + uPuddleGlow * 0.6, 0.0, 1.0));
@@ -365,7 +369,7 @@ export const Effects = {
       { rib: createRibbon(S_SEG, SYL_F, { uTime: U.uTime, uSylGlow: U.uSylGlow, uStrandGain: { value: 0.58 } }, 17), wBase: 0.020, span: 1.10 },
       { rib: createRibbon(S_SEG, SYL_F, { uTime: U.uTime, uSylGlow: U.uSylGlow, uStrandGain: { value: 0.46 } }, 17), wBase: 0.018, span: 0.76 },
     ];
-    for (const s of sylStrands) scene.add(s.rib.mesh);
+    for (const s of sylStrands) { scene.add(s.rib.mesh); Mirror.add(s.rib.mesh); }
 
     const sylCore = new THREE.Mesh(
       new THREE.PlaneGeometry(0.22, 0.22),
@@ -376,6 +380,7 @@ export const Effects = {
     );
     sylCore.renderOrder = 19;
     scene.add(sylCore);
+    Mirror.add(sylCore);
 
     // Pre-allocated scratch arrays
     const sylPts = Array.from({ length: S_SEG + 1 }, () => new THREE.Vector3());
@@ -387,7 +392,8 @@ export const Effects = {
     // The two snaps throw the most water: the guard snap sprays it "across his back", the last one hangs it in the air.
     const perBurst = G.tier ? 10 : 20;
     const burstN = (bt) => (Math.abs(bt - 7.6) < 0.05 || Math.abs(bt - 61.55) < 0.05 ? perBurst * 5 : perBurst);
-    const nDrops = SPRAY_BURSTS.reduce((a, bt) => a + burstN(bt), 0) + DRIPS.length;
+    const nCrown = G.tier ? 130 : 300;
+    const nDrops = SPRAY_BURSTS.reduce((a, bt) => a + burstN(bt), 0) + DRIPS.length + nCrown;
     const dGeo = new THREE.InstancedBufferGeometry();
     dGeo.setAttribute('position', new THREE.Float32BufferAttribute([-0.5, -0.5, 0, 0.5, -0.5, 0, -0.5, 0.5, 0, 0.5, 0.5, 0], 3));
     dGeo.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 1, 1], 2));
@@ -421,6 +427,15 @@ export const Effects = {
       aMeta.set([fxTime(tl - fall), fall - 0.004, 0.017, r()], di * 4);
       di++;
     }
+    // Strength surging throws a crown of water up off the pool all around him.
+    const kc = U.uKataC.value;
+    for (let k = 0; k < nCrown; k++) {
+      const a = r() * TAU, rr = 0.45 + r() * 0.95, up = 2.4 + r() * 3.0, out = 1.2 + r() * 2.4;
+      aOrigin.set([kc.x + Math.cos(a) * rr, 0.02, kc.z + Math.sin(a) * rr * 1.2], di * 3);
+      aVel.set([Math.cos(a) * out, up, Math.sin(a) * out], di * 3);
+      aMeta.set([fxTime(BURST + r() * 0.05), 0.9 + r() * 0.7, 0.012 + r() * 0.012, r()], di * 4);
+      di++;
+    }
     dGeo.setAttribute('aOrigin', new THREE.InstancedBufferAttribute(aOrigin, 3));
     dGeo.setAttribute('aVel', new THREE.InstancedBufferAttribute(aVel, 3));
     dGeo.setAttribute('aMeta', new THREE.InstancedBufferAttribute(aMeta, 4));
@@ -431,6 +446,7 @@ export const Effects = {
     }));
     dropMesh.frustumCulled = false; dropMesh.renderOrder = 17;
     scene.add(dropMesh);
+    Mirror.add(dropMesh);
 
     // 4. Atmospheric memory motes & wind-sparkle dust
     const nMotes = G.tier ? 130 : 260;
@@ -506,6 +522,7 @@ export const Effects = {
       return { g, sp };
     });
     scene.add(sphereGroup);
+    Mirror.add(sphereGroup);
 
     // ---- Per-frame deterministic update ----
     const sylNow = new THREE.Vector3();

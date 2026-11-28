@@ -9,6 +9,7 @@ import { U, G, rng, clamp, lerp, sm, fbm, GLSL_NOISE } from './core.js';
 import { camPose } from './film.js';
 import { spearPoseAt } from './kata.js';
 import { MEMORY_PATHS } from '../memories/paths.js';
+import { Mirror } from './mirror.js';
 
 // t0: first stroke, tIn: fully painted, tOut: starts to loosen, t1: gone. Cited: wok:10, 16, 25, 27.
 export const MEMORY_SPECS = [
@@ -300,6 +301,7 @@ export const Memories = {
         mats.push({ mat, gain: ld.gain });
       }
       scene.add(group);
+      Mirror.add(group);
 
       const rawPts = MEMORY_PATHS[spec.id] || [];
       let pMesh = null, pMat = null;
@@ -329,6 +331,7 @@ export const Memories = {
         pMesh = new THREE.Mesh(pGeo, pMat);
         pMesh.frustumCulled = false; pMesh.renderOrder = 16; pMesh.visible = false;
         scene.add(pMesh);
+        Mirror.add(pMesh);
       }
       nodes.push({ spec, group, mats, pMesh, pMat });
       G.info['field_' + spec.id] = field.hits;

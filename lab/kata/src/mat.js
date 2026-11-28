@@ -24,7 +24,7 @@ export function patch(mat, o = {}) {
     Object.assign(sh.uniforms, U, o.uniforms || {});
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\n' + UNIFORMS_GLSL + '\nvarying vec3 vWp;\n' + (o.vHead || ''))
-      .replace('#include <project_vertex>', WP_HOOK + '#include <project_vertex>');
+      .replace('#include <project_vertex>', WP_HOOK + (o.vMain || '') + '#include <project_vertex>');
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', '#include <common>\n' + UNIFORMS_GLSL + '\nvarying vec3 vWp;\n' + (o.fHead || ''))
       .replace('#include <color_fragment>', '#include <color_fragment>\n' + (o.fColor || ''))
@@ -167,6 +167,41 @@ const ROCK_WET_LIGHT = /* glsl */`
   outgoingLight += uMemCol * uMemMix * (0.02 + 0.14 * fr) * wetK * 0.38;
 }
 `;
+
+// Loose stone: the same rock and moss, with sharper grain, sediment lines and cracks, worn light edges,
+// dark crevices, and moss that keeps to the tops and off the edges.
+const STONE_V_HEAD = 'attribute float aEdge;\nvarying float vEdge;\n';
+const STONE_V_MAIN = 'vEdge = aEdge;\n';
+const STONE_F_HEAD = 'varying float vEdge;\n';
+const STONE_COLOR = /* glsl */`
+{
+  float cav = smoothstep(0.05, -0.55, vEdge);
+  float wear = smoothstep(0.18, 0.75, vEdge);
+  float crack = 1.0 - smoothstep(0.0, 0.035, abs(an3(ROT * wp * 3.1 + 5.0) - 0.5));
+  float seam = 1.0 - smoothstep(0.0, 0.05, abs(fract(wp.y * 5.5 + n2(wp.xz * 1.7) * 0.8) - 0.5) * 2.0 - 0.94);
+  vec3 c2 = diffuseColor.rgb;
+  c2 = mix(c2, stone * (0.66 + 0.52 * grain) * wallVis, wear * 0.55);
+  c2 *= 1.0 + wear * 0.55;
+  c2 *= 1.0 - cav * 0.62;
+  c2 *= 1.0 - crack * 0.55 * (1.0 - moss);
+  c2 *= 1.0 - seam * 0.22;
+  diffuseColor.rgb = c2;
+}
+`;
+
+export function boulderMaterial() {
+  const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.88, metalness: 0.0, envMapIntensity: 0.16 });
+  return patch(m, {
+    vHead: STONE_V_HEAD,
+    vMain: STONE_V_MAIN,
+    fHead: ROCK_HEAD + STONE_F_HEAD,
+    fColor: ROCK_COLOR.replace('float moss = smoothstep(0.30, 0.58, mossN * 0.82 + mossFine * 0.26) * mossSlope * mossH * (1.0 - claw * 0.95);',
+      'float moss = smoothstep(0.34, 0.60, mossN * 0.82 + mossFine * 0.26) * smoothstep(0.15, 0.7, Nw.y) * mossH * (1.0 - smoothstep(0.15, 0.55, vEdge) * 0.8);') + STONE_COLOR,
+    fRough: ROCK_ROUGH,
+    fNormal: ROCK_NORMAL.replace('float bk = 0.13 * distFade;', 'float bk = 0.30 * distFade;'),
+    fLight: ROCK_WET_LIGHT,
+  });
+}
 
 export function chasmRockMaterial() {
   // Low envMapIntensity keeps rock grounded and stony while forged metal keeps crisp reflections!
